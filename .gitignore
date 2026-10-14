@@ -1,0 +1,21 @@
+# Secretos y entorno
+.env
+.env.*
+!.env.example
+secrets/
+
+# Preferencias personales de Claude Code
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
