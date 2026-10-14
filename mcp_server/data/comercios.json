@@ -1,0 +1,51 @@
+[
+  {
+    "id": "CO-TV-0001", "razon_social": "Tienda Verde SAS", "nit": "FICT-1001",
+    "estado": "activo", "categoria": "suplementos dietarios",
+    "volumen_mensual_estimado": 80000000, "representante_legal_id": "PE-0001",
+    "fuentes_registro": [
+      {"source": "registro_mercantil_ficticio", "fecha_constitucion": "2021-05-10"}
+    ]
+  },
+  {
+    "id": "CO-LB-0002", "razon_social": "Libros del Faro SAS", "nit": "FICT-1002",
+    "estado": "activo", "categoria": "libreria",
+    "volumen_mensual_estimado": 15000000, "representante_legal_id": "PE-0002",
+    "fuentes_registro": [
+      {"source": "registro_mercantil_ficticio", "fecha_constitucion": "2018-02-01"}
+    ]
+  },
+  {
+    "id": "CO-DA-0003", "razon_social": "Distribuidora Andina Ficticia SAS", "nit": "FICT-1003",
+    "estado": "activo", "categoria": "ferreteria",
+    "volumen_mensual_estimado": 30000000, "representante_legal_id": "PE-0003",
+    "fuentes_registro": [
+      {"source": "registro_mercantil_ficticio", "fecha_constitucion": "2015-09-23"}
+    ]
+  },
+  {
+    "id": "CO-CA-0004", "razon_social": "Cafetería Aurora SAS", "nit": "FICT-1004",
+    "estado": "activo", "categoria": "cafeteria",
+    "volumen_mensual_estimado": 12000000, "representante_legal_id": "PE-0004",
+    "fuentes_registro": [
+      {"source": "registro_mercantil_ficticio", "fecha_constitucion": "2020-01-15"}
+    ]
+  },
+  {
+    "id": "CO-CA-0005", "razon_social": "Cafeteria Aurora S.A.S.", "nit": "FICT-1005",
+    "estado": "activo", "categoria": "cafeteria",
+    "volumen_mensual_estimado": 9000000, "representante_legal_id": "PE-0005",
+    "fuentes_registro": [
+      {"source": "registro_mercantil_ficticio", "fecha_constitucion": "2022-06-30"}
+    ]
+  },
+  {
+    "id": "CO-FH-0006", "razon_social": "Ferretería Horizonte SAS", "nit": "FICT-1006",
+    "estado": "activo", "categoria": "ferreteria",
+    "volumen_mensual_estimado": 22000000, "representante_legal_id": "PE-0006",
+    "fuentes_registro": [
+      {"source": "registro_mercantil_ficticio", "fecha_constitucion": "2016-03-14"},
+      {"source": "camara_comercio_alterna_ficticia", "fecha_constitucion": "2017-03-14"}
+    ]
+  }
+]
