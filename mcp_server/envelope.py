@@ -6,13 +6,17 @@ from typing import Any
 ERROR_CODES = frozenset({"source_unavailable", "invalid_input"})
 
 
+def now_iso() -> str:
+    return datetime.now(UTC).isoformat(timespec="seconds")
+
+
 def ok(content: dict[str, Any], source: str) -> dict[str, Any]:
     return {
         "ok": True,
         "content": content,
         "metadata": {
             "source": source,
-            "fetched_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "fetched_at": now_iso(),
         },
     }
 

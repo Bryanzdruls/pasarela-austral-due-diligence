@@ -52,3 +52,8 @@ def test_blank_or_suffix_only_query_is_invalid():
 def test_description_tells_what_to_do_with_several_matches():
     d = registro.DESCRIPTION
     assert "NO elijas" in d and "identificador" in d
+
+
+def test_partial_words_do_not_match():
+    for q in ("ver", "CO-CA", "aur"):
+        assert registro.consultar_registro_mercantil(q)["content"]["match_count"] == 0, q

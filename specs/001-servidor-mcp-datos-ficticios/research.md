@@ -13,7 +13,7 @@ No quedaron `NEEDS CLARIFICATION` en el contexto técnico; este documento deja c
 - **Alternativas**: lanzar excepciones (el cliente solo ve un texto de error, sin `retryable` ni `partial`).
 
 ## D3. Coincidencias del registro
-- **Decisión**: la búsqueda normaliza (minúsculas, sin tildes, sin puntuación, sufijo societario SAS/S.A.S. ignorado). Un comercio coincide si la consulta es exactamente su identificador, o si la consulta normalizada está contenida en su razón social normalizada (por tanto "Cafetería Aurora" y "Cafeteria Aurora S.A.S." coinciden entre sí). No se usa distancia de edición. La respuesta incluye `match_count` y `ambiguous: true` cuando hay más de una. El servidor nunca elige.
+- **Decisión**: la búsqueda normaliza (minúsculas, sin tildes, sin puntuación, sufijo societario SAS/S.A.S. ignorado). Un comercio coincide si la consulta es exactamente su identificador, o si todas las palabras de la consulta normalizada son palabras completas de su razón social normalizada (por tanto "Cafetería Aurora" y "Cafeteria Aurora S.A.S." coinciden entre sí, pero "ver" no coincide con "Tienda Verde"). No se usa distancia de edición ni subcadenas. La respuesta incluye `match_count` y `ambiguous: true` cuando hay más de una. El servidor nunca elige.
 - **Razón**: FR-003 y el caso de nombres casi idénticos.
 - **Alternativas**: distancia de edición con umbral (más difícil de explicar y de reproducir en pruebas); coincidencia exacta (no reproduce el caso).
 

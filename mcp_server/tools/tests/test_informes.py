@@ -68,3 +68,34 @@ def test_incomplete_escalation_lists_missing_fields(campo, runtime):
     assert r["ok"] is False and r["error_code"] == "invalid_input"
     assert r["partial"]["campos_faltantes"] == [campo]
     assert not list(runtime.glob("ESC-*.json"))
+
+
+def test_findings_without_source_are_rejected(runtime):
+    for hallazgos in ({"x": "algo"}, {"x": {"dato": 1}}, {"x": {"fuente": "  "}}):
+        r = informes.escalar_a_cumplimiento(**_escalamiento(hallazgos=hallazgos))
+        assert r["ok"] is False and r["partial"]["hallazgos_sin_fuente"] == ["x"]
+        r = informes.registrar_informe(**_informe(hallazgos=hallazgos))
+        assert r["ok"] is False and r["partial"]["hallazgos_sin_fuente"] == ["x"]
+    assert not list(runtime.glob("*.json"))
+
+
+def test_whitespace_only_text_counts_as_missing():
+    r = informes.escalar_a_cumplimiento(**_escalamiento(causa="   "))
+    assert r["partial"]["campos_faltantes"] == ["causa"]
+
+
+def test_text_fields_are_stripped_before_saving(runtime):
+    informes.escalar_a_cumplimiento(**_escalamiento(causa="  alto riesgo  "))
+    saved = json.loads((runtime / "ESC-0001.json").read_text(encoding="utf-8"))
+    assert saved["causa"] == "alto riesgo"
+
+
+def test_report_with_no_arguments_returns_structured_error():
+    r = informes.registrar_informe()
+    assert r["ok"] is False and r["error_code"] == "invalid_input"
+    assert r["partial"]["campos_faltantes"] == [
+        "comercio_id",
+        "recomendacion",
+        "hallazgos",
+        "cobertura",
+    ]

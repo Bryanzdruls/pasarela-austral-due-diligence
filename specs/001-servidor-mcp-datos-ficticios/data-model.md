@@ -37,7 +37,7 @@ Todos los valores son ficticios. Documentos y NIT usan el formato `FICT-000N`.
 
 ## Escalamiento (runtime, `ESC-000N.json`)
 
-`id`, `registrado_en`, `comercio`, `hallazgos` (por frente con fuentes), `cobertura`, `causa`, `accion_recomendada`.
+`id`, `registrado_en`, `comercio_id`, `hallazgos` (por frente, cada uno con `fuente`), `cobertura`, `causa`, `accion_recomendada`.
 
 ## Respuestas
 

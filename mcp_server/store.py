@@ -28,6 +28,12 @@ def normalize(text: str) -> str:
     return " ".join(tokens)
 
 
+def name_matches(query: str, name: str) -> bool:
+    """Coincide si todas las palabras de la consulta (normalizadas) están completas en el nombre."""
+    wanted = set(normalize(query).split())
+    return bool(wanted) and wanted <= set(normalize(name).split())
+
+
 def require_text(value: Any) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError("el texto de la consulta no puede estar vacío")
@@ -40,12 +46,19 @@ def runtime_dir() -> Path:
 
 
 def save_record(prefix: str, record: dict[str, Any]) -> str:
+    """Guarda un registro con id consecutivo; nunca pisa un archivo existente."""
     directory = runtime_dir()
     directory.mkdir(parents=True, exist_ok=True)
-    next_number = len(list(directory.glob(f"{prefix}-*.json"))) + 1
-    record_id = f"{prefix}-{next_number:04d}"
-    payload = {"id": record_id, **record}
-    (directory / f"{record_id}.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    return record_id
+    pattern = re.compile(rf"{re.escape(prefix)}-(\d+)\.json")
+    used = [int(m.group(1)) for f in directory.iterdir() if (m := pattern.fullmatch(f.name))]
+    number = max(used, default=0) + 1
+    while True:
+        record_id = f"{prefix}-{number:04d}"
+        payload = json.dumps({"id": record_id, **record}, ensure_ascii=False, indent=2)
+        try:
+            with (directory / f"{record_id}.json").open("x", encoding="utf-8") as f:
+                f.write(payload)
+        except FileExistsError:
+            number += 1
+            continue
+        return record_id

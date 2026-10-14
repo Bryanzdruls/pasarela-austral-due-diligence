@@ -12,8 +12,10 @@ DESCRIPTION = (
     "listas restrictivas. Úsala solo con un comercio ya identificado de forma unívoca en el "
     "registro mercantil. Una coincidencia aquí es la única que cuenta como coincidencia en "
     "listas restrictivas; una noticia que menciona a alguien NO lo es. Recibe el identificador "
-    "del comercio o de la persona, no un nombre."
+    "del comercio o de la persona, no un nombre: un identificador desconocido se rechaza."
 )
+
+_FILES = {"comercio": "comercios", "persona": "personas"}
 
 
 def consultar_listas_restrictivas(
@@ -24,8 +26,14 @@ def consultar_listas_restrictivas(
 
     try:
         ref = store.require_text(referencia)
-        if tipo not in ("comercio", "persona"):
+        if tipo not in _FILES:
             raise ValueError("tipo debe ser 'comercio' o 'persona'")
+        known = {r["id"].upper() for r in store.load(_FILES[tipo])}
+        if ref.upper() not in known:
+            raise ValueError(
+                f"{ref!r} no es un identificador de {tipo} conocido; usa el identificador, "
+                "no el nombre"
+            )
     except ValueError as exc:
         return error(SOURCE, "invalid_input", False, {"mensaje": str(exc)})
 

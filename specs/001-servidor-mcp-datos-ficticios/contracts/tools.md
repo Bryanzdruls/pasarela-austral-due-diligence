@@ -11,7 +11,7 @@ Toda respuesta es el sobre de éxito o de error descrito en [data-model.md](../d
 ## consultar_listas_restrictivas
 - **Entrada**: `tipo: "comercio"|"persona"`, `referencia: str` (id del comercio o de la persona).
 - **Éxito**: `match: bool`, `entradas:[{nombre_lista, fecha_inclusion}]`.
-- **Descripción**: Verifica a un comercio o a una persona (p. ej. el representante legal) contra las listas restrictivas. Úsala solo con un comercio ya identificado de forma unívoca en el registro. Una coincidencia aquí es la única que cuenta como coincidencia en listas; una noticia que menciona a alguien NO lo es.
+- **Descripción**: Verifica a un comercio o a una persona (p. ej. el representante legal) contra las listas restrictivas. Úsala solo con un comercio ya identificado de forma unívoca en el registro. Un identificador desconocido se rechaza con `invalid_input` (no se informa como "sin coincidencia"). Una coincidencia aquí es la única que cuenta como coincidencia en listas; una noticia que menciona a alguien NO lo es.
 
 ## buscar_noticias
 - **Entrada**: `consulta: str` (nombre o id de comercio o persona).
@@ -30,7 +30,7 @@ Toda respuesta es el sobre de éxito o de error descrito en [data-model.md](../d
 
 ## escalar_a_cumplimiento
 - **Entrada**: `comercio_id`, `hallazgos` (por frente con fuentes), `cobertura`, `causa`, `accion_recomendada`.
-- **Éxito**: `escalamiento_id`. **Error `invalid_input`** con `partial.campos_faltantes` si falta algún campo.
+- **Éxito**: `escalamiento_id`. **Error `invalid_input`** con `partial.campos_faltantes` si falta algún campo (texto en blanco cuenta como faltante) y `partial.hallazgos_sin_fuente` si algún frente de `hallazgos` no es un objeto con `fuente`. `registrar_informe` aplica la misma validación.
 - **Descripción**: Pasa el caso a un oficial de cumplimiento. El oficial no ve la conversación: el resumen debe bastarse solo (comercio, hallazgos por frente con fuentes, cobertura, causa del escalamiento y acción recomendada).
 
 ## Fallas (`PASARELA_FAULTS`)

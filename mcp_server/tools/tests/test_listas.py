@@ -15,8 +15,14 @@ def test_clean_commerce_has_no_match():
     assert r["content"] == {"match": False, "entradas": []}
 
 
-def test_same_reference_with_other_type_does_not_match():
-    assert listas.consultar_listas_restrictivas("comercio", "PE-0003")["content"]["match"] is False
+def test_unknown_or_wrong_type_reference_is_rejected_not_reported_clean():
+    for tipo, ref in (
+        ("comercio", "PE-0003"),
+        ("persona", "PE-9999"),
+        ("persona", "Héctor Muestra Lista"),
+    ):
+        r = listas.consultar_listas_restrictivas(tipo, ref)
+        assert r["ok"] is False and r["error_code"] == "invalid_input", (tipo, ref)
 
 
 def test_invalid_input():

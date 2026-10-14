@@ -15,22 +15,13 @@ DESCRIPTION = (
 )
 
 
-def _is_match(query: str, wanted: str, record_id: str, name: str) -> bool:
-    if query.upper() == record_id.upper():
-        return True
-    return bool(wanted) and wanted in store.normalize(name)
+def _is_match(query: str, record_id: str, name: str) -> bool:
+    return query.upper() == record_id.upper() or store.name_matches(query, name)
 
 
 def _referenced_ids(query: str) -> set[str]:
-    wanted = store.normalize(query)
-    ids = {
-        c["id"]
-        for c in store.load("comercios")
-        if _is_match(query, wanted, c["id"], c["razon_social"])
-    }
-    ids |= {
-        p["id"] for p in store.load("personas") if _is_match(query, wanted, p["id"], p["nombre"])
-    }
+    ids = {c["id"] for c in store.load("comercios") if _is_match(query, c["id"], c["razon_social"])}
+    ids |= {p["id"] for p in store.load("personas") if _is_match(query, p["id"], p["nombre"])}
     return ids
 
 

@@ -20,7 +20,7 @@ DESCRIPTION = (
 def _matches(query: str, comercio: dict[str, Any]) -> bool:
     if query.upper() == comercio["id"].upper():
         return True
-    return store.normalize(query) in store.normalize(comercio["razon_social"])
+    return store.name_matches(query, comercio["razon_social"])
 
 
 def _describe(comercio: dict[str, Any], personas: dict[str, dict[str, Any]]) -> dict[str, Any]:

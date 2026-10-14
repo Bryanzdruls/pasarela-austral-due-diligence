@@ -52,3 +52,11 @@ def test_every_tool_returns_content_separated_from_metadata(tmp_path, monkeypatc
         assert "content" in body, name
         assert body["metadata"]["source"] and body["metadata"]["fetched_at"], name
         assert "source" not in body["content"] and "fetched_at" not in body["content"], name
+
+
+def test_all_six_descriptions_carry_their_contract_hints():
+    tools = {t.name: t.description for t in asyncio.run(server.list_tools())}
+    assert "identificado de forma unívoca" in tools["consultar_listas_restrictivas"]
+    assert "sin_clasificar" in tools["consultar_riesgo_categoria"]
+    assert "no valida ni decide" in tools["registrar_informe"]
+    assert "no ve la conversación" in tools["escalar_a_cumplimiento"]

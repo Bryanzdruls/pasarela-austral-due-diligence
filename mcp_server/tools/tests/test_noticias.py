@@ -33,3 +33,8 @@ def test_description_says_mention_is_not_a_list_match():
     d = noticias.DESCRIPTION
     assert "NO es una coincidencia en listas" in d
     assert "consultar_listas_restrictivas" in d
+
+
+def test_short_fragments_do_not_pull_unrelated_news():
+    for q in ("de", "ver", "del"):
+        assert noticias.buscar_noticias(q)["content"]["menciones"] == [], q

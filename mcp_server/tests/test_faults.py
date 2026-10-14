@@ -49,3 +49,10 @@ def test_variable_is_read_on_every_call(monkeypatch):
 def test_blank_value_has_no_faults(monkeypatch, raw):
     monkeypatch.setenv("PASARELA_FAULTS", raw)
     assert noticias.buscar_noticias("Tienda Verde")["ok"] is True
+
+
+@pytest.mark.parametrize("raw", ["noticia", "noticias:otro", "registro,xyz"])
+def test_misconfigured_faults_fail_loudly(monkeypatch, raw):
+    monkeypatch.setenv("PASARELA_FAULTS", raw)
+    with pytest.raises(ValueError, match="PASARELA_FAULTS"):
+        noticias.buscar_noticias("Tienda Verde")
