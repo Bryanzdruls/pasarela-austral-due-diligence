@@ -3,7 +3,7 @@
 No quedaron `NEEDS CLARIFICATION` en el contexto técnico; este documento deja constancia de las decisiones y las alternativas descartadas.
 
 ## D1. SDK y transporte
-- **Decisión**: SDK oficial `mcp` con `FastMCP`, transporte stdio.
+- **Decisión**: SDK oficial `mcp` 2.x con `MCPServer` (en la 1.x se llamaba `FastMCP`), transporte stdio.
 - **Razón**: Es lo que el Agent SDK conecta de forma nativa como servidor MCP; las descripciones de las herramientas salen del docstring y el esquema de entrada de las anotaciones de tipo.
 - **Alternativas**: servidor HTTP/SSE (más piezas, sin beneficio local); herramientas SDK en proceso (`create_sdk_mcp_server`) — válidas, pero el enunciado pide un servidor MCP propio y separado del coordinador.
 
@@ -32,7 +32,7 @@ No quedaron `NEEDS CLARIFICATION` en el contexto técnico; este documento deja c
 - **Alternativas**: memoria del proceso (se pierde al cerrar y no queda evidencia para la demostración).
 
 ## D7. Validación del escalamiento
-- **Decisión**: modelo `pydantic` con campos obligatorios `comercio`, `hallazgos` (por frente, con fuente), `cobertura`, `causa`, `accion_recomendada`; si falta alguno, la herramienta devuelve error `invalid_input` con la lista de campos faltantes.
+- **Decisión**: validación explícita de los campos obligatorios (parámetros opcionales en la firma para poder devolver `campos_faltantes` en lugar de un rechazo del protocolo): `comercio`, `hallazgos` (por frente, con fuente), `cobertura`, `causa`, `accion_recomendada`; si falta alguno, la herramienta devuelve error `invalid_input` con la lista de campos faltantes.
 - **Razón**: Comportamiento 11 (handoff útil) y FR-009.
 
 ## D8. Datos ficticios seguros

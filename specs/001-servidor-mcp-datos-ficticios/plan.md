@@ -12,7 +12,7 @@ Servidor MCP propio (paquete `mcp_server/`) que expone seis herramientas sobre d
 
 **Language/Version**: Python 3.12
 
-**Primary Dependencies**: `mcp` (SDK oficial, `FastMCP`), `pydantic` (validación de entradas, ya incluida por `mcp`)
+**Primary Dependencies**: `mcp` 2.x (SDK oficial; `MCPServer`, antes `FastMCP`), `pydantic` (esquemas de entrada, que `mcp` genera a partir de las anotaciones)
 
 **Storage**: Archivos JSON de solo lectura en `mcp_server/data/`; informes y escalamientos escritos como un JSON por registro en `PASARELA_RUNTIME_DIR` (por defecto `data/runtime/`, ignorado por git)
 
@@ -66,7 +66,7 @@ specs/001-servidor-mcp-datos-ficticios/
 pyproject.toml
 mcp_server/
 ├── __init__.py
-├── server.py            # FastMCP: registra las 6 herramientas; entrada `python -m mcp_server`
+├── server.py            # MCPServer: registra las 6 herramientas; entrada `python -m mcp_server`
 ├── __main__.py
 ├── envelope.py          # ok(...) y error(...): sobre y error estructurado
 ├── faults.py            # lee PASARELA_FAULTS; guard por fuente

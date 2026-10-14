@@ -1,0 +1,20 @@
+[
+  {
+    "id": "NO-0001", "titular": "Investigan publicidad engañosa de suplementos en tienda en línea",
+    "fecha": "2026-03-12", "fuente": "diario_el_mirador_ficticio",
+    "menciona": ["CO-TV-0001"],
+    "resumen": "Reportan quejas de clientes por promesas de salud sin sustento (hecho ficticio)."
+  },
+  {
+    "id": "NO-0002", "titular": "Rosa Noticia Prado inaugura feria del libro",
+    "fecha": "2026-05-20", "fuente": "gaceta_del_valle_ficticia",
+    "menciona": ["PE-0007"],
+    "resumen": "Mención cultural sin relación con riesgo (hecho ficticio)."
+  },
+  {
+    "id": "NO-0003", "titular": "Distribuidora Andina Ficticia enfrenta disputa laboral",
+    "fecha": "2026-01-08", "fuente": "diario_el_mirador_ficticio",
+    "menciona": ["CO-DA-0003"],
+    "resumen": "Reclamo laboral de exempleados, sin sentencia (hecho ficticio)."
+  }
+]

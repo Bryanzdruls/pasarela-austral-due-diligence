@@ -1,0 +1,9 @@
+[
+  {"nombre": "apuestas", "riesgo": "alto"},
+  {"nombre": "criptoactivos", "riesgo": "alto"},
+  {"nombre": "suplementos dietarios", "riesgo": "alto"},
+  {"nombre": "venta de medicamentos", "riesgo": "alto"},
+  {"nombre": "libreria", "riesgo": "bajo"},
+  {"nombre": "cafeteria", "riesgo": "bajo"},
+  {"nombre": "ferreteria", "riesgo": "bajo"}
+]

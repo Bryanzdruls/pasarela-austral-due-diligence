@@ -1,0 +1,9 @@
+[
+  {"id": "PE-0001", "nombre": "Elena Prueba Ríos", "documento": "FICT-0001"},
+  {"id": "PE-0002", "nombre": "Tomás Ficticio Vega", "documento": "FICT-0002"},
+  {"id": "PE-0003", "nombre": "Héctor Muestra Lista", "documento": "FICT-0003"},
+  {"id": "PE-0004", "nombre": "Lucía Demo Campos", "documento": "FICT-0004"},
+  {"id": "PE-0005", "nombre": "Camilo Ejemplo Duarte", "documento": "FICT-0005"},
+  {"id": "PE-0006", "nombre": "Ana Inventada Mora", "documento": "FICT-0006"},
+  {"id": "PE-0007", "nombre": "Rosa Noticia Prado", "documento": "FICT-0007"}
+]
