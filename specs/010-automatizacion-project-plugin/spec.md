@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: Issue #10 de GitHub — "Automatización del GitHub Project y plugin reutilizable". (1) Un flujo que toma el siguiente ticket, lo mueve a In progress, abre el pull request (In review) y lo pasa a Done al fusionar, con comentarios de avance, vía el servidor MCP de GitHub con el toolset `projects`. (2) Un plugin que empaqueta un subagente, una skill y un hook reutilizables, instalable desde un marketplace. Cubre las necesidades 10 y 11 del enunciado.
+**Input**: Issue #10 de GitHub — "Automatización del GitHub Project y plugin reutilizable". (1) Un flujo que toma el siguiente ticket, lo mueve a In Progress, abre el pull request (In review) y lo pasa a Done al fusionar, con comentarios de avance, vía el servidor MCP de GitHub con el toolset `projects`. (2) Un plugin que empaqueta un subagente, una skill y un hook reutilizables, instalable desde un marketplace. Cubre las necesidades 10 y 11 del enunciado.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -16,13 +16,13 @@ Quien desarrolla pide "el siguiente ticket" y el flujo lo elige del Project seg�
 
 **Why this priority**: El enunciado exige que el asistente lea y actualice el backlog "por sí mismo". Es el primer eslabón del ciclo y el que más se nota en la defensa. Sin él, el estado del Project depende de la memoria de quien trabaja.
 
-**Independent Test**: Con un Project que tenga varios tickets en Todo, ejecutar el flujo y comprobar que el elegido es el que corresponde al orden, que pasó a In progress en el Project y que su contenido quedó disponible para especificar; repetirlo con un ticket ya en progreso y comprobar que no toma otro en silencio.
+**Independent Test**: Con un Project que tenga varios tickets en Todo, ejecutar el flujo y comprobar que el elegido es el que corresponde al orden, que pasó a In Progress en el Project y que su contenido quedó disponible para especificar; repetirlo con un ticket ya en progreso y comprobar que no toma otro en silencio.
 
 **Acceptance Scenarios**:
 
 1. **Given** un Project con tickets en Todo, **When** se pide el siguiente ticket, **Then** se elige el primero según el orden definido (los tickets de configuración del entorno antes que los de funcionalidad, y por número dentro de cada grupo) y se indica cuál es y por qué.
-2. **Given** el ticket elegido, **When** se arranca, **Then** su estado en el Project pasa a In progress y se muestra su título y contenido como insumo para la especificación.
-3. **Given** que ya hay un ticket en In progress, **When** se pide el siguiente, **Then** el flujo lo informa y pide confirmación antes de tomar otro.
+2. **Given** el ticket elegido, **When** se arranca, **Then** su estado en el Project pasa a In Progress y se muestra su título y contenido como insumo para la especificación.
+3. **Given** que ya hay un ticket en In Progress, **When** se pide el siguiente, **Then** el flujo lo informa y pide confirmación antes de tomar otro.
 4. **Given** que no quedan tickets en Todo, **When** se pide el siguiente, **Then** se informa claramente que no hay trabajo pendiente y no se modifica nada.
 
 ---
@@ -95,7 +95,7 @@ Quien revisa el repositorio, o prepara la defensa, encuentra documentado para la
 ### Functional Requirements
 
 - **FR-001**: El flujo MUST poder elegir el siguiente ticket del Project aplicando un orden explícito y documentado, e indicar cuál elige y por qué.
-- **FR-002**: Al arrancar un ticket el flujo MUST pasarlo a In progress en el Project y MUST entregar el título y el contenido del issue como insumo de la especificación.
+- **FR-002**: Al arrancar un ticket el flujo MUST pasarlo a In Progress en el Project y MUST entregar el título y el contenido del issue como insumo de la especificación.
 - **FR-003**: El flujo MUST advertir y pedir confirmación si ya hay un ticket en progreso o si el elegido depende de otro aún abierto.
 - **FR-004**: Al abrir el pull request el flujo MUST asegurar que referencia y cierra su issue y MUST pasar el ticket a In review.
 - **FR-005**: El flujo MUST publicar en el issue un comentario de avance con tres partes: lo especificado, lo decidido y lo pendiente, a partir de la información real de la rama (especificación, tareas, verificación).
@@ -114,8 +114,8 @@ Quien revisa el repositorio, o prepara la defensa, encuentra documentado para la
 
 ### Key Entities
 
-- **Ticket**: unidad de trabajo del backlog. Tiene número, título, contenido, estado (Todo, In progress, In review, Done), orden y, si existe, un pull request asociado.
-- **Estado del ticket**: posición del ticket en el ciclo. Cambia solo por las transiciones definidas: arrancar (a In progress), abrir el pull request (a In review) y fusionar (a Done).
+- **Ticket**: unidad de trabajo del backlog. Tiene número, título, contenido, estado (Todo, In Progress, In review, Done), orden y, si existe, un pull request asociado.
+- **Estado del ticket**: posición del ticket en el ciclo. Cambia solo por las transiciones definidas: arrancar (a In Progress), abrir el pull request (a In review) y fusionar (a Done).
 - **Comentario de avance**: mensaje en el issue con lo especificado, lo decidido y lo pendiente.
 - **Plugin**: paquete reutilizable con un subagente, una skill y un hook, con su versión y sus instrucciones.
 - **Catálogo (marketplace)**: lista de plugins instalables, publicada en el repositorio.
@@ -136,7 +136,7 @@ Quien revisa el repositorio, o prepara la defensa, encuentra documentado para la
 
 - La fusión del pull request la hace una persona en GitHub; la transición a Done se registra al ejecutar la sincronización (al tomar el siguiente ticket o bajo demanda), no en el instante de la fusión. Si se quisiera inmediatez, habría que añadir un disparador del lado de GitHub, fuera del alcance de este ticket.
 - El orden de los tickets es: los de configuración del entorno de Claude Code antes que los de funcionalidad (principio VIII de la constitución), y por número dentro de cada grupo.
-- El Project existente (nº 4) tiene el campo de estado con las opciones Todo, In progress, In review y Done, y el servidor de GitHub se configuró con el toolset de projects en el ticket #9.
+- El Project existente (nº 4) tiene el campo de estado con las opciones Todo, In Progress, In review y Done, y el servidor de GitHub se configuró con el toolset de projects en el ticket #9.
 - Reutilizar piezas del ticket #9 para el plugin está permitido por el enunciado: el subagente de cumplimiento, la skill de revisión de cumplimiento y uno de los hooks.
 - El catálogo se publica en este mismo repositorio; no hace falta un repositorio aparte.
 - Los hooks del plugin son una barrera contra descuidos del asistente, no contra ofuscación deliberada (mismo modelo de amenaza que el ticket #9).
