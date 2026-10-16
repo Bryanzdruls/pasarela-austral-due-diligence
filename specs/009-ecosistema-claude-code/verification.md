@@ -54,3 +54,7 @@ No se ejecutaron los comandos interactivos `/hooks` y `/memory` (no se pueden la
 - Redirección pegada a la palabra (`echo x>ruta.py`): ahora la detecta `spec_gate`.
 - El hook de secretos también cubre `Grep`, `Glob` y `PowerShell`; los otros dos hooks cubren `PowerShell`.
 - `docs/TRAZABILIDAD.md`: se quitó la afirmación de un escaneo automático en cada commit (no hay hook de git) y se anotó que el arranque de `pasarela-fuentes` está sin verificar.
+
+### Segunda ronda
+
+`code-reviewer` volvió a devolver `corregir antes del PR` por una regresión de la corrección de mensajes: un heredoc de otra orden encadenada tras `git commit` quedaba oculto. Se corrigió (el cuerpo solo se poda si no hay separadores antes del `<<`), se cerró también `ls > <secreto>` (una redirección ya no vuelve segura la orden) y se documentaron como límites conocidos en `docs/ECOSISTEMA.md` los huecos de `Grep` sobre directorios y del recorte por expresiones regulares. Pruebas en `test_bypasses_round2.py`.

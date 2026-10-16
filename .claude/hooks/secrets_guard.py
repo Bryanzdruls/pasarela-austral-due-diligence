@@ -46,6 +46,9 @@ def _drop_heredoc(match: re.Match[str]) -> str:
     # Un heredoc sin comillas en la etiqueta también expande sustituciones.
     if not match.group("q") and _SUBSTITUTION.search(match.group(0)):
         return match.group(0)
+    # Si la línea encadena otra orden antes del `<<`, el cuerpo puede ser de esa otra orden.
+    if re.search(r"&&|\|\||[;|]", match.group("intro").split("<<")[0]):
+        return match.group(0)
     return match.group("intro")
 
 
@@ -102,7 +105,11 @@ def handle(payload: dict[str, Any]) -> None:
         command = without_messages(tool_input.get("command") or "")
         for segment in _COMMAND_SEGMENTS.split(command):
             # cada tramo se juzga por separado y una sustitución de comandos nunca es "segura"
-            if _first_word(segment) not in _SAFE_COMMANDS or _SUBSTITUTION.search(segment):
+            if (
+                _first_word(segment) not in _SAFE_COMMANDS
+                or _SUBSTITUTION.search(segment)
+                or ">" in segment
+            ):
                 offenders += referenced_secrets(segment)
     elif tool in ("Grep", "Glob"):
         for key in ("path", "glob", "pattern"):
