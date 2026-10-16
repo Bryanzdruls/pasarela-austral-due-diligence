@@ -46,8 +46,10 @@ def _drop_heredoc(match: re.Match[str]) -> str:
     # Un heredoc sin comillas en la etiqueta también expande sustituciones.
     if not match.group("q") and _SUBSTITUTION.search(match.group(0)):
         return match.group(0)
-    # Si la línea encadena otra orden antes del `<<`, el cuerpo puede ser de esa otra orden.
-    if re.search(r"&&|\|\||[;|]", match.group("intro").split("<<")[0]):
+    # El cuerpo solo se poda si `git commit`/`gh ...` abre su propio tramo de la orden y su línea no
+    # encadena ni sustituye nada: en cualquier otro caso el heredoc puede ser de otra orden.
+    own_segment = not _COMMAND_SEGMENTS.split(match.string[: match.start()])[-1].strip()
+    if not own_segment or re.search(r"[&;|`]|\$\(", match.group("intro")):
         return match.group(0)
     return match.group("intro")
 

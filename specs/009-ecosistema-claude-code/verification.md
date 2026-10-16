@@ -58,3 +58,7 @@ No se ejecutaron los comandos interactivos `/hooks` y `/memory` (no se pueden la
 ### Segunda ronda
 
 `code-reviewer` volvió a devolver `corregir antes del PR` por una regresión de la corrección de mensajes: un heredoc de otra orden encadenada tras `git commit` quedaba oculto. Se corrigió (el cuerpo solo se poda si no hay separadores antes del `<<`), se cerró también `ls > <secreto>` (una redirección ya no vuelve segura la orden) y se documentaron como límites conocidos en `docs/ECOSISTEMA.md` los huecos de `Grep` sobre directorios y del recorte por expresiones regulares. Pruebas en `test_bypasses_round2.py`.
+
+### Tercera ronda
+
+La poda del cuerpo de un heredoc seguía teniendo huecos (prefijo antes de `git commit`, `&` simple, heredoc dentro de `$(...)`). Ahora solo se poda si `git commit`/`gh` abre su propio tramo de la orden y su línea no encadena ni sustituye nada; todo lo demás se inspecciona completo. Pruebas en `test_bypasses_round3.py`. Sentido del error: un commit legítimo con una construcción rara puede bloquearse, nunca al revés.
