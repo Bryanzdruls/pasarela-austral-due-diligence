@@ -30,6 +30,8 @@ Se ejecuta el script con un JSON por stdin y se mira el código de salida (`$LAS
 | 6 | `Read` de `.env.example` | código 0 |
 | 7 | `Bash` con `cat .env` | código 2 |
 | 8 | `PostToolUse` de un `.py` mal formateado | el archivo queda formateado; código 0 |
+| 9 | `Bash` con `echo x > mcp_server/y.py` sin especificación | código 2 |
+| 10 | `Bash` con `pytest -q` | código 0 |
 
 Las pruebas automáticas de la sección 1 reproducen exactamente estos casos.
 

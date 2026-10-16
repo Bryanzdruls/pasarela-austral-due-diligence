@@ -27,7 +27,9 @@ Sin número de ticket, o sin carpeta, o con algún artefacto ausente → "especi
 
 ## Código de producción (para el hook de especificación)
 
-Archivos `.py` bajo los directorios de la lista `PRODUCTION_DIRS` (`mcp_server/`, `due_diligence/`; configurable en `.claude/hooks/common.py`), excluyendo cualquier ruta que contenga un directorio `tests`. No son código de producción: documentos, `specs/`, `docs/`, `.claude/`, `scripts/`, datos JSON y pruebas.
+Es código de producción todo archivo `.py` cuya ruta relativa **no** contenga ninguno de estos directorios: `tests`, `scripts`, `.claude`, `.specify`, `.venv`, `docs`, `specs`. El criterio es por exclusión: un directorio de código nuevo queda protegido sin tocar la configuración. No son código de producción: documentos, datos JSON, configuración y pruebas.
+
+Para `Bash`, se trata como escritura de código de producción una orden que escribe (redirección `>` o `>>`, `tee`, `Set-Content`, `Out-File`, `sed -i`, `cp` o `mv` hacia, o `python` que abre para escribir) un archivo `.py` que cumple lo anterior.
 
 ## Reglas de detección de datos reales
 

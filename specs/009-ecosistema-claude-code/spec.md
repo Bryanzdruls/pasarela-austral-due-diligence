@@ -74,6 +74,7 @@ Antes de abrir un pull request, el código pasa por una revisión hecha por un a
 1. **Given** una rama lista para PR, **When** se lanza la revisión independiente, **Then** la hace un agente sin acceso a la conversación de desarrollo y sin poder editar archivos.
 2. **Given** una rama con reglas de negocio implementadas, **When** se lanza la revisión de cumplimiento, **Then** devuelve, para cada regla, si está cumplida, parcial o ausente, con evidencia del código y de la especificación.
 3. **Given** que la revisión de cumplimiento encuentra una regla de negocio que solo depende de instrucciones de un prompt, **When** informa, **Then** lo reporta como incumplimiento grave.
+4. **Given** una rama lista para abrir el pull request con el comando del equipo, **When** se ejecuta, **Then** lanza las dos revisiones, no abre el pull request si alguna reporta un incumplimiento grave y deja ambos veredictos en la descripción.
 
 ---
 
@@ -101,6 +102,7 @@ El equipo puede comprobar de forma automática que se cumplen los mínimos de co
 - Un test que necesita un ejemplo de número con forma de tarjeta: lo construye en tiempo de ejecución, sin escribir el valor literal en ningún archivo.
 - Un fallo del propio mecanismo de bloqueo (error al evaluar): el bloqueo falla de forma segura (se deniega) y explica el motivo, nunca permite por defecto.
 - Rutas con barras de Windows o de Linux: los bloqueos y el formateo funcionan igual.
+- Código escrito desde la terminal (redirecciones, `tee`, `Set-Content`, `Out-File`, `sed -i`, copiar o mover hacia una ruta de producción): se somete a las mismas comprobaciones que las herramientas de edición. Una orden que construya el nombre del archivo en tiempo de ejecución puede eludir la inspección del texto; es un límite conocido y documentado, no una garantía.
 - Un archivo de secretos referenciado por una ruta relativa, absoluta o con mayúsculas distintas: se reconoce igualmente.
 
 ## Requirements *(mandatory)*
@@ -110,8 +112,8 @@ El equipo puede comprobar de forma automática que se cumplen los mínimos de co
 - **FR-001**: El repositorio MUST entregar las convenciones del equipo a quien lo clone, sin pasos de configuración, mediante una memoria de proyecto con jerarquía (nivel proyecto y al menos una importación o un archivo por subdirectorio, con su justificación).
 - **FR-002**: Las preferencias personales MUST quedar fuera del control de versiones y no afectar a otros desarrolladores.
 - **FR-003**: MUST existir al menos dos reglas con alcance por ruta mediante patrones glob, una de ellas con las convenciones de los tests que viven junto al código en distintas carpetas.
-- **FR-004**: Escribir código de producción MUST bloquearse cuando la feature activa no tenga especificación, plan y tareas en `specs/`, indicando qué falta.
-- **FR-005**: Escribir en cualquier archivo del repositorio contenido con forma de número de tarjeta, de documento de identidad o de NIT reales MUST bloquearse, indicando qué se detectó; los identificadores ficticios del proyecto MUST NOT bloquearse.
+- **FR-004**: Escribir código de producción —con las herramientas de edición o con una orden de terminal que escriba un archivo— MUST bloquearse cuando la feature activa no tenga especificación, plan y tareas en `specs/`, indicando qué falta.
+- **FR-005**: Escribir en cualquier archivo del repositorio (con las herramientas de edición o con una orden de terminal) contenido con forma de número de tarjeta, de documento de identidad o de NIT reales MUST bloquearse, indicando qué se detectó; los identificadores ficticios del proyecto MUST NOT bloquearse.
 - **FR-006**: Leer o modificar archivos de secretos y de variables de entorno MUST bloquearse; la plantilla de ejemplo sin valores MUST poder leerse y modificarse.
 - **FR-007**: Tras cada edición de un archivo de código, el archivo MUST quedar formateado; los archivos que no son de código MUST NOT modificarse por formateo.
 - **FR-008**: MUST existir una revisión independiente previa al pull request, a cargo de un agente de solo lectura sin acceso a la conversación de desarrollo.
@@ -123,6 +125,7 @@ El equipo puede comprobar de forma automática que se cumplen los mínimos de co
 - **FR-014**: MUST existir una verificación automática de los mínimos del enunciado que falle indicando qué pieza falta o incumple.
 - **FR-015**: Cada pieza MUST tener registrada su justificación: dónde vive, por qué ahí y qué alternativa se descartó.
 - **FR-016**: Ningún archivo de configuración del ecosistema MUST contener credenciales ni datos con apariencia de reales.
+- **FR-017**: El comando propio que abre el pull request MUST lanzar la revisión independiente y la revisión de cumplimiento antes de abrirlo, y dejar sus veredictos en la descripción del pull request.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -138,8 +141,8 @@ El equipo puede comprobar de forma automática que se cumplen los mínimos de co
 
 ### Measurable Outcomes
 
-- **SC-001**: En un clon limpio, el número de pasos de configuración manual necesarios para que las convenciones del equipo estén activas es 0.
-- **SC-002**: El 100 % de los intentos de escribir código de producción sin especificación, plan y tareas de la feature activa se bloquea, y el 100 % de las escrituras con los tres artefactos presentes se permite (matriz de pruebas con todas las combinaciones).
+- **SC-001**: En un clon limpio, el número de pasos de configuración manual necesarios para que las convenciones del equipo estén activas es 0: la memoria de proyecto, las reglas y los hooks están versionados.
+- **SC-002**: El 100 % de los intentos de escribir código de producción sin especificación, plan y tareas de la feature activa se bloquea, y el 100 % de las escrituras con los tres artefactos presentes se permite (matriz de pruebas con todas las combinaciones, tanto por las herramientas de edición como por órdenes de terminal con redirección).
 - **SC-003**: El 100 % de los valores de muestra con forma de tarjeta, documento de identidad o NIT reales se bloquea, y el 0 % de los archivos ya versionados del proyecto (datos ficticios incluidos) se bloquea al reescribirse.
 - **SC-004**: El 100 % de los intentos de leer o modificar los archivos de secretos y de variables de entorno de muestra se bloquea, y la plantilla de ejemplo sigue accesible.
 - **SC-005**: Tras editar un archivo de código de muestra con formato incorrecto, el archivo pasa la comprobación de formato sin ninguna acción manual.
@@ -150,9 +153,9 @@ El equipo puede comprobar de forma automática que se cumplen los mínimos de co
 ## Assumptions
 
 - Las capacidades de Claude Code que se usan (memoria de proyecto, reglas por ruta, agentes, skills, hooks, comandos y servidores de herramientas) son las que ofrece el producto; el plan concreta cómo se configura cada una.
-- La feature activa se determina por el puntero de feature de Spec Kit o, si no existe, por el prefijo numérico de la rama; sin feature activa no hay especificación y se bloquea el código de producción.
-- "Código de producción" son los directorios de código del proyecto (servidor de fuentes y coordinador, y los que se añadan) definidos en una lista configurable; los tests y los documentos no exigen especificación previa por separado de la de su feature.
+- La feature activa se determina por el prefijo numérico de la rama (`NNN-…` → `specs/NNN-*`) y, si la rama no lo tiene, por el puntero de feature de Spec Kit; sin feature activa no hay especificación y se bloquea el código de producción. La rama va primero porque el puntero no se versiona y apunta a la última especificación creada, que puede no ser la del ticket actual.
+- "Código de producción" es todo archivo de código del repositorio salvo los de pruebas, scripts de utilidad, configuración del ecosistema y entorno virtual (criterio por exclusión: un directorio de código nuevo queda protegido por defecto y no hay que acordarse de añadirlo a ninguna lista). Los documentos, las especificaciones y los datos no exigen especificación previa.
 - Para cumplir las reglas de la constitución, la especificación previa significa tener especificación, plan y tareas de la feature.
 - La verificación de formato usa el formateador que ya adopta el proyecto.
-- El plugin reutilizable y la automatización del flujo de tickets del Project son el ticket #10; el documento `DECISIONES.md` es el ticket #11 (aquí solo se registran las justificaciones como insumo).
+- El plugin reutilizable y la automatización del flujo de tickets del Project son el ticket #10, que se ejecuta inmediatamente después de este y **antes** de cualquier ticket de funcionalidad (constitución v1.1.1: el #9 se implementa antes que el plugin por ser configuración del entorno y porque el plugin empaqueta piezas que este crea; la excepción no se repite). El documento `DECISIONES.md` es el ticket #11 (aquí solo se registran las justificaciones como insumo).
 - Los hooks del ecosistema de desarrollo (Claude Code) son distintos de los hooks del sistema multi-agente (Agent SDK, ticket #3) y no los sustituyen.

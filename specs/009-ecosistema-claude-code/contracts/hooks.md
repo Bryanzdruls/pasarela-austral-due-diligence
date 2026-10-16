@@ -19,18 +19,20 @@ Campos usados: `hook_event_name`, `tool_name`, `tool_input`, `cwd`. Según la he
 - Bloquear: código de salida 2 con el motivo por stderr (una o dos líneas: qué se detectó y qué hacer).
 - Ante una excepción propia de un hook de bloqueo: código de salida 2 con el mensaje `El hook <nombre> falló y deniega por seguridad: <error>`.
 
-## `spec_gate.py` — PreToolUse, matcher `Edit|Write`
+## `spec_gate.py` — PreToolUse, matcher `Edit|Write|Bash`
 
 | Entrada | Resultado |
 |---|---|
 | Ruta de código de producción y feature activa con `spec.md`, `plan.md` y `tasks.md` | permitir |
 | Ruta de código de producción y feature sin alguno de los artefactos | bloquear: "Falta <artefacto> en specs/<carpeta>/. Ejecuta /speckit-<comando> antes de escribir código." |
 | Ruta de código de producción sin ticket en la rama | bloquear: "La rama no corresponde a un ticket (NNN-…): no hay especificación activa." |
-| Cualquier otra ruta (documentos, specs, docs, pruebas, configuración, datos) | permitir |
+| Cualquier otra ruta (documentos, specs, docs, pruebas, scripts, configuración, datos) | permitir |
+| `Bash` que escribe (redirección, `tee`, `Set-Content`, `Out-File`, `sed -i`, `cp`, `mv`, `python` que abre para escribir) a una ruta de producción, con los artefactos incompletos | bloquear con el mismo mensaje |
+| `Bash` que solo lee o ejecuta (`cat`, `ls`, `pytest`, `git`) | permitir |
 
-## `real_data_guard.py` — PreToolUse, matcher `Edit|Write`
+## `real_data_guard.py` — PreToolUse, matcher `Edit|Write|Bash`
 
-Revisa `content` (Write) o `new_string` (Edit). Bloquea con "Contenido con forma de <tarjeta|NIT|documento> reales: <fragmento enmascarado>. Usa un identificador ficticio (FICT-NNNN)." El fragmento mostrado se enmascara (no se repite completo). Cualquier otro contenido: permitir.
+Revisa `content` (Write), `new_string` (Edit) o el texto de `command` (Bash). Bloquea con "Contenido con forma de <tarjeta|NIT|documento> reales: <fragmento enmascarado>. Usa un identificador ficticio (FICT-NNNN)." El fragmento mostrado se enmascara (no se repite completo). Cualquier otro contenido: permitir.
 
 ## `secrets_guard.py` — PreToolUse, matcher `Read|Edit|Write|Bash`
 
@@ -44,7 +46,7 @@ Si `file_path` termina en `.py`: ejecuta el formateador sobre ese archivo (`ruff
 ## `settings.json`
 
 ```
-hooks.PreToolUse   -> [ {Edit|Write: spec_gate.py, real_data_guard.py},
+hooks.PreToolUse   -> [ {Edit|Write|Bash: spec_gate.py, real_data_guard.py},
                         {Read|Edit|Write|Bash: secrets_guard.py} ]
 hooks.PostToolUse  -> [ {Edit|Write: format_after_edit.py} ]
 permissions.deny   -> Read/Edit de .env, .env.local, .env.production, secrets/**, *.pem, *.key

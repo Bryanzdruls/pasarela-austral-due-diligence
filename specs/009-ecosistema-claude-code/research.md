@@ -23,7 +23,7 @@ Cada decisión registra *dónde vive la pieza, por qué ahí y qué alternativa 
 ## D4. Hooks de proyecto en `.claude/settings.json`
 - **Dónde**: `.claude/settings.json` (versionado), apuntando a scripts en `.claude/hooks/`.
 - **Por qué**: lo que invalida la entrega o causa daño se hace cumplir con un hook determinista (constitución, principio III). Un `PreToolUse` que deniega aplica en todos los modos de permisos, incluido el que salta confirmaciones. El bloqueo se hace con código de salida 2 y el motivo por stderr; cualquier otro código distinto de 0 y 2 no bloquea, por eso los scripts capturan sus propios errores y salen con 2.
-- **Matcher**: `Edit|Write` (sensible a mayúsculas). **[No confirmado]** `MultiEdit`; no se usa.
+- **Matcher**: `Edit|Write` para las herramientas de edición y `Bash` para las órdenes de terminal que escriben archivos (sensible a mayúsculas). **[No confirmado]** `MultiEdit`; no se usa. Sin notebooks en el proyecto, `NotebookEdit` no se cubre y queda como límite documentado.
 - **Alternativas descartadas**: instrucciones en `CLAUDE.md` (no bloquean); `permissions.deny` como única capa (no inspecciona contenido ni la feature activa); comandos en línea dentro de `settings.json` (no se pueden probar ni leer cómodamente).
 
 ## D5. Hooks como scripts de Python con biblioteca estándar
@@ -34,7 +34,7 @@ Cada decisión registra *dónde vive la pieza, por qué ahí y qué alternativa 
 
 ## D6. Hook de especificación previa (`spec_gate.py`, necesidad N4)
 - **Dónde**: `PreToolUse` sobre `Edit|Write`.
-- **Regla**: bloquea escribir código de producción (archivos `.py` bajo `mcp_server/`, `due_diligence/` y los directorios de la lista, excluyendo `tests/`) si la feature activa no tiene `spec.md`, `plan.md` y `tasks.md` en `specs/`.
+- **Regla**: bloquea escribir código de producción si la feature activa no tiene `spec.md`, `plan.md` y `tasks.md` en `specs/`. **Código de producción** = archivo `.py` que no esté bajo `tests`, `scripts`, `.claude`, `.specify`, `.venv`, `docs` ni `specs` (criterio **por exclusión**: un directorio de código nuevo, como el del chat, queda protegido por defecto; una lista de directorios permitidos fallaría abierta). También se aplica a órdenes `Bash` que escriben a una ruta de producción: redirección (`>`, `>>`), `tee`, `Set-Content`, `Out-File`, `sed -i`, `cp` o `mv` hacia ella, y `python -c` que abre el archivo para escribir.
 - **Feature activa**: primero el prefijo numérico de la rama (`009-...` → `specs/009-*`); si la rama no tiene prefijo numérico, el puntero `.specify/feature.json`. Sin feature, se bloquea.
 - **Por qué rama primero**: `.specify/feature.json` está ignorado por git y apunta a la última especificación creada, que puede no ser la del ticket actual; el nombre de la rama es la fuente fiable de cada ticket.
 - **Alternativa descartada**: exigir solo `spec.md` (el enunciado dice "su especificación", pero la constitución exige especificación, plan y tareas).
@@ -43,6 +43,7 @@ Cada decisión registra *dónde vive la pieza, por qué ahí y qué alternativa 
 - **Qué detecta**: números de tarjeta de 13 a 19 dígitos (contiguos o en grupos de cuatro) que pasen la comprobación de Luhn; NIT con forma `NNN.NNN.NNN-D` o `NNNNNNNNN-D`; y cédula o NIT precedidos de una etiqueta (`cédula`, `CC`, `NIT`, `documento`, `identificación`) con 6 a 10 dígitos.
 - **Qué no bloquea**: los identificadores ficticios del proyecto (`FICT-0001`, `CO-TV-0001`) y números que no cumplen las formas anteriores.
 - **Por qué solo con etiqueta para documentos**: un número de 8-10 dígitos suelto aparece en marcas de tiempo y sumas de verificación; sin etiqueta habría falsos positivos constantes. Las tarjetas se filtran por Luhn.
+- **En `Bash`**: el hook también revisa el texto de la orden, para que un valor sensible escrito con `echo … > archivo` no esquive la comprobación. Una orden que construya el valor en tiempo de ejecución puede eludirla (límite conocido).
 - **Pruebas**: los ejemplos sensibles se construyen en tiempo de ejecución (un generador de números con dígito de control válido); ningún archivo contiene el valor literal.
 - **Alternativa descartada**: lista de ejemplos fijos (no generaliza y obligaría a escribir los valores en el repositorio).
 
@@ -75,5 +76,17 @@ Cada decisión registra *dónde vive la pieza, por qué ahí y qué alternativa 
 - **Por qué**: convierte los mínimos del enunciado en una comprobación repetible; falla indicando qué pieza falta. El plugin lo comprueba el ticket #10.
 - **Alternativa descartada**: una lista manual (se desactualiza).
 
-## D13. Qué queda fuera
+## D13. Qué queda fuera y orden de los tickets
+- Orden decidido por el autor el 2026-10-16: **#9 → #10 → #2**. El #10 (plugin y automatización del flujo de tickets) va justo después de este y antes de cualquier funcionalidad; el #9 precede al plugin por ser configuración del entorno y porque el plugin empaqueta piezas que este crea. La excepción está acotada por la constitución v1.1.1 y no se repite.
 - Plugin reutilizable y automatización del flujo de tickets: ticket #10. `DECISIONES.md`: ticket #11. Los hooks del Agent SDK (reglas de negocio 1-3): ticket #3; no se confunden con los hooks de Claude Code de este ticket.
+
+## D14. `/abrir-pr` lanza las dos revisiones (hallazgo E1 del análisis)
+- **Dónde**: `.claude/commands/abrir-pr.md` (existente).
+- **Por qué**: el flujo de la constitución (paso 3) exige revisión independiente **y** de cumplimiento antes del PR; hoy el comando solo lanza `code-reviewer`. Se actualiza para lanzar también `compliance-reviewer`, no abrir el PR si alguna revisión reporta un incumplimiento grave y volcar ambos veredictos en la descripción.
+- **Alternativa descartada**: dejar la revisión de cumplimiento como paso manual (se olvida y no queda constancia en el PR).
+
+## D15. Límites conocidos de los hooks (se documentan en `docs/ECOSISTEMA.md`)
+- Una orden que construya en tiempo de ejecución el nombre del archivo o el valor sensible puede eludir la inspección del texto de `Bash`.
+- `NotebookEdit` no se cubre (el proyecto no usa notebooks).
+- El aislamiento a nivel de sistema operativo requeriría el modo aislado de Claude Code (sandbox), fuera de alcance.
+- Los hooks de proyecto se leen al arrancar la sesión y requieren la confianza del proyecto; un hook defectuoso solo protege tras reiniciar.

@@ -6,7 +6,7 @@
 
 ## Summary
 
-Configurar Claude Code en el repositorio con piezas pequeñas, bien ubicadas y verificables: memoria de proyecto jerárquica (`CLAUDE.md` raíz + uno por subdirectorio + una importación), reglas con alcance por ruta, cuatro hooks de proyecto (tres que bloquean antes de ejecutar y uno posterior a la edición) escritos en Python estándar y probados sin el modelo, un segundo subagente de revisión (cumplimiento), dos skills, y una verificación automática de los mínimos del enunciado junto con un inventario que justifica cada pieza. Los bloqueos fallan cerrado y explican su motivo.
+Configurar Claude Code en el repositorio con piezas pequeñas, bien ubicadas y verificables: memoria de proyecto jerárquica (`CLAUDE.md` raíz + uno por subdirectorio + una importación), reglas con alcance por ruta, cuatro hooks de proyecto (tres que bloquean antes de ejecutar —también sobre órdenes de terminal que escriben archivos— y uno posterior a la edición) escritos en Python estándar y probados sin el modelo, un segundo subagente de revisión (cumplimiento), dos skills, y una verificación automática de los mínimos del enunciado junto con un inventario que justifica cada pieza. Los bloqueos fallan cerrado y explican su motivo.
 
 ## Technical Context
 
@@ -41,7 +41,7 @@ Configurar Claude Code en el repositorio con piezas pequeñas, bien ubicadas y v
 | V. Agentes con herramientas mínimas | Sí | Revisores de solo lectura (Read, Grep, Glob) |
 | VI. Pruebas junto al código | Sí | `.claude/hooks/tests/`, `scripts/tests/`; los hooks se prueban sin modelo |
 | VII. Trazabilidad | Sí | Issue #9, rama y PR que lo cierra; `docs/TRAZABILIDAD.md` se actualiza al cerrar |
-| VIII. Ecosistema primero | Es esta feature | Se fusiona antes de continuar con funcionalidad |
+| VIII. Ecosistema primero | Es esta feature (con el #10) | #9 y #10 se fusionan, en ese orden, antes de cualquier ticket de funcionalidad (constitución v1.1.1) |
 
 Sin violaciones.
 
@@ -83,7 +83,7 @@ due_diligence/CLAUDE.md             # convenciones del coordinador (carga bajo d
 ├── skills/
 │   ├── revisar-cumplimiento/SKILL.md   # context: fork, allowed-tools, argument-hint
 │   └── verificar-ecosistema/SKILL.md   # allowed-tools, argument-hint
-├── commands/abrir-pr.md            # existente
+├── commands/abrir-pr.md            # existente; se actualiza para lanzar ambas revisiones
 └── hooks/
     ├── common.py                   # lectura de stdin, bloqueo con mensaje, rutas, feature activa
     ├── spec_gate.py                # PreToolUse Edit|Write: spec+plan+tasks antes del código
