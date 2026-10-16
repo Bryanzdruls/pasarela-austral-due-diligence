@@ -248,3 +248,194 @@ def test_observe_accepts_the_full_mcp_tool_name_and_never_raises():
         book.observe(REGISTRO, weird, weird)  # type: ignore[arg-type]
         book.observe(None, weird, weird)  # type: ignore[arg-type]
     assert book.check_listas(listas("comercio", "CO-XX-0001")).allowed is True
+
+
+# --------------------------------------------------------------------------- regla 2 (US2)
+
+
+def lista_resp(match, ok=True):
+    """Respuesta de listas con la forma real (sobre JSON como texto)."""
+    entradas = (
+        [{"nombre_lista": "lista_ficticia", "fecha_inclusion": "2025-01-01"}] if match else []
+    )
+    content = {"match": match, "entradas": entradas}
+    return json.dumps({"ok": ok, "content": content, "metadata": {"source": "listas_ficticias"}})
+
+
+def informe(recomendacion, comercio_id="CO-XX-0001"):
+    return {
+        "comercio_id": comercio_id,
+        "recomendacion": recomendacion,
+        "hallazgos": {},
+        "cobertura": {},
+        "conflictos": [],
+    }
+
+
+def with_listas(book, tipo, referencia, match):
+    book.observe(LISTAS, listas(tipo, referencia), lista_resp(match))
+    return book
+
+
+def test_a_match_of_the_commerce_in_listas_blocks_habilitar_with_rule_2():
+    book = with_listas(identified(comercio()), "comercio", "CO-XX-0001", True)
+    decision = book.check_informe(informe("habilitar"))
+    assert_blocked(decision, rule="2", hint="escal")
+
+
+def test_a_match_of_the_legal_representative_blocks_habilitar_too():
+    book = identified(comercio())
+    with_listas(book, "comercio", "CO-XX-0001", False)
+    with_listas(book, "persona", "PE-0001", True)
+    assert_blocked(book.check_informe(informe("habilitar")), rule="2", hint="representante")
+
+
+def test_without_any_match_rule_2_does_not_block_habilitar():
+    book = identified(comercio())
+    with_listas(book, "comercio", "CO-XX-0001", False)
+    with_listas(book, "persona", "PE-0001", False)
+    assert book.check_informe(informe("habilitar")).allowed is True
+
+
+def test_a_match_of_one_commerce_does_not_affect_another():
+    book = identified(comercio("CO-XX-0001", "PE-0001"), comercio("CO-XX-0002", "PE-0002"))
+    with_listas(book, "comercio", "CO-XX-0001", True)
+    assert_blocked(book.check_informe(informe("habilitar", "CO-XX-0001")), rule="2")
+    assert book.check_informe(informe("habilitar", "CO-XX-0002")).allowed is True
+
+
+@pytest.mark.parametrize("recomendacion", ["no_habilitar", "escalar_a_cumplimiento"])
+def test_the_other_recommendations_and_escalating_are_always_allowed_with_a_match(recomendacion):
+    book = with_listas(identified(comercio()), "comercio", "CO-XX-0001", True)
+    assert book.check_informe(informe(recomendacion)).allowed is True
+    assert book.check_escalar({"comercio_id": "CO-XX-0001"}).allowed is True
+
+
+def test_a_failed_or_unreadable_listas_result_is_not_recorded_as_no_match():
+    book = identified(comercio())
+    book.observe(LISTAS, listas("comercio", "CO-XX-0001"), lista_resp(False, ok=False))
+    book.observe(LISTAS, listas("persona", "PE-0001"), "basura")
+    assert book.commerces["CO-XX-0001"].listas == {}
+    book.observe(LISTAS, listas("comercio", "CO-XX-0001"), lista_resp(False))
+    assert book.commerces["CO-XX-0001"].listas == {"comercio": False}
+
+
+def test_a_listas_result_for_an_unidentified_reference_creates_nothing():
+    book = CaseBook()
+    book.observe(LISTAS, listas("comercio", "CO-XX-0009"), lista_resp(True))
+    assert book.commerces == {}
+
+
+def test_a_later_clean_listas_result_never_erases_an_earlier_match():
+    book = with_listas(identified(comercio()), "comercio", "CO-XX-0001", True)
+    with_listas(book, "comercio", "CO-XX-0001", False)
+    assert_blocked(book.check_informe(informe("habilitar")), rule="2")
+
+
+# --------------------------------------------------------------------------- regla 3 (US3)
+
+RIESGO = "consultar_riesgo_categoria"
+CATEGORIES = ["apuestas", "criptoactivos", "suplementos dietarios", "venta de medicamentos"]
+
+
+def riesgo_resp(categoria, riesgo, ok=True):
+    content = {"categoria": categoria, "riesgo": riesgo}
+    return json.dumps({"ok": ok, "content": content, "metadata": {"source": "catalogo_ficticio"}})
+
+
+def consult_catalog(book, categoria, riesgo):
+    book.observe(RIESGO, {"categoria": categoria}, riesgo_resp(categoria, riesgo))
+    return book
+
+
+@pytest.mark.parametrize("category", CATEGORIES)
+def test_the_category_in_the_registry_blocks_habilitar_with_rule_3(category):
+    book = identified(comercio(categoria=category))
+    assert_blocked(
+        book.check_informe(informe("habilitar")), rule="3", hint="oficial de cumplimiento"
+    )
+
+
+@pytest.mark.parametrize("category", CATEGORIES)
+def test_the_category_declared_by_the_analyst_blocks_habilitar_even_if_the_registry_says_otherwise(
+    category,
+):
+    book = CaseBook()
+    book.start_request(f"Necesito el due diligence de Comercio SAS, CO-XX-0001. Es de {category}.")
+    book.observe(REGISTRO, {"consulta": "CO-XX-0001"}, registro([comercio(categoria="librería")]))
+    assert_blocked(book.check_informe(informe("habilitar")), rule="3")
+
+
+@pytest.mark.parametrize("category", CATEGORIES)
+def test_a_high_risk_category_blocks_even_when_the_catalog_answers_sin_clasificar(category):
+    """En la ejecución real el catálogo devolvió sin_clasificar para suplementos en línea."""
+    book = identified(comercio(categoria="librería"))
+    consult_catalog(book, f"{category} (venta en línea)", "sin_clasificar")
+    assert_blocked(book.check_informe(informe("habilitar")), rule="3")
+
+
+def test_the_catalog_saying_alto_blocks_even_for_a_category_outside_the_pasarela_list():
+    book = identified(comercio(categoria="librería"))
+    consult_catalog(book, "categoría rara", "alto")
+    assert_blocked(book.check_informe(informe("habilitar")), rule="3")
+
+
+def test_a_low_risk_commerce_without_alerts_can_be_enabled():
+    book = CaseBook()
+    book.start_request("Necesito el due diligence de Libros del Faro, CO-XX-0001")
+    book.observe(REGISTRO, {"consulta": "CO-XX-0001"}, registro([comercio(categoria="librería")]))
+    consult_catalog(book, "librería", "bajo")
+    assert book.check_informe(informe("habilitar")).allowed is True
+
+
+@pytest.mark.parametrize("recomendacion", ["no_habilitar", "escalar_a_cumplimiento"])
+def test_escalating_is_always_allowed_for_a_high_risk_commerce(recomendacion):
+    book = identified(comercio(categoria="apuestas"))
+    assert book.check_informe(informe(recomendacion)).allowed is True
+    assert book.check_escalar({"comercio_id": "CO-XX-0001"}).allowed is True
+
+
+def test_the_evidence_of_a_request_does_not_pass_to_a_low_risk_commerce_investigated_later():
+    book = CaseBook()
+    book.start_request("Due diligence de Tienda Verde, CO-XX-0001, suplementos dietarios")
+    book.observe(
+        REGISTRO,
+        {"consulta": "CO-XX-0001"},
+        registro([comercio("CO-XX-0001", "PE-0001", "suplementos dietarios")]),
+    )
+    consult_catalog(book, "suplementos dietarios", "alto")
+    assert_blocked(book.check_informe(informe("habilitar", "CO-XX-0001")), rule="3")
+
+    book.start_request("Ahora necesito el due diligence de Libros del Faro, CO-XX-0002")
+    book.observe(
+        REGISTRO,
+        {"consulta": "CO-XX-0002"},
+        registro([comercio("CO-XX-0002", "PE-0002", "librería")]),
+    )
+    assert book.check_informe(informe("habilitar", "CO-XX-0002")).allowed is True
+
+    # lo ya determinado de un comercio se conserva en las solicitudes siguientes
+    book.start_request("¿Y qué dijeron las noticias de Tienda Verde?")
+    assert_blocked(book.check_informe(informe("habilitar", "CO-XX-0001")), rule="3")
+
+
+def test_a_declared_category_sticks_to_the_commerce_identified_in_that_request():
+    book = CaseBook()
+    book.start_request("Due diligence de CO-XX-0001, es una casa de apuestas")
+    book.observe(REGISTRO, {"consulta": "CO-XX-0001"}, registro([comercio(categoria="librería")]))
+    book.start_request("¿Lo podemos habilitar?")  # la solicitud nueva ya no menciona la categoría
+    assert_blocked(book.check_informe(informe("habilitar")), rule="3")
+
+
+def test_a_high_risk_result_that_arrives_after_the_registry_in_the_same_request_still_counts():
+    book = CaseBook()
+    book.start_request("Due diligence de CO-XX-0001")
+    book.observe(REGISTRO, {"consulta": "CO-XX-0001"}, registro([comercio(categoria="librería")]))
+    consult_catalog(book, "criptoactivos", "alto")  # llega después, en paralelo
+    book.start_request("¿Lo habilitamos?")
+    assert_blocked(book.check_informe(informe("habilitar")), rule="3")
+
+
+def test_rule_2_is_reported_before_rule_3_when_both_apply():
+    book = with_listas(identified(comercio(categoria="apuestas")), "comercio", "CO-XX-0001", True)
+    assert_blocked(book.check_informe(informe("habilitar")), rule="2")

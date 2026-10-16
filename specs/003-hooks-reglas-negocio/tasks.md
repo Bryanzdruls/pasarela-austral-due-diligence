@@ -50,10 +50,10 @@ description: "Tareas de los hooks del SDK para las reglas de negocio 1 a 3"
 
 **Independent Test**: simular coincidencia del comercio y, por separado, del representante; `habilitar` se rechaza y `escalar_a_cumplimiento` se permite; sin coincidencia, esta regla no bloquea.
 
-- [ ] T013 [US2] Ampliar `test_rules.py` (deben fallar antes de T015): `observe` de un resultado de listas con `match: true` para el comercio → `check_informe` con `habilitar` bloquea con regla 2; coincidencia solo del representante → bloquea igual; `match: false` en ambos → regla 2 no bloquea; coincidencia de un comercio no afecta a otro; `escalar_a_cumplimiento` y `no_habilitar` se permiten con coincidencia; `check_escalar` siempre permite; un resultado de listas con `ok: false` **no** cuenta como "sin coincidencias" (no registra ausencia)
-- [ ] T014 [US2] Ejecutar `test_rules.py` y comprobar que las pruebas de T013 fallan por la razón esperada
-- [ ] T015 [US2] Implementar en `rules.py` el registro de resultados de listas en `observe` (coincidencia del comercio o del representante, por comercio) y `check_informe` para la regla 2 y `check_escalar`
-- [ ] T016 [US2] Ampliar `test_rule_hooks.py` con la regla 2 de extremo a extremo con entradas reales (listas con coincidencia → `registrar_informe` con `habilitar` denegado con regla 2; `escalar_a_cumplimiento` permitido); ejecutar y comprobar que pasan
+- [x] T013 [US2] Ampliar `test_rules.py` (deben fallar antes de T015): `observe` de un resultado de listas con `match: true` para el comercio → `check_informe` con `habilitar` bloquea con regla 2; coincidencia solo del representante → bloquea igual; `match: false` en ambos → regla 2 no bloquea; coincidencia de un comercio no afecta a otro; `escalar_a_cumplimiento` y `no_habilitar` se permiten con coincidencia; `check_escalar` siempre permite; un resultado de listas con `ok: false` **no** cuenta como "sin coincidencias" (no registra ausencia)
+- [x] T014 [US2] Ejecutar `test_rules.py` y comprobar que las pruebas de T013 fallan por la razón esperada
+- [x] T015 [US2] Implementar en `rules.py` el registro de resultados de listas en `observe` (coincidencia del comercio o del representante, por comercio) y `check_informe` para la regla 2 y `check_escalar`
+- [x] T016 [US2] Ampliar `test_rule_hooks.py` con la regla 2 de extremo a extremo con entradas reales (listas con coincidencia → `registrar_informe` con `habilitar` denegado con regla 2; `escalar_a_cumplimiento` permitido); ejecutar y comprobar que pasan
 
 ## Phase 5: User Story 3 - Regla 3: alto riesgo nunca se habilita (Priority: P1)
 
@@ -61,10 +61,10 @@ description: "Tareas de los hooks del SDK para las reglas de negocio 1 a 3"
 
 **Independent Test**: para cada categoría, `habilitar` se rechaza por cada fuente; con riesgo bajo y sin alertas se permite; la evidencia de una solicitud no pasa a un comercio posterior.
 
-- [ ] T017 [US3] Ampliar `test_rules.py` (deben fallar antes de T019): por cada una de las cuatro categorías, `habilitar` se rechaza con regla 3 cuando la categoría viene (a) del registro del comercio, (b) del texto de la solicitud (`start_request`), (c) de una consulta al catálogo por su argumento `categoria` con resultado `sin_clasificar`, y (d) del catálogo con `riesgo: "alto"`; riesgo bajo sin otras alertas → permite; `start_request` limpia la evidencia de la solicitud anterior (un comercio de riesgo bajo investigado después de uno de alto riesgo se permite) pero la categoría del registro y lo ya determinado de un comercio se conservan; `escalar_a_cumplimiento` y `no_habilitar` siempre se permiten
-- [ ] T018 [US3] Ejecutar `test_rules.py` y comprobar que las pruebas de T017 fallan por la razón esperada
-- [ ] T019 [US3] Implementar en `rules.py` `start_request`, el registro de las consultas al catálogo en `observe` (argumento `categoria` y resultado), la categoría del registro y `check_informe` para la regla 3 con la persistencia por comercio (D6)
-- [ ] T020 [US3] Ampliar `test_rule_hooks.py` con la regla 3 de extremo a extremo (`UserPromptSubmit` con la categoría declarada, `PostToolUse` del catálogo, `PreToolUse` de `registrar_informe` denegado con regla 3); ejecutar y comprobar que pasan
+- [x] T017 [US3] Ampliar `test_rules.py` (deben fallar antes de T019): por cada una de las cuatro categorías, `habilitar` se rechaza con regla 3 cuando la categoría viene (a) del registro del comercio, (b) del texto de la solicitud (`start_request`), (c) de una consulta al catálogo por su argumento `categoria` con resultado `sin_clasificar`, y (d) del catálogo con `riesgo: "alto"`; riesgo bajo sin otras alertas → permite; `start_request` limpia la evidencia de la solicitud anterior (un comercio de riesgo bajo investigado después de uno de alto riesgo se permite) pero la categoría del registro y lo ya determinado de un comercio se conservan; `escalar_a_cumplimiento` y `no_habilitar` siempre se permiten
+- [x] T018 [US3] Ejecutar `test_rules.py` y comprobar que las pruebas de T017 fallan por la razón esperada
+- [x] T019 [US3] Implementar en `rules.py` `start_request`, el registro de las consultas al catálogo en `observe` (argumento `categoria` y resultado), la categoría del registro y `check_informe` para la regla 3 con la persistencia por comercio (D6)
+- [x] T020 [US3] Ampliar `test_rule_hooks.py` con la regla 3 de extremo a extremo (`UserPromptSubmit` con la categoría declarada, `PostToolUse` del catálogo, `PreToolUse` de `registrar_informe` denegado con regla 3); ejecutar y comprobar que pasan
 
 ## Phase 6: User Story 4 - Vocabulario, aislamiento y cableado (Priority: P2)
 

@@ -7,7 +7,7 @@ deniega (falla cerrado).
 
 import json
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 # Política de la pasarela: raíces normalizadas de las categorías de alto riesgo (apuestas,
@@ -77,6 +77,9 @@ def parse_envelope(response: Any) -> dict[str, Any] | None:
 
 REGISTRO = "consultar_registro_mercantil"
 LISTAS = "consultar_listas_restrictivas"
+RIESGO = "consultar_riesgo_categoria"
+INFORME = "registrar_informe"
+ESCALAR = "escalar_a_cumplimiento"
 
 
 @dataclass
@@ -86,6 +89,11 @@ class CommerceCase:
     id: str
     representante_id: str | None = None
     categoria_registro: str | None = None
+    # Resultado de las listas por sujeto ("comercio", "persona"): True si hubo coincidencia. Solo
+    # entran resultados correctos: una falla o una respuesta ilegible no es "sin coincidencias".
+    listas: dict[str, bool] = field(default_factory=dict)
+    # Una vez determinado que es de alto riesgo, se conserva en las solicitudes siguientes.
+    alto_riesgo: bool = False
 
 
 def _short_name(tool: Any) -> str:
@@ -106,6 +114,16 @@ class CaseBook:
 
     def __init__(self) -> None:
         self.commerces: dict[str, CommerceCase] = {}
+        # Evidencia de la solicitud en curso (se limpia con cada solicitud nueva del analista).
+        self.risk_observations: list[tuple[str, str | None]] = []
+        self.declared_text = ""
+        self._request_commerces: set[str] = set()
+
+    def start_request(self, prompt: Any) -> None:
+        """Nueva solicitud del analista: su texto es evidencia de la categoría declarada."""
+        self.declared_text = prompt if isinstance(prompt, str) else ""
+        self.risk_observations = []
+        self._request_commerces = set()
 
     # ------------------------------------------------------------------ observación
 
@@ -116,6 +134,8 @@ class CaseBook:
             return
 
     def _observe(self, tool: str, tool_input: Any, response: Any) -> None:
+        if tool == RIESGO:
+            self._observe_riesgo(tool_input, response)
         envelope = parse_envelope(response)
         if envelope is None or envelope.get("ok") is not True:
             return
@@ -124,6 +144,8 @@ class CaseBook:
             return
         if tool == REGISTRO:
             self._observe_registro(content)
+        elif tool == LISTAS:
+            self._observe_listas(tool_input, content)
 
     def _observe_registro(self, content: dict[str, Any]) -> None:
         matches = content.get("matches")
@@ -147,6 +169,49 @@ class CaseBook:
         )
         case.categoria_registro = _text(match.get("categoria"))
         self.commerces[commerce_id] = case
+        self._request_commerces.add(commerce_id)
+        self._mark_request_commerces()
+
+    def _observe_riesgo(self, tool_input: Any, response: Any) -> None:
+        """Se anota la categoría consultada (aunque la llamada fallara) y el riesgo devuelto."""
+        categoria = _text(tool_input.get("categoria")) if isinstance(tool_input, dict) else None
+        if categoria is None:
+            return
+        envelope = parse_envelope(response)
+        content = envelope.get("content") if envelope and envelope.get("ok") is True else None
+        riesgo = _text(content.get("riesgo")) if isinstance(content, dict) else None
+        self.risk_observations.append((categoria, riesgo))
+        self._mark_request_commerces()
+
+    def _request_evidence(self) -> bool:
+        """¿Alguna fuente de la solicitud en curso indica alto riesgo? Basta una (D6)."""
+        return is_high_risk(self.declared_text) or any(
+            is_high_risk(categoria) or riesgo == "alto"
+            for categoria, riesgo in self.risk_observations
+        )
+
+    def _mark_request_commerces(self) -> None:
+        """Los comercios identificados en esta solicitud heredan su evidencia de alto riesgo."""
+        if self._request_evidence():
+            for commerce_id in self._request_commerces:
+                self.commerces[commerce_id].alto_riesgo = True
+
+    def _observe_listas(self, tool_input: Any, content: dict[str, Any]) -> None:
+        if not isinstance(tool_input, dict):
+            return
+        tipo, referencia = tool_input.get("tipo"), _text(tool_input.get("referencia"))
+        match = content.get("match")
+        if referencia is None or not isinstance(match, bool):
+            return
+        if tipo == "comercio":
+            cases = [self.commerces[referencia]] if referencia in self.commerces else []
+        elif tipo == "persona":
+            cases = [c for c in self.commerces.values() if c.representante_id == referencia]
+        else:
+            return
+        for case in cases:
+            # Un resultado limpio posterior nunca borra una coincidencia anterior.
+            case.listas[tipo] = case.listas.get(tipo, False) or match
 
     # ------------------------------------------------------------------ regla 1
 
@@ -174,6 +239,56 @@ class CaseBook:
                 f"la persona {referencia} no es el representante legal de un comercio identificado"
             )
         return _deny_listas(detalle)
+
+    # ------------------------------------------------------------------ regla 2
+
+    def check_informe(self, tool_input: Any) -> Decision:
+        """Reglas sobre el informe que se va a registrar (la recomendación decide)."""
+        data = tool_input if isinstance(tool_input, dict) else {}
+        if data.get("recomendacion") == "habilitar":
+            case = self.commerces.get(_text(data.get("comercio_id")) or "")
+            if case is not None and any(case.listas.values()):
+                return _deny_regla_2(case)
+            if case is not None and self._is_high_risk(case):
+                return _deny_regla_3(case)
+        return ALLOW
+
+    def _is_high_risk(self, case: CommerceCase) -> bool:
+        """Regla 3: registro, catálogo o solicitud del analista; la lista de la pasarela manda."""
+        if case.alto_riesgo or is_high_risk(case.categoria_registro) or self._request_evidence():
+            case.alto_riesgo = True
+        return case.alto_riesgo
+
+    def check_escalar(self, tool_input: Any) -> Decision:
+        """Escalar a un oficial de cumplimiento siempre se permite."""
+        return ALLOW
+
+
+def _deny_regla_2(case: CommerceCase) -> Decision:
+    quien = (
+        "el representante legal"
+        if case.listas.get("persona") and not case.listas.get("comercio")
+        else "el comercio"
+    )
+    return Decision(
+        False,
+        "2",
+        f"Regla 2: hay coincidencia en listas restrictivas de {quien} de {case.id}; no se puede "
+        "recomendar habilitar. Qué hacer: escala el caso a un oficial de cumplimiento con "
+        "`escalar_a_cumplimiento` (o registra el informe con `no_habilitar`).",
+    )
+
+
+def _deny_regla_3(case: CommerceCase) -> Decision:
+    return Decision(
+        False,
+        "3",
+        f"Regla 3: {case.id} es de una categoría de alto riesgo (apuestas, criptoactivos, "
+        "suplementos dietarios o venta de medicamentos); un comercio de alto riesgo nunca recibe "
+        "habilitación automática: decide un oficial de cumplimiento. Qué hacer: escala el caso a "
+        "un oficial de cumplimiento con `escalar_a_cumplimiento` (o registra el informe con "
+        "`no_habilitar`).",
+    )
 
 
 def _deny_listas(detalle: str) -> Decision:

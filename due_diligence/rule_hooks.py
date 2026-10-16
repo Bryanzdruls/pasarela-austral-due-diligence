@@ -14,12 +14,12 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from due_diligence.guards import _deny
-from due_diligence.rules import LISTAS, CaseBook, Decision
+from due_diligence.rules import ESCALAR, INFORME, LISTAS, CaseBook, Decision
 
 Hook = Callable[[dict[str, Any], str | None, Any], Awaitable[dict[str, Any]]]
 
 # Herramientas cuyo uso deciden las reglas (el resto lo decide el guard de aislamiento).
-_GOVERNED = {LISTAS: "check_listas"}
+_GOVERNED = {LISTAS: "check_listas", INFORME: "check_informe", ESCALAR: "check_escalar"}
 
 
 def _short_name(tool: Any) -> str:
@@ -80,3 +80,18 @@ def make_post_tool_use(book: CaseBook) -> Hook:
         return {}
 
     return post_tool_use
+
+
+def make_user_prompt_submit(book: CaseBook) -> Hook:
+    """`UserPromptSubmit`: el texto del analista es la evidencia de la categoría declarada."""
+
+    async def user_prompt_submit(
+        input_data: dict[str, Any], tool_use_id: str | None, context: Any
+    ) -> dict[str, Any]:
+        try:
+            book.start_request(input_data.get("prompt"))
+        except Exception:  # noqa: BLE001 - no registrar la solicitud nunca bloquea al analista
+            pass
+        return {}
+
+    return user_prompt_submit

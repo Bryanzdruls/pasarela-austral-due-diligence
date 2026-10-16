@@ -172,3 +172,126 @@ async def test_the_post_hook_never_raises_and_never_blocks_whatever_it_receives(
         book, "consultar_listas_restrictivas", {"tipo": "comercio", "referencia": "CO-XX-0001"}
     )
     assert decision_of(output) == "deny"
+
+
+# --------------------------------------------------------------------------- regla 2
+
+from due_diligence.tests.test_rules import informe, lista_resp  # noqa: E402
+
+INFORME = "registrar_informe"
+ESCALAR = "escalar_a_cumplimiento"
+
+
+async def identified_with_match(subject, referencia):
+    book = CaseBook()
+    await observe(
+        book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registro([comercio()])
+    )
+    await observe(
+        book,
+        "consultar_listas_restrictivas",
+        {"tipo": subject, "referencia": referencia},
+        lista_resp(True),
+        agent_type="listas_restrictivas",
+    )
+    return book
+
+
+async def test_habilitar_is_denied_with_rule_2_after_a_match_of_the_commerce():
+    book = await identified_with_match("comercio", "CO-XX-0001")
+    output = await run(book, INFORME, informe("habilitar"), agent_type=None)
+    assert decision_of(output) == "deny" and "Regla 2" in reason_of(output)
+    assert "escalar_a_cumplimiento" in reason_of(output)
+
+
+async def test_habilitar_is_denied_after_a_match_of_the_representative_only():
+    book = await identified_with_match("persona", "PE-0001")
+    output = await run(book, INFORME, informe("habilitar"), agent_type=None)
+    assert decision_of(output) == "deny" and "Regla 2" in reason_of(output)
+
+
+async def test_escalating_and_not_enabling_are_allowed_after_a_match():
+    book = await identified_with_match("comercio", "CO-XX-0001")
+    assert await run(book, ESCALAR, {"comercio_id": "CO-XX-0001"}, agent_type=None) == {}
+    assert await run(book, INFORME, informe("escalar_a_cumplimiento"), agent_type=None) == {}
+    assert await run(book, INFORME, informe("no_habilitar"), agent_type=None) == {}
+
+
+async def test_without_a_match_habilitar_is_not_denied_by_rule_2():
+    book = CaseBook()
+    await observe(
+        book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registro([comercio()])
+    )
+    assert await run(book, INFORME, informe("habilitar"), agent_type=None) == {}
+
+
+# --------------------------------------------------------------------------- regla 3
+
+from due_diligence.rule_hooks import make_user_prompt_submit  # noqa: E402
+from due_diligence.tests.test_rules import riesgo_resp  # noqa: E402
+
+
+async def prompt(book, text):
+    data = {
+        "hook_event_name": "UserPromptSubmit",
+        "session_id": "s1",
+        "transcript_path": "",
+        "cwd": ".",
+        "prompt": text,
+    }
+    return await make_user_prompt_submit(book)(data, None, None)
+
+
+async def test_a_category_declared_by_the_analyst_is_read_from_the_prompt_and_denies_habilitar():
+    book = CaseBook()
+    assert await prompt(book, "Due diligence de CO-XX-0001, venta de suplementos dietarios") == {}
+    registry = registro([comercio(categoria="librería")])
+    await observe(book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registry)
+    output = await run(book, INFORME, informe("habilitar"), agent_type=None)
+    assert decision_of(output) == "deny" and "Regla 3" in reason_of(output)
+    assert "oficial de cumplimiento" in reason_of(output)
+
+
+async def test_a_catalog_answer_of_sin_clasificar_for_a_listed_category_still_denies():
+    book = CaseBook()
+    await prompt(book, "Due diligence de CO-XX-0001")
+    registry = registro([comercio(categoria="librería")])
+    await observe(book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registry)
+    await observe(
+        book,
+        "consultar_riesgo_categoria",
+        {"categoria": "suplementos dietarios (venta en línea)"},
+        riesgo_resp("suplementos dietarios (venta en línea)", "sin_clasificar"),
+        agent_type="riesgo_categoria",
+    )
+    output = await run(book, INFORME, informe("habilitar"), agent_type=None)
+    assert decision_of(output) == "deny" and "Regla 3" in reason_of(output)
+
+
+async def test_the_registry_category_denies_and_escalating_stays_allowed():
+    book = CaseBook()
+    registry = registro([comercio(categoria="casa de apuestas")])
+    await observe(book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registry)
+    assert decision_of(await run(book, INFORME, informe("habilitar"), agent_type=None)) == "deny"
+    assert await run(book, ESCALAR, {"comercio_id": "CO-XX-0001"}, agent_type=None) == {}
+
+
+async def test_a_low_risk_commerce_is_not_denied_by_rule_3():
+    book = CaseBook()
+    await prompt(book, "Due diligence de Libros del Faro, CO-XX-0001")
+    registry = registro([comercio(categoria="librería")])
+    await observe(book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registry)
+    await observe(
+        book,
+        "consultar_riesgo_categoria",
+        {"categoria": "librería"},
+        riesgo_resp("librería", "bajo"),
+        agent_type="riesgo_categoria",
+    )
+    assert await run(book, INFORME, informe("habilitar"), agent_type=None) == {}
+
+
+async def test_the_prompt_hook_never_raises_whatever_it_receives():
+    book = CaseBook()
+    for data in ({}, {"prompt": None}, {"prompt": 5}, {"hook_event_name": "UserPromptSubmit"}):
+        assert await make_user_prompt_submit(book)(data, None, None) == {}
