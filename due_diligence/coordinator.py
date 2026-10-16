@@ -8,6 +8,7 @@ from claude_agent_sdk import ClaudeSDKClient, ResultError, ResultMessage
 
 from due_diligence.events import DomainEvent, RunFinished, Translator
 from due_diligence.options import build_options
+from due_diligence.rules import CaseBook
 
 
 class DueDiligenceSession:
@@ -19,7 +20,9 @@ class DueDiligenceSession:
     """
 
     def __init__(self, options: Any = None, client_factory: Any = ClaudeSDKClient):
-        self._options = options if options is not None else build_options()
+        # Un CaseBook por conversación: lo identificado, consultado y declarado no se comparte.
+        self.book = CaseBook()
+        self._options = options if options is not None else build_options(self.book)
         self._client_factory = client_factory
         self._client: Any = None
         self._turn_open = False

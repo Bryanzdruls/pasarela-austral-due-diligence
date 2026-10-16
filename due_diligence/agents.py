@@ -15,6 +15,9 @@ FRONT_TOOLS: dict[FrontName, str] = {
     FrontName.RIESGO_CATEGORIA: _PREFIX + "consultar_riesgo_categoria",
 }
 
+# Herramientas de salida (ticket #3): solo el coordinador las usa, y siempre bajo las reglas.
+OUTPUT_TOOLS: tuple[str, ...] = (_PREFIX + "registrar_informe", _PREFIX + "escalar_a_cumplimiento")
+
 _DESCRIPTIONS: dict[FrontName, str] = {
     FrontName.REGISTRO_MERCANTIL: (
         "Identifica al comercio en el registro mercantil por nombre o identificador y devuelve "

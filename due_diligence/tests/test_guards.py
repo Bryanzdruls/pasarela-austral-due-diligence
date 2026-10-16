@@ -60,8 +60,16 @@ async def test_the_coordinator_cannot_launch_builtin_or_unspecified_subagents(to
 
 
 async def test_the_coordinator_is_denied_every_other_tool():
-    for tool in [*FRONT_TOOLS.values(), *OUTPUT_TOOLS, *BUILTIN_TOOLS, "mcp__otro__herramienta"]:
+    for tool in [*FRONT_TOOLS.values(), *BUILTIN_TOOLS, "mcp__otro__herramienta"]:
         assert_denied(await call(tool), tool)
+
+
+@pytest.mark.parametrize("tool", OUTPUT_TOOLS)
+async def test_only_the_coordinator_may_use_the_two_output_tools(tool):
+    # Ticket #3 (D9): sin ellas las reglas 2 y 3 no tendrían dónde aplicarse; las reglas deciden.
+    assert await call(tool) == {}
+    for front in FrontName:
+        assert_denied(await call(tool, agent_type=front.value), tool)
 
 
 async def test_an_unknown_agent_type_fails_closed():

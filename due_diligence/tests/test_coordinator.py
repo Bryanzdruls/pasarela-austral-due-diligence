@@ -291,3 +291,23 @@ async def test_a_failing_query_still_closes_the_turn_and_does_not_leave_it_open(
             async for _ in session.ask("otra vez"):
                 pass
         assert session._client.interrupted == 0
+
+
+async def test_each_conversation_gets_its_own_case_book():
+    from due_diligence.rules import CaseBook
+
+    factory = FakeClientFactory([])
+    async with DueDiligenceSession(client_factory=factory) as one:
+        async with DueDiligenceSession(client_factory=factory) as two:
+            assert isinstance(one.book, CaseBook) and isinstance(two.book, CaseBook)
+            assert one.book is not two.book
+
+
+async def test_the_session_hooks_are_bound_to_its_own_case_book():
+    factory = FakeClientFactory([])
+    async with DueDiligenceSession(client_factory=factory) as session:
+        hooks = factory.options_received[0].hooks
+        await hooks["UserPromptSubmit"][0].hooks[-1](
+            {"prompt": "Due diligence de apuestas"}, None, None
+        )
+        assert "apuestas" in session.book.declared_text

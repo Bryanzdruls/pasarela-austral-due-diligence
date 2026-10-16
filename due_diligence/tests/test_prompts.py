@@ -50,3 +50,15 @@ def test_coordinator_does_not_query_sources_itself():
 def test_says_the_decision_rules_are_enforced_elsewhere():
     # El prompt orienta; las reglas 1-3 las garantizan hooks (ticket #3).
     assert "orienta" in LOWER or "orientación" in LOWER
+
+
+def test_declares_the_closed_recommendation_vocabulary_and_the_output_tools():
+    # Ticket #3: el hook solo acepta estos valores, así que el modelo debe conocerlos exactos.
+    for value in ("habilitar", "no_habilitar", "escalar_a_cumplimiento"):
+        assert f"`{value}`" in COORDINATOR_PROMPT
+    assert "registrar_informe" in COORDINATOR_PROMPT
+    assert "escalar_a_cumplimiento" in COORDINATOR_PROMPT
+
+
+def test_still_says_the_rules_are_enforced_by_hooks_and_not_by_the_prompt():
+    assert "hooks" in LOWER and "no con estas instrucciones" in LOWER
