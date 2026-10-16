@@ -409,6 +409,18 @@ MUTATIONS += [
         """            self._check_cobertura(data)""",
     ),
     (
+        "procedencia: la clave del hallazgo solo reconoce el nombre exacto del frente",
+        RULES,
+        """    return first if first in FRENTES else None""",
+        """    return None""",
+    ),
+    (
+        "ambigüedad: el identificador del candidato distingue mayúsculas",
+        RULES,
+        """        wanted = (_text(data.get("comercio_id")) or "").strip().upper()""",
+        """        wanted = (_text(data.get("comercio_id")) or "").strip()""",
+    ),
+    (
         "procedencia: el escalamiento no la comprueba",
         RULES,
         """            or self._check_procedencia(data)

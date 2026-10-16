@@ -1,0 +1,43 @@
+{"tool_name": "Agent", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "Agent", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_registro_mercantil", "agent_type": "registro_mercantil", "agent_id": "ae5b36acaea5b1227", "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_registro_mercantil", "agent_type": "registro_mercantil", "agent_id": "ae5b36acaea5b1227", "decision": "allow", "rule": null, "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__buscar_noticias", "agent_type": "noticias", "agent_id": "ac618ff5b5b03c8c1", "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__buscar_noticias", "agent_type": "noticias", "agent_id": "ac618ff5b5b03c8c1", "decision": "allow", "rule": null, "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__buscar_noticias", "agent_type": "noticias", "agent_id": "ac618ff5b5b03c8c1", "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__buscar_noticias", "agent_type": "noticias", "agent_id": "ac618ff5b5b03c8c1", "decision": "allow", "rule": null, "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__registrar_informe", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__registrar_informe", "agent_type": null, "agent_id": null, "decision": "deny", "rule": "vocabulario", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__registrar_informe", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__registrar_informe", "agent_type": null, "agent_id": null, "decision": "allow", "rule": null, "pasada": "forced"}
+{"tool_name": "Agent", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "Agent", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_registro_mercantil", "agent_type": "registro_mercantil", "agent_id": "a3e7e001ba0e15129", "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_registro_mercantil", "agent_type": "registro_mercantil", "agent_id": "a3e7e001ba0e15129", "decision": "allow", "rule": null, "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__buscar_noticias", "agent_type": "noticias", "agent_id": "a7806386746f17896", "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__buscar_noticias", "agent_type": "noticias", "agent_id": "a7806386746f17896", "decision": "allow", "rule": null, "pasada": "forced"}
+{"tool_name": "Agent", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "Agent", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_listas_restrictivas", "agent_type": "listas_restrictivas", "agent_id": "a76ee5bb990f61340", "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_listas_restrictivas", "agent_type": "listas_restrictivas", "agent_id": "a76ee5bb990f61340", "decision": "allow", "rule": null, "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_listas_restrictivas", "agent_type": "listas_restrictivas", "agent_id": "a76ee5bb990f61340", "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_listas_restrictivas", "agent_type": "listas_restrictivas", "agent_id": "a76ee5bb990f61340", "decision": "allow", "rule": null, "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_riesgo_categoria", "agent_type": "riesgo_categoria", "agent_id": "abe1e7168a0cd8587", "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_riesgo_categoria", "agent_type": "riesgo_categoria", "agent_id": "abe1e7168a0cd8587", "decision": "allow", "rule": null, "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__registrar_informe", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__registrar_informe", "agent_type": null, "agent_id": null, "decision": "deny", "rule": "vocabulario", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__registrar_informe", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__registrar_informe", "agent_type": null, "agent_id": null, "decision": "allow", "rule": null, "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__escalar_a_cumplimiento", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__escalar_a_cumplimiento", "agent_type": null, "agent_id": null, "decision": "deny", "rule": "procedencia", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__escalar_a_cumplimiento", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__escalar_a_cumplimiento", "agent_type": null, "agent_id": null, "decision": "allow", "rule": null, "pasada": "forced"}
+{"tool_name": "Agent", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_registro_mercantil", "agent_type": "registro_mercantil", "agent_id": "a53026fb137c6cae3", "decision": "allow", "pasada": "forced"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_registro_mercantil", "agent_type": "registro_mercantil", "agent_id": "a53026fb137c6cae3", "decision": "allow", "rule": null, "pasada": "forced"}
+{"tool_name": "Agent", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced2"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_registro_mercantil", "agent_type": "registro_mercantil", "agent_id": "afeb4e09a33796676", "decision": "allow", "pasada": "forced2"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_registro_mercantil", "agent_type": "registro_mercantil", "agent_id": "afeb4e09a33796676", "decision": "allow", "rule": null, "pasada": "forced2"}
+{"tool_name": "Agent", "agent_type": null, "agent_id": null, "decision": "allow", "pasada": "forced2"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_registro_mercantil", "agent_type": "registro_mercantil", "agent_id": "a5ea722d09aa0f121", "decision": "allow", "pasada": "forced2"}
+{"tool_name": "mcp__pasarela-fuentes__consultar_registro_mercantil", "agent_type": "registro_mercantil", "agent_id": "a5ea722d09aa0f121", "decision": "allow", "rule": null, "pasada": "forced2"}

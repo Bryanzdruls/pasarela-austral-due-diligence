@@ -636,3 +636,66 @@ def test_the_reasons_name_every_problem_found():
     )
     assert_blocked(decision, rule="procedencia", hint="noticias")
     assert "riesgo" in decision.reason.lower()
+
+
+# ------------------------------------------------------------- revisión del #5 (code-reviewer)
+
+
+@pytest.mark.parametrize(
+    "clave",
+    [
+        "registro mercantil",
+        "registro-mercantil",
+        "Registro Mercantil",
+        "REGISTRO_MERCANTIL",
+        "registro_mercantil_ficticio",
+        "registro",
+    ],
+)
+def test_a_finding_key_in_another_spelling_of_the_front_is_still_checked(clave):
+    """Entrada del code-reviewer: `registro mercantil` esquivaba la procedencia."""
+    falso = {"contenido": "x", "fuente": "diario_inventado"}
+    decision = CaseBook().check_informe(informe_con("no_habilitar", hallazgos={clave: falso}))
+    assert_blocked(decision, rule="procedencia")
+
+
+@pytest.mark.parametrize(
+    "clave, esperado",
+    [
+        ("registro mercantil", "registro"),
+        ("listas-restrictivas", "listas"),
+        ("Riesgo Categoría", "riesgo"),
+        ("noticias_adversas", "noticias"),
+        ("datos_del_analista", None),
+        ("volumen_y_riesgo", None),
+        ("", None),
+    ],
+)
+def test_front_of_alias_reads_the_front_from_the_first_word_of_the_key(clave, esperado):
+    from due_diligence.rules import front_of_alias
+
+    assert front_of_alias(clave) == esperado
+
+
+def test_a_coverage_key_in_another_spelling_declares_the_front():
+    from due_diligence.tests.test_rules_cobertura import fail
+
+    book = con_fuentes()
+    book.start_request("Investiga CO-XX-0001")
+    fail(book, "noticias")
+    cobertura = {"Noticias": {"estado": "sin_cubrir", "motivo": "no disponible"}}
+    assert book.check_informe(informe_con("no_habilitar", cobertura=cobertura)).allowed is True
+
+
+@pytest.mark.parametrize("escrito", ["co-xx-0004", "Co-Xx-0004", " CO-XX-0004 "])
+def test_a_candidate_id_in_another_case_is_still_unidentified(escrito):
+    """Entrada del code-reviewer: el id en minúsculas esquivaba la regla de ambigüedad."""
+    book = ambiguo()
+    assert_blocked(book.check_informe(informe_con("no_habilitar", escrito)), rule="ambiguedad")
+    assert_blocked(book.check_escalar(escalamiento(escrito)), rule="ambiguedad")
+
+
+def test_an_identified_candidate_in_another_case_is_not_blocked():
+    book = ambiguo()
+    observe_registro(book, comercio("CO-XX-0004", "PE-0004"), consulta="CO-XX-0004")
+    assert book.check_informe(informe_con("no_habilitar", "CO-XX-0004")).allowed is True

@@ -101,9 +101,14 @@ def front_of_alias(name: Any) -> str | None:
     """El frente (nombre del servidor) que designa `name`, o None si no es un frente."""
     if not isinstance(name, str):
         return None
-    key = normalize(name)
+    key = "_".join(re.split(r"[\s_\-]+", normalize(name)))
     key = _FRONT_ALIASES.get(key, key)
-    return key if key in FRENTES else None
+    if key in FRENTES:
+        return key
+    # La primera palabra decide: `registro mercantil` o `noticias_adversas` son el frente;
+    # `datos_del_analista` no lo es (revisión del #5: otra grafía esquivaba la procedencia).
+    first = key.split("_", 1)[0]
+    return first if first in FRENTES else None
 
 
 @dataclass(frozen=True)
@@ -401,9 +406,10 @@ class CaseBook:
     def _check_ambiguedad(self, data: dict[str, Any]) -> Decision | None:
         """Un candidato de un resultado ambiguo no admite informe ni escalamiento hasta que el
         analista dé su identificador y el registro lo identifique de forma unívoca."""
-        commerce_id = (_text(data.get("comercio_id")) or "").strip()
-        if commerce_id in self.candidates and commerce_id not in self.commerces:
-            return _deny_ambiguedad(commerce_id, sorted(self.candidates - set(self.commerces)))
+        wanted = (_text(data.get("comercio_id")) or "").strip().upper()
+        candidate = next((c for c in self.candidates if c.upper() == wanted), None)
+        if candidate is not None and not any(c.upper() == wanted for c in self.commerces):
+            return _deny_ambiguedad(candidate, sorted(self.candidates - set(self.commerces)))
         return None
 
     def _check_procedencia(self, data: dict[str, Any]) -> Decision | None:
