@@ -162,7 +162,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 | Falta grave | Estado hoy | Cómo se controla |
 |---|---|---|
 | Una regla de negocio que dependa solo del prompt | **ABIERTA** | Las reglas 1-3 no tienen hook todavía (ticket #3). Cerrar antes del cierre del proyecto |
-| Una credencial en el repositorio | Sin hallazgos | Escaneo de patrones de claves en cada commit (`sk-ant-`, `ghp_`, `gho_`, `github_pat_`, claves privadas); `.env` ignorado; `.mcp.json` solo referencia variables |
+| Una credencial en el repositorio | Sin hallazgos | Escaneo de valores con forma de clave de Anthropic, de token de GitHub o de clave privada en cada commit, que detiene el commit si hay coincidencia; `.env` ignorado; `.mcp.json` solo referencia variables |
 | Un dato que parezca real | Sin hallazgos | `test_datos_ficticios.py`; hook de datos reales pendiente (#9) |
 
 ## 9. Desviaciones del proceso reconocidas
