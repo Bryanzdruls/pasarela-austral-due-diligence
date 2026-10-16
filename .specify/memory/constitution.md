@@ -41,13 +41,19 @@ Antes de implementar cualquier ticket de funcionalidad MUST existir configurado,
 
 El ecosistema es parte del producto que se entrega y se defiende; no es trabajo posterior. Si una pieza falta, se configura antes de seguir con funcionalidad.
 
+Orden y excepción acotada:
+- El ecosistema completo, **incluidos el plugin reutilizable y la automatización del flujo de tickets**, MUST estar configurado antes de que empiece cualquier ticket de funcionalidad.
+- Los tickets de configuración del entorno de Claude Code, #9 y #10, se ejecutan primero y en ese orden.
+- El ticket #9 se implementa antes de que exista el plugin únicamente porque el plugin empaqueta piezas que el #9 crea y porque ambos son configuración del entorno, no funcionalidad. Es una excepción acotada a esos dos tickets, decidida por el autor el 2026-10-16.
+- Esa excepción no vuelve a aplicarse: ningún ticket de funcionalidad (#2 y siguientes) comienza hasta que el #9 y el #10 estén fusionados.
+
 ## Restricciones adicionales
 - Lenguaje: Python. Servidor MCP propio con datos locales (sin base de datos real). Interfaz de chat web simple.
 - Alcance: MVP sólido; ante falta de tiempo se priorizan los comportamientos obligatorios.
 - Pocas piezas bien ubicadas antes que muchas decorativas.
 
 ## Flujo de desarrollo y revisión
-0. Ecosistema de Claude Code configurado (principio VIII). Sin esto no se empieza ningún ticket de funcionalidad.
+0. Ecosistema de Claude Code completo y fusionado (principio VIII), plugin y automatización incluidos: los tickets #9 y #10 se cierran antes de empezar cualquier ticket de funcionalidad. Sin esto no se empieza ninguno.
 1. Tomar el siguiente ticket del Project y moverlo a In progress.
 2. `/speckit-specify` (con `/speckit-clarify` si hay ambigüedad) → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement`.
 3. Revisión independiente del código y revisión de cumplimiento de reglas de negocio antes de abrir el PR.
@@ -57,4 +63,4 @@ El ecosistema es parte del producto que se entrega y se defiende; no es trabajo 
 ## Governance
 Esta constitución prevalece sobre otras prácticas. Se establece con `/speckit-constitution` una vez por proyecto y toda enmienda se hace con ese mismo comando, documentando su motivo y versión. Los PR verifican cumplimiento de las reglas I y II y del principio VIII. La validación contra el enunciado de la prueba (PDF) se hace al cerrar cada ticket. La complejidad añadida debe justificarse contra una necesidad real. Guía de operación en `CLAUDE.md`.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-14 | **Last Amended**: 2026-10-16
+**Version**: 1.1.1 | **Ratified**: 2026-10-14 | **Last Amended**: 2026-10-16
