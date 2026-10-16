@@ -39,8 +39,8 @@ La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el mo
 | R1 | Ninguna consulta a listas sin comercio identificado de forma unívoca en el registro | Hecho | Hook `PreToolUse` sobre `consultar_listas_restrictivas`: solo para un comercio identificado de forma unívoca por el registro (o su representante), con lo que devolvió la fuente; `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #17). verificado con modelo real (`specs/003-*/verification.md`): denegada con el modelo aunque se le ordenó saltarla |
 | R2 | Coincidencia en listas (comercio o representante) impide recomendar habilitación y escala | Hecho | Hook sobre `registrar_informe` (rechaza `habilitar` tras una coincidencia del comercio o de su representante) y hook `Stop` que exige escalar antes de cerrar, una sola vez; `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #17). verificado con modelo real (`specs/003-*/verification.md`). El contenido y el criterio del escalamiento: ticket #6 |
 | R3 | Alto riesgo nunca recibe habilitación automática | Hecho | Hook sobre `registrar_informe` con la lista de la pasarela (apuestas, criptoactivos, suplementos dietarios, medicamentos) desde el registro, el catálogo y la solicitud del analista, también si el catálogo dice `sin_clasificar`; `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #17). verificado con modelo real (`specs/003-*/verification.md`) |
-| R4 | Cada afirmación con su fuente; si dos fuentes se contradicen, se muestran ambas | En rama | El `CaseBook` guarda las fuentes que respondieron y las contradicciones que el registro señala; `PreToolUse` rechaza un hallazgo cuya fuente no respondió o no trae fecha (`procedencia`) y un informe que no declare todos los valores en conflicto con su origen (`conflicto`); `due_diligence/rules.py` (rama `005`), 60 mutaciones detectadas. Con el modelo real: el informe de `CO-FH-0006` declaró ambas fechas con su origen (`specs/005-*/verification.md`); la denegación `conflicto` **no se ejerció con el modelo real** (se negó a violarla), solo con pruebas. Contradicciones entre frentes distintos: solo por prompt |
-| R5 | Si una fuente no responde, el informe indica qué frente quedó sin cubrir | En rama | La cobertura sale de lo que el servidor devolvió (`PostToolUse`/`PostToolUseFailure`): `registrar_informe` y `escalar_a_cumplimiento` se rechazan si un frente caído no consta como `sin_cubrir` en `cobertura`, y `habilitar` exige registro y listas cubiertos; `due_diligence/rules.py` y `rule_hooks.py` (rama `004`), mutaciones detectadas (la forma real de `PostToolUseFailure` no se midió) (`specs/004-*/verification.md`) |
+| R4 | Cada afirmación con su fuente; si dos fuentes se contradicen, se muestran ambas | En rama | El `CaseBook` guarda las fuentes que respondieron y las contradicciones que el registro señala; `PreToolUse` rechaza un hallazgo cuya fuente no respondió o no trae fecha (`procedencia`) y un informe que no declare todos los valores en conflicto con su origen (`conflicto`); `due_diligence/rules.py` (rama `005`), 61 mutaciones detectadas. Con el modelo real: el informe de `CO-FH-0006` declaró ambas fechas con su origen (`specs/005-*/verification.md`); la denegación `conflicto` **no se ejerció con el modelo real** (se negó a violarla), solo con pruebas. Contradicciones entre frentes distintos: solo por prompt |
+| R5 | Si una fuente no responde, el informe indica qué frente quedó sin cubrir | Hecho | La cobertura sale de lo que el servidor devolvió (`PostToolUse`/`PostToolUseFailure`): `registrar_informe` y `escalar_a_cumplimiento` se rechazan si un frente caído no consta como `sin_cubrir` en `cobertura`, y `habilitar` exige registro y listas cubiertos; `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #18), mutaciones detectadas (la forma real de `PostToolUseFailure` no se midió) (`specs/004-*/verification.md`) |
 
 ## 3. Ciclo de vida: Spec Driven Development con Spec Kit
 
@@ -125,7 +125,7 @@ Comportamientos obligatorios:
 | B4 | Ciclo agéntico por la razón de parada del modelo, sin contador ni búsqueda de palabras | Hecho | `due_diligence/coordinator.py`, 8 mutaciones detectadas (rama `002`); con modelo real todos los turnos cerraron por `ResultMessage` (`end_turn`) (en `main`, PR #16) |
 | B5 | Reglas 1 y 2 con **hooks del SDK** | Hecho | Reglas 1 y 2 (y 3) con hooks del SDK, 15 mutaciones detectadas (`python scripts/mutate_rules.py`); `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #17) |
 | B6 | Descripciones de herramientas que eviten confusiones | Hecho | Descripciones verificadas por pruebas en `mcp_server/tests/test_server.py` |
-| B7 | Errores estructurados y cobertura parcial; el coordinador decide reintentar o declarar | En rama | Error estructurado del subagente (`FrontStatus.FALLIDO`), tope de un reintento y ninguno para lo no reintentable impuesto por hook (`check_fuente`), y declaración de la cobertura en el informe (rama `004`). El coordinador decide reintentar por su prompt; el hook solo pone el tope |
+| B7 | Errores estructurados y cobertura parcial; el coordinador decide reintentar o declarar | Hecho | Error estructurado del subagente (`FrontStatus.FALLIDO`), tope de un reintento y ninguno para lo no reintentable impuesto por hook (`check_fuente`), y declaración de la cobertura en el informe (en `main`, PR #18). El coordinador decide reintentar por su prompt; el hook solo pone el tope |
 | B8 | Procedencia y conflictos en el informe, con su origen | En rama | Ver R4: hallazgos con `fuente` y `fecha` exigidos por hook, y `conflictos` completos (rama `005`) |
 | B9 | Varios comercios parecidos: el coordinador pide el identificador | En rama | Con el modelo real el coordinador mostró los candidatos y pidió el identificador, y siguió solo con el elegido; un hook rechaza el informe o el escalamiento a nombre de un candidato sin identificar (`ambiguedad`, probado sin el modelo, no ejercido con él) (rama `005`) |
 | B10 | Escalar con criterio (listas y alto riesgo; no escalar bajo riesgo sin hallazgos) | **Falta** | Ticket #6 |
@@ -161,7 +161,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 
 | Falta grave | Estado hoy | Cómo se controla |
 |---|---|---|
-| Una regla de negocio que dependa solo del prompt | **Cerrada en `main` (PR #17)** | Las reglas 1 a 3 las imponen hooks del SDK, con pruebas, 15 mutaciones detectadas y verificación con el modelo real. La regla 5 (informe parcial nunca como completo) también la impone un hook desde la rama `004`; la regla 4 (procedencia y conflictos) se completa en el #5 y el escalamiento con criterio, en el #6 |
+| Una regla de negocio que dependa solo del prompt | **Cerrada en `main` (PR #17)** | Las reglas 1 a 3 las imponen hooks del SDK, con pruebas, 15 mutaciones detectadas y verificación con el modelo real. La regla 5 (informe parcial nunca como completo) también la impone un hook (en `main`, PR #18) y la regla 4 (procedencia y conflictos) desde la rama `005`; el escalamiento con criterio y los conflictos en el escalamiento se completan en el #6 |
 | Una credencial en el repositorio | Sin hallazgos | Escaneo de valores con forma de clave de Anthropic, de token de GitHub o de clave privada a mano antes de cada commit (sin hook de git que lo automatice) y, sobre la configuración, `scripts/tests/test_no_credentials.py`; `.env` ignorado; `.mcp.json` solo referencia variables |
 | Un dato que parezca real | Sin hallazgos | `test_datos_ficticios.py`; hook de datos reales en `main` (`real_data_guard.py`) |
 
@@ -185,9 +185,9 @@ Requisitos trazados: **84** (reglas generales, reglas de negocio, Spec Kit, GitH
 
 | Estado | Cantidad |
 |---|---|
-| Hecho | 55 |
+| Hecho | 57 |
 | Hecho (en main o en rama) | 3 |
-| En rama | 5 |
+| En rama | 3 |
 | Parcial | 7 |
 | Falta | 11 |
 | Otro: En curso | 2 |

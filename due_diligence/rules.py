@@ -430,7 +430,8 @@ class CaseBook:
 
     def _check_conflictos(self, data: dict[str, Any]) -> Decision | None:
         """Regla 4: los datos contradictorios del comercio se declaran todos, con su origen."""
-        case = self.commerces.get((_text(data.get("comercio_id")) or "").strip())
+        wanted = (_text(data.get("comercio_id")) or "").strip().upper()
+        case = next((c for cid, c in self.commerces.items() if cid.upper() == wanted), None)
         if case is None:
             return None
         declared = data.get("conflictos")

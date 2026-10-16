@@ -699,3 +699,16 @@ def test_an_identified_candidate_in_another_case_is_not_blocked():
     book = ambiguo()
     observe_registro(book, comercio("CO-XX-0004", "PE-0004"), consulta="CO-XX-0004")
     assert book.check_informe(informe_con("no_habilitar", "CO-XX-0004")).allowed is True
+
+
+# ------------------------------------------------------ revisión del #5 (compliance-reviewer)
+
+
+@pytest.mark.parametrize("escrito", ["co-xx-0006", "Co-Xx-0006", " CO-XX-0006 "])
+def test_the_conflict_is_required_even_if_the_commerce_id_is_written_in_another_case(escrito):
+    """Entrada del compliance-reviewer: `co-fh-0006` en minúsculas no exigía el conflicto."""
+    book = con_conflicto()
+    decision = book.check_informe(informe_con("no_habilitar", escrito))
+    assert_blocked(decision, rule="conflicto", hint="fecha_constitucion")
+    declared = informe_con("no_habilitar", escrito, conflictos=[conflicto_de(*DOS_FECHAS)])
+    assert book.check_informe(declared).allowed is True

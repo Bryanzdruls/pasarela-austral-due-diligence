@@ -360,14 +360,17 @@ MUTATIONS += [
     (
         "conflicto: el conflicto de un comercio se exige en otro",
         RULES,
-        """        case = self.commerces.get((_text(data.get("comercio_id")) or "").strip())
-        if case is None:
-            return None
-        declared = data.get("conflictos")""",
-        """        case = next((c for c in self.commerces.values() if c.conflictos), None)
-        if case is None:
-            return None
-        declared = data.get("conflictos")""",
+        """        wanted = (_text(data.get("comercio_id")) or "").strip().upper()
+        case = next((c for cid, c in self.commerces.items() if cid.upper() == wanted), None)""",
+        """        case = next((c for c in self.commerces.values() if c.conflictos), None)""",
+    ),
+    (
+        "conflicto: el identificador del informe distingue mayúsculas",
+        RULES,
+        """        wanted = (_text(data.get("comercio_id")) or "").strip().upper()
+        case = next((c for cid, c in self.commerces.items() if cid.upper() == wanted), None)""",
+        """        wanted = (_text(data.get("comercio_id")) or "").strip()
+        case = next((c for cid, c in self.commerces.items() if cid == wanted), None)""",
     ),
     (
         "conflicto: el nombre del dato no se normaliza",

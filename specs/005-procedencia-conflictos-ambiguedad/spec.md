@@ -73,7 +73,7 @@ Cuando el registro mercantil devuelve varios comercios que coinciden con el nomb
 - Una fuente cuyo hallazgo se omite por haber fallado (#4): la procedencia no se exige para lo que no hay.
 - Una contradicción que solo aparece entre dos frentes distintos (p. ej. una noticia que contradice el registro): el servidor no la señala; la declara el coordinador por orientación del prompt y se verifica con el modelo real, sin garantía de hook (declarado).
 - Un nombre parecido que no coincide por palabras completas con ningún comercio: no es ambiguo, es "no encontrado" y se trata como tal (comportamiento del servidor de fuentes, #1; este ticket no lo cambia).
-- El analista da el identificador de un comercio que no estaba entre los candidatos: se consulta el registro y se identifica o no por sí mismo.
+- El analista da un identificador que no corresponde a ningún candidato: el coordinador vuelve a pedir uno válido entre los candidatos (historia 3, escenario 5) y no elige por su cuenta; solo si el analista insiste en un identificador concreto, el registro decide si lo identifica o no.
 - Una pregunta de seguimiento sobre un dato en conflicto: se responde con ambos valores y sus orígenes.
 
 ## Requirements *(mandatory)*
