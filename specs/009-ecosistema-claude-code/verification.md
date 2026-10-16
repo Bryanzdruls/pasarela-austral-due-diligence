@@ -69,7 +69,7 @@ Hallazgo bloqueante: un `<<` dentro de comillas o de un comentario, o un `<<-` c
 
 ### Quinta ronda: se elimina la causa
 
-Cinco revisiones seguidas encontraron evasiones nuevas de la poda de mensajes de commit con expresiones regulares (comillas, `<<<`, `<<-`, `&`). En vez de parchear de nuevo, se **eliminó la poda**: el hook inspecciona la orden entera. Coste aceptado: un mensaje de commit que nombre un archivo de secretos se bloquea (falla hacia el lado seguro) y se pasa con `git commit -F archivo`. Las pruebas de "mensaje permitido" se sustituyeron por pruebas de bloqueo (`test_secrets_guard.py`, `test_bypasses_round5.py`). No se hizo una sexta revisión de código.
+Cinco revisiones seguidas encontraron evasiones nuevas de la poda de mensajes de commit con expresiones regulares (comillas, `<<<`, `<<-`, `&`). En vez de parchear de nuevo, se **eliminó la poda**: el hook inspecciona la orden entera. Coste aceptado: un mensaje de commit que nombre un archivo de secretos se bloquea (falla hacia el lado seguro) y se pasa con `git commit -F archivo`. Las pruebas de "mensaje permitido" se sustituyeron por pruebas de bloqueo (`test_secrets_guard.py`, `test_bypasses_round5.py`). (La sexta revisión se describe en la sección siguiente.)
 
 ### Sexta ronda
 
@@ -78,3 +78,7 @@ La sexta revisión de código (solo lectura) dio tres evasiones razonadas del ho
 ### Séptima ronda (sin correcciones)
 
 Una revisión en sesión aparte devolvió `corregir antes del PR` con evasiones estáticas del hook de secretos (globs y llaves, `$'...'`, continuación de línea, acento grave de PowerShell, flujos alternos de NTFS, `cd` a un directorio de secretos) y dos menores (`>|` pegado al destino, recuento en la documentación). Se decidió **no corregirlas** y abrir el PR: cada ronda halla variantes más rebuscadas de una heurística sobre texto, y el ciclo no converge. Quedan declaradas en `docs/ECOSISTEMA.md` (Límites conocidos) y en la descripción del PR. El recuento de la documentación sí se corrigió.
+
+### Revisión final (modelo de amenaza explícito)
+
+Una última revisión en sesión aparte, con un modelo de amenaza escrito (los hooks son barreras contra descuidos del asistente, no contra ofuscación deliberada), pidiendo entradas reproducibles y dejando como único bloqueante el acceso accidental a secretos, devolvió **`aprobar`**: sin bloqueantes, 1 importante (los contratos de `contracts/hooks.md` estaban desactualizados: corregido) y 3 menores (`grep -r` en Bash sobre un directorio, `rm`/`cp` del directorio de secretos a secas y `git show HEAD:<ruta>`: declarados en `docs/ECOSISTEMA.md`; este documento: corregido).

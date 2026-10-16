@@ -36,6 +36,7 @@ Los hooks reducen el riesgo, no lo eliminan. Esto es lo que no cubren:
 - El hook de secretos inspecciona el texto entero de la orden, también el de un mensaje de commit o de pull request: un mensaje que nombre un archivo de secretos se bloquea. Se decidió así tras varias revisiones que seguían evadiendo la poda de mensajes con expresiones regulares: se prefiere un falso bloqueo a una lectura permitida. El mensaje se escribe en un archivo y se pasa con `git commit -F archivo`.
 - El hook de datos reales no reconoce una tarjeta pegada a un prefijo (`card_<16 dígitos>`) ni con puntos como separador, y puede bloquear un número largo con suma de verificación válida que no es una tarjeta (p. ej. una marca de tiempo en milisegundos).
 - El hook de secretos no exime ninguna orden: `ls` de un archivo de secretos también se bloquea. Une las comillas y quita las barras invertidas antes de comparar, pero no expande variables ni sustituciones.
+- En `Bash` y `PowerShell`, una búsqueda recursiva sobre un directorio (`grep -r KEY .`, `Get-ChildItem -Recurse | Select-String`) puede leer un archivo de secretos sin nombrarlo; `rm`, `cp` o `git -C` sobre el directorio de secretos a secas y `git show HEAD:<ruta>` tampoco se detectan.
 - `NotebookEdit` no está cubierto: el proyecto no usa notebooks.
 - El aislamiento a nivel de sistema operativo requeriría el modo aislado (sandbox) de Claude Code, fuera de alcance.
 - Los hooks de proyecto se leen al arrancar la sesión y requieren la confianza del proyecto: un hook defectuoso solo protege tras reiniciar.

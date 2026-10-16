@@ -48,7 +48,7 @@ Cada decisión registra *dónde vive la pieza, por qué ahí y qué alternativa 
 - **Alternativa descartada**: lista de ejemplos fijos (no generaliza y obligaría a escribir los valores en el repositorio).
 
 ## D8. Hook de secretos (`secrets_guard.py`) y `permissions.deny` (necesidad N6)
-- **Dónde**: `PreToolUse` sobre `Read|Edit|Write|Bash`, más `permissions.deny` en `settings.json`.
+- **Dónde**: `PreToolUse` sobre `Read|Edit|Write|Bash|PowerShell|Grep|Glob`, más `permissions.deny` en `settings.json`.
 - **Dos capas**: `permissions.deny` con los nombres explícitos (`.env`, `.env.local`, `.env.production`, `secrets/**`, `*.pem`, `*.key`) y el hook como red de seguridad que inspecciona `file_path` y, en Bash, el texto del comando.
 - **Por qué dos capas**: `deny` también cubre `cat .env` en Bash, pero no subprocesos que abren archivos por su cuenta (por ejemplo `python -c "open('.env')"`); el hook revisa el texto del comando y cierra parte de ese hueco. La plantilla `.env.example` debe seguir accesible, por eso `deny` no usa el comodín `.env*` y la excepción se resuelve en el hook.
 - **Límite conocido**: un comando que construya el nombre del archivo en tiempo de ejecución puede eludir la inspección de texto; el aislamiento a nivel de sistema operativo requeriría el modo aislado (sandbox), que queda fuera de alcance y se documenta.

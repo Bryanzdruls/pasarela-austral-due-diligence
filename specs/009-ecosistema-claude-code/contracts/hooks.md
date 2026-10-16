@@ -19,7 +19,7 @@ Campos usados: `hook_event_name`, `tool_name`, `tool_input`, `cwd`. Según la he
 - Bloquear: código de salida 2 con el motivo por stderr (una o dos líneas: qué se detectó y qué hacer).
 - Ante una excepción propia de un hook de bloqueo: código de salida 2 con el mensaje `El hook <nombre> falló y deniega por seguridad: <error>`.
 
-## `spec_gate.py` — PreToolUse, matcher `Edit|Write|Bash`
+## `spec_gate.py` — PreToolUse, matcher `Edit|Write|Bash|PowerShell`
 
 | Entrada | Resultado |
 |---|---|
@@ -30,14 +30,15 @@ Campos usados: `hook_event_name`, `tool_name`, `tool_input`, `cwd`. Según la he
 | `Bash` que escribe (redirección, `tee`, `Set-Content`, `Out-File`, `sed -i`, `cp`, `mv`, `python` que abre para escribir) a una ruta de producción, con los artefactos incompletos | bloquear con el mismo mensaje |
 | `Bash` que solo lee o ejecuta (`cat`, `ls`, `pytest`, `git`) | permitir |
 
-## `real_data_guard.py` — PreToolUse, matcher `Edit|Write|Bash`
+## `real_data_guard.py` — PreToolUse, matcher `Edit|Write|Bash|PowerShell`
 
 Revisa `content` (Write), `new_string` (Edit) o el texto de `command` (Bash). Bloquea con "Contenido con forma de <tarjeta|NIT|documento> reales: <fragmento enmascarado>. Usa un identificador ficticio (FICT-NNNN)." El fragmento mostrado se enmascara (no se repite completo). Cualquier otro contenido: permitir.
 
-## `secrets_guard.py` — PreToolUse, matcher `Read|Edit|Write|Bash`
+## `secrets_guard.py` — PreToolUse, matcher `Read|Edit|Write|Bash|PowerShell|Grep|Glob`
 
 - `Read`, `Edit`, `Write`: bloquea si la ruta es un archivo protegido (ver el modelo de datos); permite `.env.example`.
-- `Bash`: bloquea si el comando referencia un archivo protegido junto con un verbo de lectura o escritura (`cat`, `type`, `Get-Content`, `head`, `tail`, `less`, `more`, `sed`, `cp`, `mv`, `echo … >`, `python … open`); permite comandos que solo mencionan `.env.example`.
+- `Bash` y `PowerShell`: bloquea si el texto de la orden nombra un archivo protegido, sin mirar el verbo (también `ls`) y comparando además el texto sin comillas ni barras invertidas; permite `.env.example`.
+- `Grep` y `Glob`: bloquea si `path` o `glob` nombran un archivo o directorio protegido.
 
 ## `format_after_edit.py` — PostToolUse, matcher `Edit|Write`
 
@@ -46,8 +47,8 @@ Si `file_path` termina en `.py`: ejecuta el formateador sobre ese archivo (`ruff
 ## `settings.json`
 
 ```
-hooks.PreToolUse   -> [ {Edit|Write|Bash: spec_gate.py, real_data_guard.py},
-                        {Read|Edit|Write|Bash: secrets_guard.py} ]
+hooks.PreToolUse   -> [ {Edit|Write|Bash|PowerShell: spec_gate.py, real_data_guard.py},
+                        {Read|Edit|Write|Bash|PowerShell|Grep|Glob: secrets_guard.py} ]
 hooks.PostToolUse  -> [ {Edit|Write: format_after_edit.py} ]
 permissions.deny   -> Read/Edit de .env, .env.local, .env.production, secrets/**, *.pem, *.key
 ```
