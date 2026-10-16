@@ -110,15 +110,15 @@ def make_stop(book: CaseBook) -> Hook:
         try:
             if input_data.get("stop_hook_active"):
                 return {}
-            pending = book.pending_escalations()
+            pending = book.escalation_reasons()
             if not pending:
                 return {}
+            detalle = "; ".join(f"{cid} ({' y '.join(why)})" for cid, why in pending.items())
             return {
                 "decision": "block",
                 "reason": (
-                    "Antes de terminar: la regla 2 o la 3 aplican a "
-                    + ", ".join(pending)
-                    + " y el caso no fue escalado. Escala el caso a un oficial de cumplimiento con "
+                    f"Antes de terminar: {detalle}, y el caso no fue escalado. Escala el caso a un "
+                    "oficial de cumplimiento con "
                     "`escalar_a_cumplimiento` (comercio_id, hallazgos por frente con sus fuentes, "
                     "cobertura, causa y acción recomendada) y después da la respuesta."
                 ),

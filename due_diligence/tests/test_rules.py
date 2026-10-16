@@ -521,3 +521,15 @@ def test_escalating_one_commerce_does_not_clear_another():
     )
     book.observe(ESCALAR, {"comercio_id": "CO-XX-0001"}, ESCALAR_OK)
     assert book.pending_escalations() == ["CO-XX-0002"]
+
+
+def test_the_pending_escalations_say_which_rule_applies_to_each_commerce():
+    book = identified(
+        comercio("CO-XX-0001", "PE-0001", "librería"), comercio("CO-XX-0002", "PE-0002", "apuestas")
+    )
+    with_listas(book, "persona", "PE-0001", True)
+    reasons = book.escalation_reasons()
+    assert set(reasons) == {"CO-XX-0001", "CO-XX-0002"}
+    assert any("regla 2" in r for r in reasons["CO-XX-0001"])
+    assert any("regla 3" in r for r in reasons["CO-XX-0002"])
+    assert book.pending_escalations() == list(reasons)

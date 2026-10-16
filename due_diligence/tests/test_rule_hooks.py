@@ -373,3 +373,12 @@ async def test_the_trace_records_the_rule_of_each_decision(tmp_path, monkeypatch
     rows = [_json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines()]
     assert [(r["decision"], r["rule"]) for r in rows[:2]] == [("deny", "1"), ("deny", "2")]
     assert rows[-1]["decision"] == "allow" and rows[-1]["rule"] is None
+
+
+async def test_the_stop_demand_names_the_rule_that_applies():
+    listas_match = await identified_with_match("persona", "PE-0001")
+    assert "regla 2" in (await stop(listas_match))["reason"]
+    book = CaseBook()
+    registry = registro([comercio(categoria="criptoactivos")])
+    await observe(book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registry)
+    assert "regla 3" in (await stop(book))["reason"]

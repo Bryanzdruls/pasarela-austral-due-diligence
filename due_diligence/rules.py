@@ -268,13 +268,24 @@ class CaseBook:
             return _deny_regla_3(case)
         return ALLOW
 
-    def pending_escalations(self) -> list[str]:
+    def escalation_reasons(self) -> dict[str, list[str]]:
         """Comercios con coincidencia en listas (regla 2) o de alto riesgo (regla 3) sin escalar."""
-        return [
-            commerce_id
-            for commerce_id, case in self.commerces.items()
-            if not case.escalado and (any(case.listas.values()) or self._is_high_risk(case))
-        ]
+        result: dict[str, list[str]] = {}
+        for commerce_id, case in self.commerces.items():
+            if case.escalado:
+                continue
+            reasons = []
+            if any(case.listas.values()):
+                reasons.append("regla 2: coincidencia en listas restrictivas")
+            if self._is_high_risk(case):
+                reasons.append("regla 3: categoría de alto riesgo")
+            if reasons:
+                result[commerce_id] = reasons
+        return result
+
+    def pending_escalations(self) -> list[str]:
+        """Identificadores de los comercios cuyo escalamiento está pendiente."""
+        return list(self.escalation_reasons())
 
     def _is_high_risk(self, case: CommerceCase) -> bool:
         """Regla 3: registro, catálogo o solicitud del analista; la lista de la pasarela manda."""
