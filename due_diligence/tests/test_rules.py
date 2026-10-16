@@ -533,3 +533,89 @@ def test_the_pending_escalations_say_which_rule_applies_to_each_commerce():
     assert any("regla 2" in r for r in reasons["CO-XX-0001"])
     assert any("regla 3" in r for r in reasons["CO-XX-0002"])
     assert book.pending_escalations() == list(reasons)
+
+
+# ------------------------------------------------------------ revisión: sin mezcla entre comercios
+
+
+def test_a_later_request_about_a_high_risk_commerce_never_marks_a_clean_one():
+    """Bloqueante de la revisión: la evidencia de una solicitud no pasa a comercios ajenos."""
+    book = CaseBook()
+    book.start_request("Due diligence de Libros del Faro, CO-XX-0001")
+    book.observe(
+        REGISTRO,
+        {"consulta": "CO-XX-0001"},
+        registro([comercio("CO-XX-0001", "PE-0001", "librería")]),
+    )
+    assert book.check_informe(informe("habilitar", "CO-XX-0001")).allowed is True
+
+    book.start_request("Ahora Tienda Verde, CO-XX-0002, suplementos dietarios")
+    book.observe(
+        REGISTRO, {"consulta": "CO-XX-0002"}, registro([comercio("CO-XX-0002", "PE-0002", "otro")])
+    )
+    assert set(book.escalation_reasons()) == {"CO-XX-0002"}  # solo el comercio de esta solicitud
+    assert book.check_informe(informe("habilitar", "CO-XX-0001")).allowed is True
+    assert_blocked(book.check_informe(informe("habilitar", "CO-XX-0002")), rule="3")
+
+    book.start_request("¿Y qué dijeron las noticias?")
+    assert (
+        book.check_informe(informe("habilitar", "CO-XX-0001")).allowed is True
+    )  # sin marca permanente
+    assert_blocked(book.check_informe(informe("habilitar", "CO-XX-0002")), rule="3")
+
+
+def test_a_clean_commerce_is_not_marked_by_catalog_results_of_another_request():
+    book = CaseBook()
+    book.start_request("Due diligence de CO-XX-0001")
+    book.observe(
+        REGISTRO,
+        {"consulta": "CO-XX-0001"},
+        registro([comercio("CO-XX-0001", "PE-0001", "librería")]),
+    )
+    book.start_request("Due diligence de CO-XX-0002")
+    book.observe(
+        REGISTRO, {"consulta": "CO-XX-0002"}, registro([comercio("CO-XX-0002", "PE-0002", "otro")])
+    )
+    consult_catalog(book, "criptoactivos", "alto")
+    assert set(book.escalation_reasons()) == {"CO-XX-0002"}
+
+
+def test_a_commerce_mentioned_by_id_in_a_later_request_takes_that_requests_declared_category():
+    book = identified(comercio("CO-XX-0001", "PE-0001", "librería"))
+    book.start_request("CO-XX-0001 en realidad vende apuestas en línea, ¿lo habilitamos igual?")
+    assert_blocked(book.check_informe(informe("habilitar", "CO-XX-0001")), rule="3")
+
+
+def test_with_a_single_known_commerce_a_follow_up_declaring_a_category_applies_to_it():
+    book = identified(comercio("CO-XX-0001", "PE-0001", "librería"))
+    book.start_request("Me dicen que es de criptoactivos. ¿Lo podemos habilitar?")
+    assert_blocked(book.check_informe(informe("habilitar", "CO-XX-0001")), rule="3")
+
+
+def test_a_category_declared_before_naming_the_commerce_is_not_lost():
+    """Importante de la revisión: 'casa de apuestas' llega antes que el nombre del comercio."""
+    book = CaseBook()
+    book.start_request("Quiero habilitar una casa de apuestas en línea")
+    book.start_request("Se llama Casa Fortuna, CO-XX-0009")
+    registry = registro([comercio("CO-XX-0009", "PE-0009", "servicios")])
+    book.observe(REGISTRO, {"consulta": "CO-XX-0009"}, registry)
+    consult_catalog(book, "servicios", "bajo")
+    assert_blocked(book.check_informe(informe("habilitar", "CO-XX-0009")), rule="3")
+
+
+def test_a_carried_category_is_consumed_by_the_first_commerce_identified():
+    book = CaseBook()
+    book.start_request("Quiero habilitar una casa de apuestas")
+    book.start_request("Se llama Uno, CO-XX-0001")
+    book.observe(
+        REGISTRO,
+        {"consulta": "CO-XX-0001"},
+        registro([comercio("CO-XX-0001", "PE-0001", "servicios")]),
+    )
+    book.start_request("Ahora otro, CO-XX-0002")
+    book.observe(
+        REGISTRO,
+        {"consulta": "CO-XX-0002"},
+        registro([comercio("CO-XX-0002", "PE-0002", "servicios")]),
+    )
+    assert book.check_informe(informe("habilitar", "CO-XX-0002")).allowed is True

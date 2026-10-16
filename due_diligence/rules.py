@@ -120,12 +120,31 @@ class CaseBook:
         self.risk_observations: list[tuple[str, str | None]] = []
         self.declared_text = ""
         self._request_commerces: set[str] = set()
+        # Categoría declarada en una solicitud que aún no tenía comercio (p. ej. "es una casa de
+        # apuestas" antes de dar el nombre): la hereda el primer comercio que se identifique.
+        self._carry_text = ""
+        # Con un solo comercio conocido, una categoría declarada sin identificador se le aplica
+        # para decidir `habilitar`, pero solo durante la solicitud: sin marca permanente ni
+        # exigencia de escalar (podría referirse a un comercio nuevo aún sin identificar).
+        self._fallback_commerces: set[str] = set()
 
     def start_request(self, prompt: Any) -> None:
-        """Nueva solicitud del analista: su texto es evidencia de la categoría declarada."""
+        """Nueva solicitud del analista: su texto es evidencia de la categoría declarada.
+
+        La evidencia de la solicitud solo cuenta para los comercios de esa solicitud: los que se
+        identifican en ella, los que menciona por identificador y, si solo se conoce uno, ese.
+        """
+        if self.declared_text and not self._request_commerces:
+            self._carry_text = (self._carry_text + " " + self.declared_text)[-2000:]
         self.declared_text = prompt if isinstance(prompt, str) else ""
         self.risk_observations = []
-        self._request_commerces = set()
+        self._request_commerces = {cid for cid in self.commerces if cid in self.declared_text}
+        self._fallback_commerces = (
+            set(self.commerces)
+            if not self._request_commerces and len(self.commerces) == 1
+            else set()
+        )
+        self._mark_request_commerces()
 
     # ------------------------------------------------------------------ observación
 
@@ -174,7 +193,9 @@ class CaseBook:
         case.categoria_registro = _text(match.get("categoria"))
         self.commerces[commerce_id] = case
         self._request_commerces.add(commerce_id)
+        self._fallback_commerces.clear()  # ya hay un comercio identificado en esta solicitud
         self._mark_request_commerces()
+        self._carry_text = ""  # la categoría arrastrada ya la consumió el comercio identificado
 
     def _observe_riesgo(self, tool_input: Any, response: Any) -> None:
         """Se anota la categoría consultada (aunque la llamada fallara) y el riesgo devuelto."""
@@ -189,9 +210,13 @@ class CaseBook:
 
     def _request_evidence(self) -> bool:
         """¿Alguna fuente de la solicitud en curso indica alto riesgo? Basta una (D6)."""
-        return is_high_risk(self.declared_text) or any(
-            is_high_risk(categoria) or riesgo == "alto"
-            for categoria, riesgo in self.risk_observations
+        return (
+            is_high_risk(self.declared_text)
+            or is_high_risk(self._carry_text)
+            or any(
+                is_high_risk(categoria) or riesgo == "alto"
+                for categoria, riesgo in self.risk_observations
+            )
         )
 
     def _mark_request_commerces(self) -> None:
@@ -277,7 +302,7 @@ class CaseBook:
             reasons = []
             if any(case.listas.values()):
                 reasons.append("regla 2: coincidencia en listas restrictivas")
-            if self._is_high_risk(case):
+            if self._is_high_risk(case, include_fallback=False):
                 reasons.append("regla 3: categoría de alto riesgo")
             if reasons:
                 result[commerce_id] = reasons
@@ -287,11 +312,14 @@ class CaseBook:
         """Identificadores de los comercios cuyo escalamiento está pendiente."""
         return list(self.escalation_reasons())
 
-    def _is_high_risk(self, case: CommerceCase) -> bool:
+    def _is_high_risk(self, case: CommerceCase, include_fallback: bool = True) -> bool:
         """Regla 3: registro, catálogo o solicitud del analista; la lista de la pasarela manda."""
-        if case.alto_riesgo or is_high_risk(case.categoria_registro) or self._request_evidence():
+        in_request = case.id in self._request_commerces and self._request_evidence()
+        if case.alto_riesgo or is_high_risk(case.categoria_registro) or in_request:
             case.alto_riesgo = True
-        return case.alto_riesgo
+        if case.alto_riesgo:
+            return True
+        return include_fallback and case.id in self._fallback_commerces and self._request_evidence()
 
     def check_escalar(self, tool_input: Any) -> Decision:
         """Escalar a un oficial de cumplimiento siempre se permite."""

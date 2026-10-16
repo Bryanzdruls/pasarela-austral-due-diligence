@@ -1,0 +1,50 @@
+
+Analista> Necesito el due diligence de Libros del Faro SAS, identificador CO-LB-0002.
+[2026-10-16T21:17:23.838043+00:00] > Subagente registro_mercantil iniciado | encargo: Consulta en el registro mercantil al comercio "Libros del Faro SAS", identificador CO-LB-0002. Devuelve existencia, fecha(s) de constitución (si hay varias fuentes con fechas distintas, muestra todas con su origen), representante legal con su identificador y estado. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T21:17:24.773834+00:00] > Subagente noticias iniciado | encargo: Busca menciones en noticias del comercio "Libros del Faro SAS" (identificador CO-LB-0002). Reporta cada noticia con su fuente; una mención en noticias no es coincidencia en listas restrictivas. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T21:17:27.268997+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-16T21:17:28.447388+00:00] < Subagente noticias terminó | estado: completo
+[2026-10-16T21:17:31.000384+00:00] > Subagente listas_restrictivas iniciado | encargo: Verifica contra las listas restrictivas al comercio con identificador CO-LB-0002 (tipo comercio) y a su representante legal con identificador PE-0002 (tipo persona). Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T21:17:31.759248+00:00] > Subagente riesgo_categoria iniciado | encargo: Consulta el nivel de riesgo de la categoría de negocio "libreria". Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha). Si el resultado es sin_clasificar, indícalo sin asumir un nivel.
+[2026-10-16T21:17:34.603061+00:00] < Subagente listas_restrictivas terminó | estado: completo
+[2026-10-16T21:17:35.469353+00:00] < Subagente riesgo_categoria terminó | estado: completo
+[2026-10-16T21:17:43.355426+00:00] Coordinador: # Due diligence: Libros del Faro SAS (CO-LB-0002)
+
+**Recomendación: `habilitar`.** Los cuatro frentes están cubiertos, no hay coincidencias en listas, la categoría es de riesgo bajo y las fuentes no tienen conflictos. El informe quedó registrado como INF-0001.
+
+## Registro mercantil
+Fuente: registro_mercantil_ficticio, 2026-10-16.
+- El comercio existe, con una única coincidencia, y su estado es activo.
+- Razón social: Libros del Faro SAS. NIT: FICT
+[2026-10-16T21:17:43.417841+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+[LIBRO] {"CO-LB-0002": {"alto_riesgo": false, "escalado": false}} pendientes=[]
+
+Analista> Ahora necesito el due diligence de Tienda Verde SAS, CO-TV-0001. Quieren procesar ventas en línea de suplementos dietarios. ¿Lo habilitamos?
+[2026-10-16T21:17:44.466263+00:00] Coordinador: Nueva investigación. Lanzo los tres frentes independientes.
+[2026-10-16T21:17:45.388914+00:00] > Subagente registro_mercantil iniciado | encargo: Consulta en el registro mercantil al comercio "Tienda Verde SAS", identificador CO-TV-0001. Devuelve existencia, fecha(s) de constitución (si hay varias fuentes con fechas distintas, muestra todas con su origen), representante legal con su identificador y estado. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T21:17:46.315673+00:00] > Subagente noticias iniciado | encargo: Busca menciones en noticias del comercio "Tienda Verde SAS" (identificador CO-TV-0001). Reporta cada noticia con su fuente; una mención en noticias no es coincidencia en listas restrictivas. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T21:17:47.190485+00:00] > Subagente riesgo_categoria iniciado | encargo: Consulta el nivel de riesgo de la categoría de negocio "suplementos dietarios". Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha). Si el resultado es sin_clasificar, indícalo sin asumir un nivel.
+[2026-10-16T21:17:49.231851+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-16T21:17:50.688448+00:00] < Subagente riesgo_categoria terminó | estado: completo
+[2026-10-16T21:17:51.094680+00:00] < Subagente noticias terminó | estado: completo
+[2026-10-16T21:17:52.710516+00:00] > Subagente listas_restrictivas iniciado | encargo: Verifica contra las listas restrictivas al comercio con identificador CO-TV-0001 (tipo comercio) y a su representante legal con identificador PE-0001 (tipo persona). Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T21:17:56.179210+00:00] < Subagente listas_restrictivas terminó | estado: completo
+[2026-10-16T21:18:09.357475+00:00] Coordinador: # Due diligence: Tienda Verde SAS (CO-TV-0001)
+
+**No se puede habilitar directamente. Recomendación: `escalar_a_cumplimiento`.** Suplementos dietarios es una categoría de alto riesgo, y esas categorías no se habilitan automáticamente. Registré el informe como INF-0002 y el escalamiento como ESC-0001.
+
+## Registro mercantil
+Fuente: registro_mercantil_ficticio, 2026-10-16.
+- El comercio existe, con una única coincidencia, y su estado es activo.
+- NIT
+[2026-10-16T21:18:09.522206+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+[LIBRO] {"CO-LB-0002": {"alto_riesgo": false, "escalado": false}, "CO-TV-0001": {"alto_riesgo": true, "escalado": true}} pendientes=[]
+
+Analista> Volviendo a Libros del Faro, CO-LB-0002: ¿confirmas la recomendación?
+[2026-10-16T21:18:12.676515+00:00] Coordinador: Sí, confirmo `habilitar` para Libros del Faro SAS (CO-LB-0002). Lo respondo con lo que ya obtuve, sin volver a consultar las fuentes.
+
+- **Registro mercantil:** el comercio existe, es una única coincidencia y está activo. Se constituyó el 2018-02-01 y no hay fechas en conflicto. Su representante legal es Tomás Ficticio Vega (PE-0002).
+- **Listas restrictivas:** no hay coincidencias para el comercio ni para el representante.
+- **Noticias:** no hay m
+[2026-10-16T21:18:12.752528+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+[LIBRO] {"CO-LB-0002": {"alto_riesgo": false, "escalado": false}, "CO-TV-0001": {"alto_riesgo": true, "escalado": true}} pendientes=[]

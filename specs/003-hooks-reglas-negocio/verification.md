@@ -11,7 +11,7 @@ Fecha: 2026-10-16. Rama `003-hooks-reglas-negocio`. Pruebas sin modelo y dos eje
 | `pytest due_diligence` | 234 pruebas en verde (94 antes del ticket) |
 | `ruff check` y `ruff format --check` | Limpios |
 
-Mutación de las reglas (cada mutación rompe una regla a propósito; se restauró el archivo tras cada una y se confirmó con `git diff`):
+Mutación de las reglas (`scripts/mutate_rules.py`; cada mutación rompe una regla a propósito; se restauró el archivo tras cada una y se confirmó con `git diff`):
 
 | Mutación | Resultado |
 |---|---|
@@ -23,13 +23,15 @@ Mutación de las reglas (cada mutación rompe una regla a propósito; se restaur
 | Regla 3: ignorar la solicitud del analista | Detectada |
 | Regla 3: depender solo del catálogo (ignorar la lista de la pasarela) | Detectada |
 | Regla 3: no limpiar la evidencia al cambiar de solicitud | Detectada |
+| Regla 3: la evidencia de una solicitud se aplica a todos los comercios | Detectada |
+| Regla 3: se pierde la categoría declarada antes de dar el nombre | Detectada |
 | Vocabulario: aceptar una recomendación fuera del vocabulario | Detectada |
 | FR-010: habilitar sin identificar al comercio | Detectada |
 | El hook `Stop` no exige nada | Detectada |
 | Un error del servidor cuenta como escalado | Detectada |
 | Falla cerrado: una excepción del hook `PreToolUse` permite | Detectada |
 
-13 de 13 detectadas, todas con el código final.
+15 de 15 detectadas con el código final. El script es reproducible: `python scripts/mutate_rules.py` (sale con 0 si todas se detectan).
 
 ## T027: con el modelo real
 
@@ -68,3 +70,12 @@ En el caso 1 el coordinador escribió una causa de escalamiento confusa ("la reg
 - **Alcance:** la regla 3 por la categoría declarada se lee del texto del analista con raíces de la lista; un sinónimo no se detectaría por esa vía (sí por el registro o el catálogo).
 - **Si el modelo no llama a `registrar_informe`** y escribe la recomendación solo en texto, los hooks de informe no actúan sobre ese texto; el hook `Stop` sí exige escalar en los casos de las reglas 2 y 3.
 - La cobertura parcial, las fallas de las fuentes, la procedencia y el contenido del escalamiento no se tratan aquí (#4, #5 y #6).
+
+## Revisión independiente (T029) y correcciones
+
+- **compliance-reviewer: `cumple parcialmente`.** Sin faltas graves: las reglas 1, 2 y 3 constan como cumplidas, cada una con su hook, sus pruebas y su evidencia con el modelo real; las reglas 4 y 5 son de los tickets #5 y #4. Riesgos declarados: `habilitar` no se bloquea si las listas nunca se consultaron o fallaron (cobertura, #4), la recomendación en texto sin `registrar_informe` no la ven los hooks de informe y la categoría se detecta por raíces.
+- **code-reviewer: `corregir antes del PR`** por un bloqueante y un importante, ambos corregidos con la prueba primero (vistas fallar):
+  - **Bloqueante:** la evidencia de una solicitud (categoría declarada, consultas al catálogo) se aplicaba a **todos** los comercios de la conversación y dejaba una marca permanente: mencionar suplementos para Tienda Verde marcaba como alto riesgo a un comercio limpio, le exigía escalar y le bloqueaba `habilitar` para siempre. Ahora la evidencia solo cuenta para los comercios de la solicitud (los identificados en ella, los mencionados por identificador y, si solo se conoce uno, ese durante la solicitud sin marca permanente ni exigencia de escalar).
+  - **Importante:** una categoría declarada antes de dar el nombre del comercio ("quiero habilitar una casa de apuestas" y después "se llama X") se perdía. Ahora la hereda el primer comercio identificado.
+  - Menores declarados: una respuesta de listas ilegible no se registra (y no bloquea); el Stop actúa mientras haya cualquier comercio pendiente de la conversación; pequeñas duplicaciones de código.
+- **Comprobado con el modelo real** (`verification-dos-comercios.txt`): en una misma conversación, Libros del Faro se habilita y registra (`INF-0001`); Tienda Verde se escala (`INF-0002` y `ESC-0001`); Libros no queda marcado como alto riesgo ni pendiente de escalar, tampoco al volver a él en un tercer mensaje.
