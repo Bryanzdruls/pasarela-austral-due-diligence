@@ -4,10 +4,13 @@
 
 ```python
 class DueDiligenceSession:
-    def __init__(self, options: ClaudeAgentOptions | None = None,
-                 client_factory=claude_agent_sdk.ClaudeSDKClient): ...
-    async def __aenter__(self) -> "DueDiligenceSession": ...   # abre el cliente
-    async def __aexit__(self, *exc) -> None: ...               # cierra el cliente
+    def __init__(
+        self,
+        options: ClaudeAgentOptions | None = None,
+        client_factory=claude_agent_sdk.ClaudeSDKClient,
+    ): ...
+    async def __aenter__(self) -> "DueDiligenceSession": ...  # abre el cliente
+    async def __aexit__(self, *exc) -> None: ...  # cierra el cliente
     async def ask(self, text: str) -> AsyncIterator[DomainEvent]: ...
 ```
 
@@ -35,7 +38,8 @@ Todas con `description` que explica cuándo usarlas (el coordinador elige por la
 | `agents` | las 4 definiciones |
 | `tools` (coordinador) | `["Agent"]` — restringe el conjunto de herramientas disponibles |
 | `allowed_tools` (coordinador) | `["Agent"]` — solo auto-aprueba |
-| `mcp_servers` | `{"pasarela-fuentes": {command: sys.executable, args: ["-m","mcp_server"], cwd: <raíz del repo>, env: {PYTHONPATH, PASARELA_FAULTS?, PASARELA_RUNTIME_DIR?}}}` |
+| `cwd` | raíz del repositorio |
+| `mcp_servers` | `{"pasarela-fuentes": {type: "stdio", command: sys.executable, args: ["-m","mcp_server"], env: {PYTHONPATH: <raíz del repo>, PASARELA_FAULTS?, PASARELA_RUNTIME_DIR?}}}` (la configuración stdio del SDK no admite `cwd`) |
 | `setting_sources` | `[]` |
 | `hooks` | `PreToolUse` → `guards.tool_guard` (aislamiento por `agent_type`); los hooks de reglas de negocio se añaden en #3 |
 | `max_turns` | no se define |

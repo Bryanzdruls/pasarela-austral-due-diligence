@@ -57,14 +57,21 @@ Fuente: documentación del Claude Agent SDK para Python consultada el 2026-10-14
 - **Razón**: Cubre las preguntas de seguimiento (spec US1-AS3, FR-013) y el cambio de comercio a mitad de la conversación (FR-012) sin reinvestigar. La interfaz de chat (ticket #7) mantiene una sesión por conversación.
 - **FR-012 con contexto compartido**: el coordinador sí ve los turnos anteriores; lo que no debe arrastrar son datos del comercio anterior hacia los *encargos*. Los subagentes siguen aislados por construcción (D3). Se verifica con el prompt y con la matriz manual (cambio de comercio).
 - **Alternativas descartadas**: sesión nueva por solicitud (no permite seguimientos); `resume=session_id` sobre `query()` (válido, pero reconstruye cliente en cada turno y complica el ciclo de vida).
-- **Por confirmar con el SDK instalado**: las firmas exactas de `ClaudeSDKClient.query` y `receive_response` y de `ClaudeAgentOptions` (`tools`, `cwd`, `setting_sources`, `hooks`); la primera tarea de implementación las inspecciona y deja el resultado aquí.
+- **Confirmado con el SDK instalado (`claude-agent-sdk` 0.2.168, T004)**:
+  - `ClaudeSDKClient(options=None, transport=None)`; `async with` conecta y desconecta; `query(prompt, session_id='default')`; `receive_response()` devuelve un iterador asíncrono de mensajes del turno.
+  - `ClaudeAgentOptions` tiene `tools`, `allowed_tools`, `agents`, `mcp_servers`, `hooks`, `setting_sources`, `cwd`, `env`, `max_turns`, `forward_subagent_text`, `include_hook_events`, entre otros.
+  - `AgentDefinition`: `description`, `prompt`, `tools`, `disallowedTools`, `model`, `skills`, `memory`, `mcpServers`, `initialPrompt`, `maxTurns`, `background`, `effort`, `permissionMode`.
+  - `McpStdioServerConfig` solo admite `type`, `command`, `args`, `env` (**sin `cwd`**).
+  - `AssistantMessage`: `content`, `parent_tool_use_id`, `stop_reason`, `message_id`, ...; `UserMessage`: `content`, `parent_tool_use_id`, `tool_use_result`; `ResultMessage`: `subtype`, `stop_reason`, `terminal_reason`, `is_error`, `num_turns`, ...; `ToolUseBlock(id, name, input)`; `ToolResultBlock(tool_use_id, content, is_error)` con `content` de tipo `str | list[dict] | None`.
+  - `PreToolUseHookInput` trae `tool_name`, `tool_input`, `tool_use_id`, `agent_id`, `agent_type`; la salida de denegación usa `hookSpecificOutput.permissionDecision = "deny"` y `permissionDecisionReason`; `HookContext` solo tiene `signal`.
 
 ## D12. Coordinador con herramientas restringidas
 - **Decisión**: `ClaudeAgentOptions(tools=["Agent"])` para restringir el conjunto del coordinador a la herramienta de delegación; `allowed_tools=["Agent"]` solo auto-aprueba. El hook `guards.py` niega además, dentro del coordinador, cualquier herramienta distinta de `Agent`/`Task`.
 - **Razón**: según la documentación, `allowed_tools` no restringe el conjunto de herramientas disponibles; sin `tools` el coordinador conservaría Bash, Write y demás.
 
 ## D13. Arranque del servidor MCP
-- **Decisión**: la configuración del servidor MCP fija `cwd` en la raíz del repositorio (y `PYTHONPATH`) para que `python -m mcp_server` funcione sin importar desde dónde se lance el coordinador.
+- **Decisión**: la configuración del servidor MCP pone `PYTHONPATH` = raíz del repositorio en su `env`, y `ClaudeAgentOptions.cwd` = raíz del repositorio, para que `python -m mcp_server` funcione sin importar desde dónde se lance el coordinador.
+- **Corrección tras T004**: la primera versión de esta decisión ponía `cwd` dentro de la configuración del servidor, pero `McpStdioServerConfig` no admite `cwd`. El servidor no depende del directorio actual (sus datos y su directorio de ejecución por defecto se resuelven desde la ubicación del archivo), así que `PYTHONPATH` basta para que el módulo sea importable.
 
 ## D10. Eventos para la interfaz (ticket #7)
 - **Decisión**: `events.py` emite eventos de dominio: `SubagentStarted`, `SubagentFinished`, `CoordinatorText`, `RunFinished`. La atribución a subagentes usa `parent_tool_use_id` de `AssistantMessage`/`UserMessage` y los bloques `Agent`/`Task`; los hooks `SubagentStart`/`SubagentStop` entregan `agent_type`.
