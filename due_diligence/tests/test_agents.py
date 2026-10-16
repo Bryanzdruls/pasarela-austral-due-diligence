@@ -52,3 +52,10 @@ def test_front_specific_prompt_rules():
     assert "NO es una coincidencia en listas" in agents["noticias"].prompt
     assert "identificador" in agents["listas_restrictivas"].prompt
     assert "sin_clasificar" in agents["riesgo_categoria"].prompt
+
+
+def test_every_agent_runs_in_the_foreground_so_the_coordinator_gets_the_result():
+    """Verificación con modelo real: sin esto el SDK lanza los frentes en segundo plano y el
+    coordinador recibe un acuse en vez del JSON del frente."""
+    for name, agent in build_agents().items():
+        assert agent.background is False, name

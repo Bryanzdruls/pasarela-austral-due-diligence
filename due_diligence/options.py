@@ -42,5 +42,7 @@ def build_options() -> ClaudeAgentOptions:
         setting_sources=[],  # no heredar la configuración del proyecto de desarrollo
         hooks={"PreToolUse": [HookMatcher(matcher=None, hooks=[tool_guard])]},
         cwd=str(REPO_ROOT),
+        # Sin esto la CLI lanza los subagentes en segundo plano y el coordinador recibe un acuse.
+        env={"CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1"},
         # Sin max_turns: el ciclo termina por la razón de parada del modelo (FR-008).
     )

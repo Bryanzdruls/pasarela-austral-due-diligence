@@ -79,3 +79,10 @@ def test_server_module_is_importable_from_another_directory(tmp_path):
         text=True,
     )
     assert proc.returncode == 0, proc.stderr
+
+
+def test_background_tasks_are_disabled_so_the_agent_tool_returns_the_front_result():
+    """Verificación con modelo real: por defecto la CLI lanza los subagentes en segundo plano y el
+    coordinador recibe solo un acuse; con esta variable la delegación devuelve el resultado."""
+    options = build_options()
+    assert options.env.get("CLAUDE_CODE_DISABLE_BACKGROUND_TASKS") == "1"

@@ -88,3 +88,10 @@ Revisión hecha por el subagente `code-reviewer` real (solo lectura). Resultado:
 ## D10. Eventos para la interfaz (ticket #7)
 - **Decisión**: `events.py` emite eventos de dominio: `SubagentStarted`, `SubagentFinished`, `CoordinatorText`, `RunFinished`. La atribución a subagentes usa `parent_tool_use_id` de `AssistantMessage`/`UserMessage` y los bloques `Agent`/`Task`; los hooks `SubagentStart`/`SubagentStop` entregan `agent_type`.
 - **Razón**: `ToolUseBlock` no trae el subagente; la atribución viene en el mensaje.
+
+## D15. Los subagentes se ejecutan en primer plano (hallazgo de la verificación con modelo real)
+
+- **Hallazgo**: con el modelo real, la herramienta `Agent` lanzaba los frentes en segundo plano por defecto: el coordinador recibía un acuse en milisegundos (estado `no_estructurado`), cerraba el turno sin informe y el resultado llegaba turnos después como notificación. Las pruebas sin modelo (D8) no podían verlo.
+- **Decisión**: `ClaudeAgentOptions(env={"CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1"})` y, además, `AgentDefinition(background=False)` en los cuatro frentes. Con la variable, la delegación devuelve el resultado del frente (estado `completo`), los tres frentes independientes arrancan antes de que termine cualquiera y las listas esperan al registro.
+- **Alternativas descartadas**: (a) solo `background=False`, que se probó y **no** cambió el comportamiento; (b) esperar las notificaciones en el coordinador y reconstruir el informe turnos después: mezcla turnos con resultados y rompe el ciclo por razón de parada (D7); (c) bloquear con el hook las llamadas sin `run_in_background` explícito: el modelo no suele enviar ese parámetro y el comportamiento por defecto sigue siendo de segundo plano.
+- **Evidencia**: `verification.md` y los dos transcritos (`verification-run1-segundo-plano.txt` antes, `verification-run3-primer-plano.txt` después).

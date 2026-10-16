@@ -1,0 +1,190 @@
+
+=== CASO 1 (sesión A) ===
+Analista> Necesito el due diligence de Tienda Verde SAS, identificador CO-TV-0001. Quieren procesar ventas en línea de suplementos dietarios y estiman unos $80.000.000 mensuales. ¿Lo podemos habilitar esta semana?
+[2026-10-16T20:30:10.150089+00:00] Coordinador: Lanzo los tres frentes independientes en paralelo.
+[2026-10-16T20:30:11.202941+00:00] > Subagente registro_mercantil iniciado | encargo: Consulta el registro mercantil para el comercio Tienda Verde SAS, identificador CO-TV-0001. Devuelve existencia, fecha(s) de constitución (si las fuentes difieren, muestra todas con su origen), representante legal (con su identificador) y estado. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T20:30:12.130946+00:00] > Subagente noticias iniciado | encargo: Busca menciones en noticias del comercio Tienda Verde SAS, identificador CO-TV-0001. Reporta cada noticia con su fuente y fecha; una mención en noticias no es coincidencia en listas restrictivas. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T20:30:13.052660+00:00] > Subagente riesgo_categoria iniciado | encargo: Consulta el nivel de riesgo de la categoría de negocio: suplementos dietarios (venta en línea). Si el resultado es sin_clasificar, indícalo sin asumir un nivel. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T20:30:14.930075+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-16T20:30:16.588019+00:00] < Subagente noticias terminó | estado: completo
+[2026-10-16T20:30:17.096191+00:00] < Subagente riesgo_categoria terminó | estado: completo
+[2026-10-16T20:30:18.060805+00:00] Coordinador: Registro identificó un único comercio. Lanzo listas restrictivas.
+[2026-10-16T20:30:18.973429+00:00] > Subagente listas_restrictivas iniciado | encargo: Verifica contra las listas restrictivas al comercio con identificador CO-TV-0001 (tipo comercio) y a su representante legal con identificador PE-0001 (tipo persona). Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T20:30:22.419761+00:00] < Subagente listas_restrictivas terminó | estado: completo
+[2026-10-16T20:30:30.970151+00:00] Coordinador: # Due diligence: Tienda Verde SAS (CO-TV-0001)
+
+**Respuesta corta:** no se puede habilitar esta semana de forma automática. Recomiendo **derivar a un oficial de cumplimiento**, porque la categoría declarada (suplementos dietarios) es de alto riesgo según la política de la pasarela.
+
+## Registro mercantil
+Fuente: registro_mercantil_ficticio, 2026-10-16.
+- Se identificó un único comercio, sin ambigüedad.
+- Razón social: Tienda Verde SAS, NIT FICT-1001.
+- Estado: activo.
+- Fecha de constitución: 2021-05-10. Hay una sola fuente y no hay conflictos.
+- Representante legal: Elena Prueba Ríos (PE-0001, documento FICT-0001).
+
+## Listas restrictivas
+Fuente: listas_restrictivas_ficticias, 2026-10-16.
+- Comercio CO-TV-0001: sin coincidencias.
+- Representante legal PE-0001: sin coincidencias.
+
+## Noticias
+Fuente: noticias_ficticias, 2026-10-16.
+- Hay una mención: «Investigan publicidad engañosa de suplementos en tienda en línea» (diario_el_mirador_ficticio, 2026-03-12). Reporta quejas de clientes por promesas de salud sin sustento.
+- El titular no nombra a Tienda Verde SAS de forma explícita. La búsqueda la devolvió tanto por nombre como por identificador, así que la atribución al comercio debe confirmarse.
+- Es una mención en prensa, no una coincidencia en listas restrictivas.
+
+## Riesgo de categoría
+Fuente: catalogo_riesgo_ficticio, 2026-10-16.
+- El catálogo devolvió **sin_clasificar** para «suplementos dietarios (venta en línea)». No asumo un nivel a partir de ese resultado.
+- La política de la pasarela sí define los suplementos dietarios como categoría de alto riesgo, así que esa regla aplica igualmente.
+
+## Datos aportados por el analista
+No son datos obtenidos de una fuente.
+- Categoría declarada: venta en línea de suplementos dietarios.
+- Volumen mensual estimado: $80.000.000.
+- El registro mercantil trae la misma categoría y el mismo volumen, pero no sirve de contraste independiente.
+
+## Recomendación: derivar a un oficial de cumplimiento
+**Motivo:**
+1. La categoría es de alto riesgo y esos comercios no se habilitan automáticamente.
+2. Hay una noticia por posible publicidad engañosa de suplementos que debe revisarse y atribuirse con certeza.
+3. El catálogo no clasifica la categoría, lo que deja un vacío que el oficial debe valorar.
+
+**Puntos a favor:** el comercio existe y está activo, y ni el comercio ni su representante legal aparecen en listas restrictivas.
+
+**Sobre el plazo:** la decisión depende del oficial de cumplimiento, así que no puedo asegurar que quede lista esta semana. Conviene derivarlo hoy.
+
+**Limitaciones:**
+- Este agente solo puede delegar a los subagentes de fuentes y no tiene la herramienta de escalamiento.
+- El caso no está escalado ni el informe registrado. Si quieres, preparo el resumen para el oficial de cumplimiento, que debe bastarse solo.
+[2026-10-16T20:30:31.011183+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+=== CASO 2 (sesión A) ===
+Analista> ¿Y qué dijeron las noticias?
+[2026-10-16T20:30:33.939978+00:00] Coordinador: Las noticias arrojaron una sola mención.
+
+- **Titular:** «Investigan publicidad engañosa de suplementos en tienda en línea».
+- **Fuente y fecha:** diario_el_mirador_ficticio, 2026-03-12.
+- **Resumen:** reporta quejas de clientes por promesas de salud sin sustento.
+
+**Atribución sin confirmar:** el titular no nombra a Tienda Verde SAS. La búsqueda la devolvió tanto por nombre como por identificador, pero eso no prueba que la noticia sea sobre este comercio. El oficial de cumplimiento debe confirmarlo.
+
+**Alcance:** es una mención en prensa, no una coincidencia en listas restrictivas. Esas listas no arrojaron coincidencias ni para el comercio ni para su representante legal.
+
+La fuente es noticias_ficticias, consultada el 2026-10-16. No volví a lanzar la búsqueda, porque esto sale de lo que ya obtuve.
+[2026-10-16T20:30:33.964749+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+=== CASO 3 (sesión A) ===
+Analista> Ahora necesito el due diligence de Libros del Faro SAS, CO-LB-0002
+[2026-10-16T20:30:36.460351+00:00] Coordinador: Es un comercio nuevo, así que empiezo una investigación desde cero. El analista no declaró categoría, por eso lanzo ahora registro y noticias, y riesgo después.
+[2026-10-16T20:30:37.642416+00:00] > Subagente registro_mercantil iniciado | encargo: Consulta el registro mercantil para el comercio Libros del Faro SAS, identificador CO-LB-0002. Devuelve existencia, fecha(s) de constitución (si las fuentes difieren, muestra todas con su origen), representante legal (con su identificador), estado y categoría registrada si la hay. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T20:30:38.547257+00:00] > Subagente noticias iniciado | encargo: Busca menciones en noticias del comercio Libros del Faro SAS, identificador CO-LB-0002. Reporta cada noticia con su fuente y fecha; una mención en noticias no es coincidencia en listas restrictivas. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T20:30:41.137268+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-16T20:30:42.349360+00:00] < Subagente noticias terminó | estado: completo
+[2026-10-16T20:30:43.300439+00:00] Coordinador: Registro identificó un único comercio. Lanzo listas y riesgo (con la categoría que devolvió el registro).
+[2026-10-16T20:30:44.364268+00:00] > Subagente listas_restrictivas iniciado | encargo: Verifica contra las listas restrictivas al comercio con identificador CO-LB-0002 (tipo comercio) y a su representante legal con identificador PE-0002 (tipo persona). Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T20:30:45.043380+00:00] > Subagente riesgo_categoria iniciado | encargo: Consulta el nivel de riesgo de la categoría de negocio: libreria. Si el resultado es sin_clasificar, indícalo sin asumir un nivel. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T20:30:47.554735+00:00] < Subagente listas_restrictivas terminó | estado: completo
+[2026-10-16T20:30:49.712259+00:00] < Subagente riesgo_categoria terminó | estado: completo
+[2026-10-16T20:30:55.602638+00:00] Coordinador: # Due diligence: Libros del Faro SAS (CO-LB-0002)
+
+**Recomendación: habilitar.** Los cuatro frentes están cubiertos y ninguno muestra señales de alerta.
+
+## Registro mercantil
+Fuente: registro_mercantil_ficticio, 2026-10-16.
+- Se identificó un único comercio, sin ambigüedad.
+- Razón social: Libros del Faro SAS, NIT FICT-1002.
+- Estado: activo.
+- Fecha de constitución: 2018-02-01. Hay una sola fuente y no hay conflictos.
+- Representante legal: Tomás Ficticio Vega (PE-0002, documento FICT-0002).
+- Categoría registrada: librería. Volumen estimado en el registro: $15.000.000 mensuales.
+
+## Listas restrictivas
+Fuente: listas_restrictivas_ficticias, 2026-10-16.
+- Comercio CO-LB-0002: sin coincidencias.
+- Representante legal PE-0002: sin coincidencias.
+
+## Noticias
+Fuente: noticias_ficticias, 2026-10-16.
+- No hay menciones, ni por nombre ni por identificador.
+- La ausencia de noticias no equivale a un resultado en listas restrictivas, que son un frente aparte.
+
+## Riesgo de categoría
+Fuente: catalogo_riesgo_ficticio, 2026-10-16.
+- Librería: riesgo **bajo**.
+- Consulté esta categoría con la que devolvió el registro mercantil, porque no me diste una. Si el negocio que van a procesar es otro, avísame y repito este frente.
+
+## Datos aportados por el analista
+No son datos obtenidos de una fuente.
+- Categoría declarada: ninguna.
+- Volumen mensual estimado: ninguno.
+- Si tienes estos datos, pásamelos para contrastarlos con el registro, que indica librería y $15.000.000 al mes.
+
+## Motivo de la recomendación
+- El comercio existe y está activo.
+- Ni el comercio ni su representante legal tienen coincidencias en listas restrictivas.
+- No hay noticias adversas.
+- La categoría es de riesgo bajo y no está entre las de alto riesgo.
+
+No apliqué ninguna regla que obligue a derivar el caso. La habilitación sigue sujeta a que confirmes categoría y volumen.
+
+Este agente no tiene la herramienta de registro, así que el informe no está registrado en el sistema.
+[2026-10-16T20:30:55.621523+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+=== CASO 4 (sesión B) ===
+Analista> Necesito un due diligence
+[2026-10-16T20:31:01.984707+00:00] Coordinador: Para iniciar el due diligence necesito saber qué comercio investigar. Por favor indícame:
+
+1. **Comercio**: nombre o identificador (obligatorio).
+2. **Categoría de negocio declarada** (si la tienes).
+3. **Volumen mensual estimado** (si lo tienes).
+
+Con el comercio identificado lanzo la investigación en el registro mercantil, noticias y riesgo de categoría, y después las listas restrictivas.
+[2026-10-16T20:31:02.038607+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+=== CASO 5 (sesión C) ===
+Analista> Due diligence de Cafetería Aurora
+[2026-10-16T20:31:08.837188+00:00] > Subagente registro_mercantil iniciado | encargo: Consulta en el registro mercantil al comercio "Cafetería Aurora". Devuelve existencia, fecha(s) de constitución con su origen, representante legal (con su identificador), estado y el identificador del comercio. Si hay varias coincidencias, indícalo (ambiguous) sin elegir una. Responde como objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T20:31:09.636995+00:00] > Subagente noticias iniciado | encargo: Busca menciones en noticias del comercio "Cafetería Aurora". Reporta cada noticia con su fuente y fecha; una mención en noticias no es coincidencia en listas restrictivas. Responde como objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T20:31:13.010882+00:00] < Subagente noticias terminó | estado: completo
+[2026-10-16T20:31:14.332957+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-16T20:31:20.886654+00:00] Coordinador: # Due diligence: "Cafetería Aurora" (incompleta)
+
+**No puedo continuar hasta que me indiques cuál de los dos comercios investigar.** El registro mercantil devolvió dos coincidencias y no elegí ninguna.
+
+## Registro mercantil
+Fuente: registro_mercantil_ficticio, 2026-10-16.
+
+| | CO-CA-0004 | CO-CA-0005 |
+|---|---|---|
+| Razón social | Cafetería Aurora SAS | Cafeteria Aurora S.A.S. |
+| NIT | FICT-1004 | FICT-1005 |
+| Estado | Activo | Activo |
+| Constitución | 2020-01-15 | 2022-06-30 |
+| Representante legal | Lucía Demo Campos (PE-0004) | Camilo Ejemplo Duarte (PE-0005) |
+| Categoría en el registro | cafetería | cafetería |
+| Volumen mensual estimado en el registro | 12.000.000 | 9.000.000 |
+
+Cada comercio tiene una sola fecha de constitución, así que no hay conflicto entre fuentes.
+
+## Listas restrictivas
+**No se consultaron.** Solo se consultan con un comercio identificado de forma unívoca.
+
+## Noticias
+Fuente: noticias_ficticias, 2026-10-16. La búsqueda por el nombre "Cafetería Aurora" no devolvió menciones. Como el nombre es ambiguo, este resultado no distingue entre los dos comercios. Lo repetiré cuando elijas uno.
+
+## Riesgo de categoría
+**No se consultó.** No indicaste una categoría declarada. La categoría "cafetería" que aparece en el registro no es un dato tuyo, y no la usé.
+
+## Datos aportados por el analista
+- Categoría declarada: no indicada
+- Volumen mensual estimado: no indicado
+
+## Recomendación
+Todavía no hay una. Faltan las listas restrictivas, el riesgo de categoría y una investigación de noticias sobre un comercio concreto.
+
+**Necesito de ti:**
+1. El identificador del comercio: CO-CA-0004 o CO-CA-0005.
+2. Si quieres evaluar el riesgo, la categoría declarada y el volumen mensual estimado. Si no los das, la sección de riesgo queda sin cubrir.
+[2026-10-16T20:31:20.914759+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed

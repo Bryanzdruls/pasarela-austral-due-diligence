@@ -43,6 +43,7 @@ def build_agents() -> dict[str, AgentDefinition]:
             description=_DESCRIPTIONS[front],
             prompt=SUBAGENT_PROMPTS[front.value],
             tools=[FRONT_TOOLS[front]],
+            background=False,  # el coordinador necesita el resultado del frente, no un acuse
         )
         for front in FrontName
     }
