@@ -15,7 +15,12 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["mcp_server", ".claude/hooks/tests", "scripts/tests"]
+testpaths = [
+    "mcp_server",
+    ".claude/hooks/tests",
+    "scripts/tests",
+    "plugins/pasarela-revision/tests",
+]
 pythonpath = ["."]
 
 [tool.ruff]

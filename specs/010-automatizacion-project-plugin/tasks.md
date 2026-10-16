@@ -23,12 +23,12 @@ description: "Tareas de la automatización del GitHub Project y el plugin reutil
 
 ## Phase 1: Setup
 
-- [ ] T001 Añadir `plugins/pasarela-revision/tests` a `testpaths` en `pyproject.toml` y comprobar que pytest recoge una prueba trivial colocada ahí (y que no entra en conflicto con otros `conftest.py`)
-- [ ] T002 [P] Crear la estructura vacía: `plugins/pasarela-revision/{.claude-plugin,agents,skills/revisar-cumplimiento,hooks,tests}/`, `.claude-plugin/` y `.claude/skills/{siguiente-ticket,sincronizar-tickets}/`
+- [x] T001 Añadir `plugins/pasarela-revision/tests` a `testpaths` en `pyproject.toml` y comprobar que pytest recoge una prueba trivial colocada ahí (y que no entra en conflicto con otros `conftest.py`)
+- [x] T002 [P] Crear la estructura vacía: `plugins/pasarela-revision/{.claude-plugin,agents,skills/revisar-cumplimiento,hooks,tests}/`, `.claude-plugin/` y `.claude/skills/{siguiente-ticket,sincronizar-tickets}/`
 
 ## Phase 2: Foundational (bloquea las historias)
 
-- [ ] T003 Comprobar en esta sesión que existen las herramientas MCP que usarán las skills (`mcp__github__projects_list`, `mcp__github__projects_write`, `mcp__github__issue_read`, `mcp__github__add_issue_comment`, `mcp__github__list_pull_requests`, `mcp__github__pull_request_read`) y anotar sus nombres exactos y los de las opciones de `Status` (`Todo`, `In Progress`, `In review`, `Done`) al final de `specs/010-automatizacion-project-plugin/contracts/flujo-tickets.md`, en una sección **Nombres verificados**
+- [x] T003 Comprobar en esta sesión que existen las herramientas MCP que usarán las skills (`mcp__github__projects_list`, `mcp__github__projects_write`, `mcp__github__issue_read`, `mcp__github__add_issue_comment`, `mcp__github__list_pull_requests`, `mcp__github__pull_request_read`) y anotar sus nombres exactos y los de las opciones de `Status` (`Todo`, `In Progress`, `In review`, `Done`) al final de `specs/010-automatizacion-project-plugin/contracts/flujo-tickets.md`, en una sección **Nombres verificados**
 
 ## Phase 3: User Story 1 - Tomar el siguiente ticket (Priority: P1) 🎯 MVP
 
@@ -36,10 +36,10 @@ description: "Tareas de la automatización del GitHub Project y el plugin reutil
 
 **Independent Test**: sobre el Project real, ejecutar la skill y comprobar el ticket elegido y su cambio de estado; con un ticket ya en progreso, comprobar que pide confirmación.
 
-- [ ] T004 [US1] Escribir `scripts/tests/test_flow_skills.py` con pruebas de `.claude/skills/siguiente-ticket/SKILL.md` (deben fallar antes de T005): existe; frontmatter con `name`, `description`, `allowed-tools` y `argument-hint`; `allowed-tools` incluye `mcp__github__projects_list`, `mcp__github__projects_write` y `mcp__github__issue_read` y **no** incluye `Edit`, `Write` ni `Bash` sin argumento; el cuerpo nombra los cuatro estados exactos (`Todo`, `In Progress`, `In review`, `Done`), el orden (#9 y #10 primero, luego por número), la confirmación si hay un ticket en progreso y el aviso si el servidor o el toolset no están disponibles
-- [ ] T005 [US1] Ejecutar `python -m pytest -q scripts/tests/test_flow_skills.py` y comprobar que falla por la razón esperada (la skill no existe)
-- [ ] T006 [US1] Crear `.claude/skills/siguiente-ticket/SKILL.md` según `contracts/flujo-tickets.md`: ejecuta primero la sincronización, aplica el orden de `data-model.md`, pasa el ticket a `In Progress` con `mcp__github__projects_write`, muestra título y contenido como insumo de `/speckit-specify`, pide confirmación si ya hay uno en progreso o si el elegido depende de uno abierto, y se detiene sin modificar nada si el servidor o el toolset no están disponibles
-- [ ] T007 [US1] Ejecutar las pruebas de T004 y comprobar que pasan
+- [x] T004 [US1] Escribir `scripts/tests/test_flow_skills.py` con pruebas de `.claude/skills/siguiente-ticket/SKILL.md` (deben fallar antes de T005): existe; frontmatter con `name`, `description`, `allowed-tools` y `argument-hint`; `allowed-tools` incluye `mcp__github__projects_list`, `mcp__github__projects_write` y `mcp__github__issue_read` y **no** incluye `Edit`, `Write` ni `Bash` sin argumento; el cuerpo nombra los cuatro estados exactos (`Todo`, `In Progress`, `In review`, `Done`), el orden (#9 y #10 primero, luego por número), la confirmación si hay un ticket en progreso y el aviso si el servidor o el toolset no están disponibles
+- [x] T005 [US1] Ejecutar `python -m pytest -q scripts/tests/test_flow_skills.py` y comprobar que falla por la razón esperada (la skill no existe)
+- [x] T006 [US1] Crear `.claude/skills/siguiente-ticket/SKILL.md` según `contracts/flujo-tickets.md`: ejecuta primero la sincronización, aplica el orden de `data-model.md`, pasa el ticket a `In Progress` con `mcp__github__projects_write`, muestra título y contenido como insumo de `/speckit-specify`, pide confirmación si ya hay uno en progreso o si el elegido depende de uno abierto, y se detiene sin modificar nada si el servidor o el toolset no están disponibles
+- [x] T007 [US1] Ejecutar las pruebas de T004 y comprobar que pasan
 
 ## Phase 4: User Story 2 - El estado refleja el avance hasta Done (Priority: P1)
 
@@ -47,11 +47,11 @@ description: "Tareas de la automatización del GitHub Project y el plugin reutil
 
 **Independent Test**: con el estado real del Project, ejecutar `/sincronizar-tickets` dos veces; la segunda no cambia nada. Con un pull request fusionado en `In review`, pasa a `Done`.
 
-- [ ] T008 [US2] Ampliar `scripts/tests/test_flow_skills.py` con pruebas de `.claude/skills/sincronizar-tickets/SKILL.md` y de `.claude/commands/abrir-pr.md` (deben fallar antes de T010 y T011): la skill existe con `allowed-tools` de lectura del Project y de pull requests más `mcp__github__projects_write`, sin herramientas de escritura de archivos; su cuerpo describe las transiciones de `data-model.md`, que un pull request cerrado sin fusionar no cambia nada, que es idempotente y que informa cada cambio; el comando exige el comentario con las secciones **Especificado**, **Decidido** y **Pendiente**, el paso a `In review` por `mcp__github__projects_write` y la parada explícita si el servidor o el toolset no están disponibles
-- [ ] T009 [US2] Ejecutar las pruebas de T008 y comprobar que fallan por la razón esperada
-- [ ] T010 [P] [US2] Crear `.claude/skills/sincronizar-tickets/SKILL.md` según `contracts/flujo-tickets.md` (detección de fusión por rama que empieza por el número del ticket o `Closes #N`, transiciones permitidas, idempotencia, informe de cada cambio, un ticket que no está en el Project solo se informa; invocar la skill es la autorización expresa de FR-010 y cada cambio se lista antes de aplicarse)
-- [ ] T011 [P] [US2] Ampliar `.claude/commands/abrir-pr.md`: ampliar `allowed-tools` con las herramientas del MCP necesarias y **sustituir `gh issue comment` por `mcp__github__add_issue_comment`** (FR-008: toda escritura del backlog pasa por el MCP; `gh pr create` se mantiene porque no escribe el backlog), reescribir el paso 5 con el comentario de avance de tres partes construido desde `spec.md`, `tasks.md`, `verification.md` y los veredictos, y el paso a `In review` por el MCP con parada explícita si no está disponible; mantener el resto de pasos y las dos revisiones
-- [ ] T012 [US2] Ejecutar las pruebas de T008 y comprobar que pasan
+- [x] T008 [US2] Ampliar `scripts/tests/test_flow_skills.py` con pruebas de `.claude/skills/sincronizar-tickets/SKILL.md` y de `.claude/commands/abrir-pr.md` (deben fallar antes de T010 y T011): la skill existe con `allowed-tools` de lectura del Project y de pull requests más `mcp__github__projects_write`, sin herramientas de escritura de archivos; su cuerpo describe las transiciones de `data-model.md`, que un pull request cerrado sin fusionar no cambia nada, que es idempotente y que informa cada cambio; el comando exige el comentario con las secciones **Especificado**, **Decidido** y **Pendiente**, el paso a `In review` por `mcp__github__projects_write` y la parada explícita si el servidor o el toolset no están disponibles
+- [x] T009 [US2] Ejecutar las pruebas de T008 y comprobar que fallan por la razón esperada
+- [x] T010 [P] [US2] Crear `.claude/skills/sincronizar-tickets/SKILL.md` según `contracts/flujo-tickets.md` (detección de fusión por rama que empieza por el número del ticket o `Closes #N`, transiciones permitidas, idempotencia, informe de cada cambio, un ticket que no está en el Project solo se informa; invocar la skill es la autorización expresa de FR-010 y cada cambio se lista antes de aplicarse)
+- [x] T011 [P] [US2] Ampliar `.claude/commands/abrir-pr.md`: ampliar `allowed-tools` con las herramientas del MCP necesarias y **sustituir `gh issue comment` por `mcp__github__add_issue_comment`** (FR-008: toda escritura del backlog pasa por el MCP; `gh pr create` se mantiene porque no escribe el backlog), reescribir el paso 5 con el comentario de avance de tres partes construido desde `spec.md`, `tasks.md`, `verification.md` y los veredictos, y el paso a `In review` por el MCP con parada explícita si no está disponible; mantener el resto de pasos y las dos revisiones
+- [x] T012 [US2] Ejecutar las pruebas de T008 y comprobar que pasan
 
 ## Phase 5: User Story 3 - Plugin instalable desde un catálogo (Priority: P2)
 

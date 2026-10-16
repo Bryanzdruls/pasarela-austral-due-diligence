@@ -44,3 +44,10 @@ Después de los dos veredictos y de la confirmación de la persona:
 ## Errores
 
 Cualquier fallo de una llamada al MCP se muestra con su mensaje y detiene el flujo en ese punto, indicando qué ya se hizo y qué no (sin transiciones parciales ocultas).
+
+## Nombres verificados
+
+Comprobados el 2026-10-16 en la sesión (herramientas disponibles del servidor `github`) y con `list_project_fields` sobre el Project nº 4:
+
+- Herramientas: `mcp__github__projects_list`, `mcp__github__projects_write`, `mcp__github__issue_read`, `mcp__github__add_issue_comment`, `mcp__github__list_pull_requests`, `mcp__github__pull_request_read`.
+- Campo `Status` (single select, id 426295783), opciones exactas: `Todo`, `In Progress`, `In review`, `Done`. Para cambiar el estado se usa `projects_write` con `method: update_project_item`, `owner`, `project_number: 4`, `item_owner`, `item_repo`, `issue_number` y `updated_field: {"name": "Status", "value": "<opción>"}`.
