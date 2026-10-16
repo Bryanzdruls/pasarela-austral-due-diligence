@@ -83,7 +83,7 @@ Los comandos que instala Spec Kit no cuentan. Cada pieza se justifica en `DECISI
 | E4 | 2 skills; entre todas usan `context: fork`, `allowed-tools` y `argument-hint` | En rama | `revisar-cumplimiento` (`context: fork`) y `verificar-ecosistema` (`allowed-tools`, `argument-hint`) (rama `009`) |
 | E5 | 2 hooks: uno que bloquea antes de ejecutar y uno posterior a una edición | En rama | 4 hooks en `.claude/settings.json`: 3 `PreToolUse` y 1 `PostToolUse`; pruebas de los hooks y mutaciones detectadas (`specs/009-*/verification.md`) |
 | E6 | 1 comando propio compartido por control de versiones | Hecho | `.claude/commands/abrir-pr.md` (en `main`) |
-| E7 | 2 servidores MCP (GitHub y el propio), sin credenciales en el repo | En rama | `.mcp.json` (rama `009`); sin credenciales. **Sin verificar** que `pasarela-fuentes` arranque: se lanza con `python -m uv run` y `uv` no está instalado en el equipo del autor |
+| E7 | 2 servidores MCP (GitHub y el propio), sin credenciales en el repo | Hecho | `.mcp.json`; sin credenciales. `pasarela-fuentes` se lanza con `python -m mcp_server` y se comprobó por stdio que arranca y expone las 6 herramientas (antes se lanzaba con `python -m uv run`, que fallaba con `Connection closed` donde `uv` no está instalado). Requiere el `python` del entorno con las dependencias instaladas |
 | E8 | 1 plugin con al menos 1 subagente, 1 skill y 1 hook reutilizables | **Falta** | Ticket #10 |
 
 Necesidades que el ecosistema debe resolver:

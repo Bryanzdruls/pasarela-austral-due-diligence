@@ -11,7 +11,7 @@
     "pasarela-fuentes": {
       "type": "stdio",
       "command": "python",
-      "args": ["-m", "uv", "run", "python", "-m", "mcp_server"]
+      "args": ["-m", "mcp_server"]
     }
   }
 }
