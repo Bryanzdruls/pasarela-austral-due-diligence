@@ -1,0 +1,8 @@
+{
+  "name": "pasarela-revision",
+  "version": "0.1.0",
+  "description": "Revisión independiente de cumplimiento de las reglas de negocio de la pasarela y protección contra datos con forma de reales",
+  "author": {
+    "name": "Equipo de riesgo - Pasarela Austral"
+  }
+}
