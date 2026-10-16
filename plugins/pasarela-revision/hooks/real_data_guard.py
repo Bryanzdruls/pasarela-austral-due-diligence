@@ -106,7 +106,7 @@ def _stderr(message):
 
 def main():
     try:
-        payload = json.loads(sys.stdin.read())
+        payload = json.loads(sys.stdin.buffer.read().decode("utf-8"))  # UTF-8 crudo
         if not isinstance(payload, dict):
             raise ValueError("el payload debe ser un objeto JSON")
         findings = find_sensitive(_text(payload))

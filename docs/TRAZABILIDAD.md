@@ -163,7 +163,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 |---|---|---|
 | Una regla de negocio que dependa solo del prompt | **ABIERTA** | Las reglas 1-3 no tienen hook todavía (ticket #3). Cerrar antes del cierre del proyecto |
 | Una credencial en el repositorio | Sin hallazgos | Escaneo de valores con forma de clave de Anthropic, de token de GitHub o de clave privada a mano antes de cada commit (sin hook de git que lo automatice) y, sobre la configuración, `scripts/tests/test_no_credentials.py`; `.env` ignorado; `.mcp.json` solo referencia variables |
-| Un dato que parezca real | Sin hallazgos | `test_datos_ficticios.py`; hook de datos reales en la rama `009` (`real_data_guard.py`) |
+| Un dato que parezca real | Sin hallazgos | `test_datos_ficticios.py`; hook de datos reales en `main` (`real_data_guard.py`) |
 
 ## 9. Desviaciones del proceso reconocidas
 

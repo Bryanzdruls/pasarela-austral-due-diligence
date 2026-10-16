@@ -6,7 +6,7 @@
 |---|---|
 | Número, título, contenido | issue de GitHub |
 | Estado | opción del campo `Status` del Project: `Todo`, `In Progress`, `In review`, `Done` |
-| Pull request asociado | el que tiene una rama que empieza por el número del ticket o `Closes #N` en el cuerpo |
+| Pull request asociado | el que contiene `Closes #N` (número completo) en el cuerpo; solo si ninguno lo cierra, el que tiene una rama que empieza por el número del ticket. Un pull request que solo dice `Refs #N` no cierra el ticket |
 | Fusionado | el pull request asociado tiene fecha de fusión |
 
 ### Transiciones permitidas

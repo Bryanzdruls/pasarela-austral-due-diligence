@@ -31,7 +31,12 @@ _ABSOLUTE = re.compile(r"^(?:[A-Za-z]:/|/)")
 
 
 def read_payload(stream: TextIO | None = None) -> dict[str, Any]:
-    text = (stream or sys.stdin).read()
+    if stream is None and hasattr(sys.stdin, "buffer"):
+        # Claude Code envía JSON en UTF-8: en Windows `sys.stdin.read()` usaría la codificación
+        # local: rompería `cédula` (no bloquea) o las mayúsculas con tilde (bloquea de más).
+        text = sys.stdin.buffer.read().decode("utf-8")
+    else:
+        text = (stream or sys.stdin).read()
     if not text.strip():
         raise ValueError("la entrada del hook está vacía")
     try:

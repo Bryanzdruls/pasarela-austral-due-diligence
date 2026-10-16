@@ -19,7 +19,7 @@ Si una herramienta `mcp__github__projects_*` no existe o falla por conexión o p
 2. **Lee el Project.** `mcp__github__projects_list` con `method: list_project_items`, `owner: Bryanzdruls`, `project_number: 4` y `field_names: ["Status"]`; pagina hasta el final. Los estados exactos son `Todo`, `In Progress`, `In review` y `Done`.
 3. **Si ya hay un ticket en `In Progress`**, dilo y pide confirmación antes de tomar otro. Sin una confirmación expresa de la persona, no muevas nada.
 4. **Elige el ticket** entre los que están en `Todo`:
-   - Con argumento: ese ticket. Si salta el orden, adviértelo y pide confirmación.
+   - Con argumento: ese ticket, solo si está en `Todo`; si está en `In Progress`, `In review` o `Done`, dilo y no muevas nada. Si salta el orden, adviértelo y pide confirmación.
    - Sin argumento: primero los tickets de configuración del entorno de Claude Code (#9 y #10, principio VIII de la constitución) y después el resto por número ascendente.
    - Si el elegido es de funcionalidad (#2 en adelante) y el #9 o el #10 no están en `Done`, advierte que la constitución exige fusionarlos antes y propón el ticket correcto.
    - Si no queda ningún ticket en `Todo`, dilo claramente y no modifiques nada.

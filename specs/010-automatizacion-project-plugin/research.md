@@ -23,7 +23,7 @@ Las opciones reales del campo `Status` del Project nº 4 son `Todo`, `In Progres
 - **Alternativa descartada**: etiqueta `entorno` o campo propio en el Project: añade una convención más que mantener para dos tickets.
 
 ### D5. Cómo se detecta "fusionado" para marcar Done
-- **Decisión**: para cada ticket en `In review` (y para los que aún estén `In Progress` con un PR), se busca el pull request cuya rama empieza por el número del ticket o cuyo cuerpo contiene `Closes #N`; si `mergedAt` no es nulo, el ticket pasa a `Done`. Un PR cerrado sin fusionar no cambia nada y se informa.
+- **Decisión**: para cada ticket en `In review` (y para los que aún estén `In Progress` con un PR), se busca el pull request cuyo cuerpo contiene `Closes #N` (número completo) y, solo si ninguno lo cierra, el de la rama que empieza por el número del ticket; un pull request que solo dice `Refs #N` no cierra el ticket (hallazgo del PR #14, rama `009-fix-…`); si `merged_at` no es nulo, el ticket pasa a `Done`. Un PR cerrado sin fusionar no cambia nada y se informa.
 - **Por qué**: ambas señales las usa ya el repositorio (ramas `NNN-…`, `Closes #N`) y cubren fusiones hechas a mano en GitHub.
 - **Alternativa descartada**: confiar solo en que el issue esté cerrado: GitHub cierra el issue al fusionar, pero un issue cerrado a mano sin PR no es "fusionado".
 

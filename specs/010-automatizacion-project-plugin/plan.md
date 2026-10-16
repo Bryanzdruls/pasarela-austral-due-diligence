@@ -86,7 +86,7 @@ plugins/pasarela-revision/
 ├── hooks/
 │   ├── hooks.json                     # PreToolUse -> real_data_guard.py
 │   └── real_data_guard.py             # autocontenido (sin importar el repo)
-├── tests/test_real_data_guard.py
+├── tests/test_plugin_real_data_guard.py, test_plugin_layout.py
 └── README.md                          # instalación, uso y límites
 
 scripts/

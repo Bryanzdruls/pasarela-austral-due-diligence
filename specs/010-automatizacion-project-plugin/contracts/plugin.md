@@ -10,7 +10,7 @@ plugins/pasarela-revision/
 ├── skills/revisar-cumplimiento/SKILL.md
 ├── hooks/hooks.json
 ├── hooks/real_data_guard.py
-├── tests/test_real_data_guard.py
+├── tests/test_plugin_real_data_guard.py, test_plugin_layout.py
 └── README.md
 ```
 

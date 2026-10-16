@@ -60,3 +60,21 @@ Observación: el catálogo se añadió por ruta local, y la CLI lo lee en el sit
 ## T021: `agent:` en la skill del plugin
 
 La documentación oficial no aclara cómo resuelve `agent:` una skill de plugin (solo describe los agentes built-in y los de `.claude/agents/`). La skill usa el nombre completo `pasarela-revision:compliance-reviewer`, el documentado para agentes de plugin. **Sin verificar** con una sesión real: hay que comprobarlo con `/agents` y lanzando la skill cuando haya crédito. `claude plugin validate --strict` sigue pasando.
+
+## Revisión independiente (T031)
+
+Una sola revisión de código, con el modelo de amenaza escrito, y una de cumplimiento.
+
+- **compliance-reviewer: `cumple parcialmente`.** Sin faltas graves: el ticket no da por cumplida ninguna regla de negocio. Las reglas 1-3 siguen abiertas hasta el #3, la 4 hasta el #5 y la 5 hasta el #4.
+- **code-reviewer: `aprobar`.** Sin bloqueantes. Un importante y nueve menores.
+
+### Corregido
+- **Importante (real):** los hooks leían la entrada con la codificación local. En Windows, un `Write` con la etiqueta `Cédula` seguida de un número de ocho dígitos **no se bloqueaba**, tanto en el hook del plugin como en el del proyecto (heredado del #9). Se reprodujo con `test_utf8_input.py` antes de corregir (2 fallos) y ahora lee UTF-8 crudo en ambos (`.claude/hooks/common.py` y el hook del plugin).
+- `siguiente-ticket`: un argumento que no está en `Todo` ya no mueve nada.
+- `sincronizar-tickets`: el número de `Closes #N` debe coincidir completo y "fusionado" exige fecha de fusión.
+- Documentos de diseño y textos obsoletos alineados con las skills.
+
+### Declarado y sin corregir (menores)
+- `/abrir-pr` paso 5.4 no repite todos los parámetros de la llamada y no comprueba el estado de origen; su paso 4 no dice qué hacer si la segunda ronda sigue devolviendo `corregir`.
+- `siguiente-ticket` invoca `sincronizar-tickets` sin `Skill` en `allowed-tools`; la autorización de los `Done` que escribiría queda bajo la de `siguiente-ticket`.
+- `check_flow` del verificador solo exige alguna herramienta `projects` (quitar solo `projects_write` no lo hace fallar), `check_catalog` acepta cualquier carpeta existente como fuente y `check_plugin` no comprueba que el subagente sea de solo lectura ni `context: fork`; una prueba del catálogo usa una comprobación débil.
