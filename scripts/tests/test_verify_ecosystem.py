@@ -73,7 +73,65 @@ PIECES = [
     ".claude/hooks/b.py",
     ".mcp.json",
     "scripts/verify_ecosystem.py",
+    ".claude/skills/siguiente-ticket/SKILL.md",
+    ".claude/skills/sincronizar-tickets/SKILL.md",
+    ".claude-plugin/marketplace.json",
+    "plugins/p/.claude-plugin/plugin.json",
+    "plugins/p/agents/rev.md",
+    "plugins/p/skills/rev/SKILL.md",
+    "plugins/p/hooks/hooks.json",
+    "plugins/p/hooks/guard.py",
 ]
+
+
+def flow_skill(name, tools="mcp__github__projects_list, mcp__github__projects_write"):
+    return skill(name, f"allowed-tools: {tools}\nargument-hint: [n]\n")
+
+
+HOOKS_JSON = json.dumps(
+    {
+        "hooks": {
+            "PreToolUse": [
+                {
+                    "matcher": "Edit|Write",
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": "python",
+                            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/guard.py"],
+                        }
+                    ],
+                }
+            ]
+        }
+    }
+)
+MANIFEST = json.dumps({"name": "p", "version": "0.1.0", "description": "Plugin de prueba"})
+CATALOG = json.dumps(
+    {
+        "name": "cat",
+        "owner": {"name": "equipo"},
+        "plugins": [{"name": "p", "source": "./plugins/p", "description": "Plugin de prueba"}],
+    }
+)
+EXTRAS = {
+    ".claude/skills/siguiente-ticket/SKILL.md": flow_skill("siguiente-ticket"),
+    ".claude/skills/sincronizar-tickets/SKILL.md": flow_skill("sincronizar-tickets"),
+    ".claude-plugin/marketplace.json": CATALOG,
+    "plugins/p/.claude-plugin/plugin.json": MANIFEST,
+    "plugins/p/agents/rev.md": AGENT.format(n="rev"),
+    "plugins/p/skills/rev/SKILL.md": skill(
+        "rev", "context: fork\nallowed-tools: Read Grep\nargument-hint: <t>\n"
+    ),
+    "plugins/p/hooks/hooks.json": HOOKS_JSON,
+    "plugins/p/hooks/guard.py": "",
+}
+
+
+NO_FLOW_SKILLS = {
+    ".claude/skills/siguiente-ticket/SKILL.md": None,
+    ".claude/skills/sincronizar-tickets/SKILL.md": None,
+}
 
 
 def inventory(paths=PIECES):
@@ -99,12 +157,14 @@ def build(root: Path, **override):
             "s2", "allowed-tools: Bash(python x*)\nargument-hint: [--json]\n"
         ),
         ".claude/skills/speckit-plan/SKILL.md": skill("speckit-plan", ""),
-        ".claude/commands/abrir-pr.md": "---\ndescription: Abre el PR\n---\ncuerpo\n",
+        ".claude/commands/abrir-pr.md": "---\ndescription: Abre el PR\n"
+        "allowed-tools: Bash(git diff:*), mcp__github__projects_write\n---\ncuerpo\n",
         ".claude/settings.json": settings(),
         ".claude/hooks/a.py": "",
         ".claude/hooks/b.py": "",
         ".mcp.json": mcp(),
         "scripts/verify_ecosystem.py": "",
+        **EXTRAS,
         "docs/ECOSISTEMA.md": inventory(),
     }
     files.update({k: val for k, val in override.items() if val is not None})
@@ -148,6 +208,7 @@ def test_json_output_is_a_valid_object_with_every_check(tmp_path):
         [sys.executable, str(SCRIPT), "--root", str(tmp_path), "--json"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
     )
     data = json.loads(out.stdout)
     assert data["ok"] is True
@@ -220,7 +281,7 @@ def test_an_agent_without_a_tools_field_does_not_count(tmp_path):
 
 
 def test_fewer_than_two_skills_fails_and_speckit_skills_do_not_count(tmp_path):
-    build(tmp_path, **{".claude/skills/s2/SKILL.md": None})
+    build(tmp_path, **{".claude/skills/s2/SKILL.md": None, **NO_FLOW_SKILLS})
     assert v.CHECK_SKILLS in failures(tmp_path)  # solo queda s1; speckit-plan no cuenta
 
 
@@ -238,6 +299,7 @@ def test_the_skills_together_must_use_fork_allowed_tools_and_argument_hint(tmp_p
         **{
             ".claude/skills/s1/SKILL.md": skill("s1", s1),
             ".claude/skills/s2/SKILL.md": skill("s2", s2),
+            **NO_FLOW_SKILLS,
         },
     )
     problems = failures(tmp_path)
@@ -364,3 +426,133 @@ def test_spec_kit_skills_and_commands_need_no_row(tmp_path):
 def test_hook_helpers_that_settings_does_not_invoke_need_no_row(tmp_path):
     build(tmp_path, **{".claude/hooks/common.py": "", ".claude/hooks/tests/test_x.py": ""})
     assert v.CHECK_INVENTORY not in failures(tmp_path)
+
+
+# --------------------------------------------------------------------------- plugin (SC-006)
+
+
+@pytest.mark.parametrize(
+    "missing, fragment",
+    [
+        ("plugins/p/.claude-plugin/plugin.json", "manifiesto"),
+        ("plugins/p/agents/rev.md", "subagente"),
+        ("plugins/p/skills/rev/SKILL.md", "skill"),
+        ("plugins/p/hooks/hooks.json", "hook"),
+        ("plugins/p/hooks/guard.py", "guard.py"),
+    ],
+)
+def test_removing_a_plugin_piece_fails_the_plugin_check_naming_it(tmp_path, missing, fragment):
+    build(tmp_path, **{missing: None})
+    result = failures(tmp_path)
+    assert "plugin" in result and fragment in result["plugin"], result
+
+
+def test_a_tree_without_any_plugin_fails_the_plugin_check(tmp_path):
+    root = build(tmp_path)
+    for path in sorted(root.glob("plugins/**/*"), reverse=True):
+        path.unlink() if path.is_file() else path.rmdir()
+    assert "plugin" in failures(root)
+
+
+def test_a_plugin_hook_that_points_outside_the_plugin_fails(tmp_path):
+    outside = HOOKS_JSON.replace(
+        "${CLAUDE_PLUGIN_ROOT}/hooks/guard.py", "${CLAUDE_PROJECT_DIR}/.claude/hooks/a.py"
+    )
+    build(tmp_path, **{"plugins/p/hooks/hooks.json": outside})
+    result = failures(tmp_path)
+    assert "plugin" in result and "fuera del plugin" in result["plugin"], result
+
+
+def test_a_plugin_piece_that_references_a_parent_directory_fails(tmp_path):
+    build(tmp_path, **{"plugins/p/agents/rev.md": AGENT.format(n="rev") + "ver ../../docs/x.md\n"})
+    result = failures(tmp_path)
+    assert "plugin" in result and "fuera del plugin" in result["plugin"], result
+
+
+# --------------------------------------------------------------------------- catálogo
+
+
+@pytest.mark.parametrize("missing", [".claude-plugin/marketplace.json"])
+def test_removing_the_catalog_fails_the_catalog_check(tmp_path, missing):
+    build(tmp_path, **{missing: None})
+    result = failures(tmp_path)
+    assert "catálogo de plugins" in result and "marketplace.json" in result["catálogo de plugins"]
+
+
+def test_a_catalog_that_does_not_list_the_plugin_fails(tmp_path):
+    empty = json.dumps({"name": "cat", "owner": {"name": "e"}, "plugins": []})
+    build(tmp_path, **{".claude-plugin/marketplace.json": empty})
+    result = failures(tmp_path)
+    assert "catálogo de plugins" in result and "p" in result["catálogo de plugins"]
+
+
+def test_a_catalog_whose_source_does_not_exist_fails(tmp_path):
+    bad = CATALOG.replace("./plugins/p", "./plugins/no-existe")
+    build(tmp_path, **{".claude-plugin/marketplace.json": bad})
+    result = failures(tmp_path)
+    assert "catálogo de plugins" in result and "no-existe" in result["catálogo de plugins"]
+
+
+# ------------------------------------------------------------ automatización del flujo
+
+
+@pytest.mark.parametrize("name", ["siguiente-ticket", "sincronizar-tickets"])
+def test_removing_a_flow_skill_fails_the_flow_check_naming_it(tmp_path, name):
+    build(tmp_path, **{f".claude/skills/{name}/SKILL.md": None})
+    result = failures(tmp_path)
+    assert "automatización del flujo" in result and name in result["automatización del flujo"]
+
+
+@pytest.mark.parametrize("name", ["siguiente-ticket", "sincronizar-tickets"])
+def test_a_flow_skill_without_the_github_mcp_tools_fails(tmp_path, name):
+    build(tmp_path, **{f".claude/skills/{name}/SKILL.md": flow_skill(name, tools="Read Grep")})
+    result = failures(tmp_path)
+    assert "automatización del flujo" in result
+    assert (
+        name in result["automatización del flujo"]
+        and "mcp__github__projects" in result["automatización del flujo"]
+    )
+
+
+def test_a_pr_command_that_does_not_move_the_ticket_through_the_mcp_fails(tmp_path):
+    build(
+        tmp_path, **{".claude/commands/abrir-pr.md": "---\ndescription: Abre el PR\n---\ncuerpo\n"}
+    )
+    result = failures(tmp_path)
+    assert "automatización del flujo" in result and "abrir-pr" in result["automatización del flujo"]
+
+
+# ------------------------------------------------------------ inventario de lo nuevo (SC-007)
+
+
+@pytest.mark.parametrize(
+    "piece",
+    [
+        ".claude/skills/siguiente-ticket/SKILL.md",
+        ".claude/skills/sincronizar-tickets/SKILL.md",
+        ".claude-plugin/marketplace.json",
+        "plugins/p/.claude-plugin/plugin.json",
+        "plugins/p/agents/rev.md",
+        "plugins/p/skills/rev/SKILL.md",
+        "plugins/p/hooks/hooks.json",
+        "plugins/p/hooks/guard.py",
+    ],
+)
+def test_a_new_piece_without_an_inventory_row_fails_the_inventory(tmp_path, piece):
+    build(tmp_path, **{"docs/ECOSISTEMA.md": inventory([p for p in PIECES if p != piece])})
+    result = failures(tmp_path)
+    assert "inventario del ecosistema" in result and piece in result["inventario del ecosistema"]
+
+
+def test_the_json_output_includes_the_three_new_checks(tmp_path):
+    build(tmp_path)
+    out = subprocess.run(
+        [sys.executable, str(SCRIPT), "--root", str(tmp_path), "--json"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    data = json.loads(out.stdout)
+    names = {c["name"] for c in data["checks"]}
+    assert {"plugin", "catálogo de plugins", "automatización del flujo"} <= names
+    assert data["ok"] is True

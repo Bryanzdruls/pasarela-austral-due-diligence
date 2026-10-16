@@ -25,6 +25,9 @@ CHECK_COMMAND = "comando propio"
 CHECK_MCP = "servidores MCP"
 CHECK_CREDENTIALS = "credenciales en .mcp.json"
 CHECK_INVENTORY = "inventario del ecosistema"
+CHECK_PLUGIN = "plugin"
+CHECK_CATALOG = "catálogo de plugins"
+CHECK_FLOW = "automatización del flujo"
 
 ALL_CHECKS = (
     CHECK_MEMORY,
@@ -37,6 +40,9 @@ ALL_CHECKS = (
     CHECK_MCP,
     CHECK_CREDENTIALS,
     CHECK_INVENTORY,
+    CHECK_PLUGIN,
+    CHECK_CATALOG,
+    CHECK_FLOW,
 )
 
 INVENTORY = "docs/ECOSISTEMA.md"
@@ -52,6 +58,14 @@ _SECRET = re.compile(
 _SENSITIVE_HEADER = re.compile(r"auth|token|key|secret", re.IGNORECASE)
 _IMPORT = re.compile(r"(?:^|\s)@([\w./-]+\.md)\b")
 _HOOK_SCRIPT = re.compile(r"\.claude/hooks/([\w./-]+\.py)")
+# Referencias que solo existen en el repositorio y que un plugin instalado en otro no tendría.
+_OUTSIDE_PLUGIN = re.compile(r"\$\{CLAUDE_PROJECT_DIR\}|\.\./|\.claude/hooks/")
+_PLUGIN_ROOT_REF = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([\w./-]+)")
+MARKETPLACE = ".claude-plugin/marketplace.json"
+FLOW_SKILLS = ("siguiente-ticket", "sincronizar-tickets")
+FLOW_COMMAND = "abrir-pr"
+MCP_PROJECTS = "mcp__github__projects"
+MCP_PROJECTS_WRITE = "mcp__github__projects_write"
 
 
 @dataclass(frozen=True)
@@ -260,9 +274,14 @@ def _expected_pieces(root: Path) -> set[str]:
         pieces |= {_rel(root, p) for p in (root / ".claude" / folder).glob("*.md")}
     pieces |= {_rel(root, p) for p in _skills(root)} | {_rel(root, p) for p in _commands(root)}
     pieces |= {s for s in _hook_scripts(root) if (root / s).is_file()}
-    for name in (".claude/settings.json", ".mcp.json", "scripts/verify_ecosystem.py"):
+    for name in (".claude/settings.json", ".mcp.json", "scripts/verify_ecosystem.py", MARKETPLACE):
         if (root / name).is_file():
             pieces.add(name)
+    for plugin in _plugin_dirs(root):
+        patterns = (".claude-plugin/plugin.json", "agents/*.md", "skills/*/SKILL.md")
+        patterns += ("hooks/hooks.json", "hooks/*.py")
+        for pattern in patterns:
+            pieces |= {_rel(root, f) for f in plugin.glob(pattern) if f.is_file()}
     return pieces
 
 
@@ -296,6 +315,128 @@ def check_inventory(root: Path) -> Check:
     return Check(CHECK_INVENTORY, True, f"{len(set(rows))} piezas inventariadas")
 
 
+def _plugin_dirs(root: Path) -> list[Path]:
+    base = root / "plugins"
+    return sorted(p for p in base.iterdir() if p.is_dir()) if base.is_dir() else []
+
+
+def _plugin_files(plugin: Path) -> list[Path]:
+    """Archivos de texto del plugin que se distribuyen (sin sus pruebas)."""
+    return [
+        f
+        for f in sorted(plugin.rglob("*"))
+        if f.is_file()
+        and "tests" not in f.relative_to(plugin).parts
+        and "__pycache__" not in f.parts
+        and f.suffix in {".md", ".json", ".py"}
+    ]
+
+
+def _plugin_problems(root: Path, plugin: Path) -> list[str]:
+    problems = []
+    manifest = plugin / ".claude-plugin" / "plugin.json"
+    if not manifest.is_file():
+        problems.append("falta el manifiesto (.claude-plugin/plugin.json)")
+    else:
+        data = _json(manifest)
+        if not (data.get("name") and data.get("version")):
+            problems.append("el manifiesto no tiene name y version")
+    if not list(plugin.glob("agents/*.md")):
+        problems.append("falta un subagente (agents/*.md)")
+    if not list(plugin.glob("skills/*/SKILL.md")):
+        problems.append("falta una skill (skills/*/SKILL.md)")
+
+    hooks_file = plugin / "hooks" / "hooks.json"
+    if not hooks_file.is_file():
+        problems.append("falta el hook (hooks/hooks.json)")
+    else:
+        text = _read(hooks_file)
+        entries = []
+        for groups in (_json(hooks_file).get("hooks") or {}).values():
+            for group in groups if isinstance(groups, list) else []:
+                entries += group.get("hooks", [])
+        if not entries:
+            problems.append("hooks/hooks.json no registra ningún hook")
+        for relative in _PLUGIN_ROOT_REF.findall(text):
+            if not (plugin / relative).is_file():
+                problems.append(f"el hook referencia {relative} que no existe")
+
+    for path in _plugin_files(plugin):
+        if _OUTSIDE_PLUGIN.search(_read(path)):
+            problems.append(f"{_rel(plugin, path)} referencia algo fuera del plugin")
+    return problems
+
+
+def check_plugin(root: Path) -> Check:
+    plugins = _plugin_dirs(root)
+    if not plugins:
+        return Check(
+            CHECK_PLUGIN,
+            False,
+            "no hay ningún plugin: falta plugins/<nombre>/.claude-plugin/plugin.json",
+        )
+    problems = []
+    for plugin in plugins:
+        problems += [f"plugin '{plugin.name}': {p}" for p in _plugin_problems(root, plugin)]
+    if problems:
+        return Check(CHECK_PLUGIN, False, "; ".join(problems))
+    names = ", ".join(p.name for p in plugins)
+    return Check(CHECK_PLUGIN, True, f"{len(plugins)} plugin con subagente, skill y hook: {names}")
+
+
+def check_catalog(root: Path) -> Check:
+    path = root / MARKETPLACE
+    if not path.is_file():
+        return Check(CHECK_CATALOG, False, f"falta {MARKETPLACE}")
+    catalog = _json(path)
+    entries = [e for e in catalog.get("plugins", []) if isinstance(e, dict)]
+    problems = []
+    if not catalog.get("name"):
+        problems.append("el catálogo no tiene name")
+    if not entries:
+        problems.append("el catálogo no lista ningún plugin")
+    listed = {e.get("name") for e in entries}
+    for plugin in _plugin_dirs(root):
+        name = _json(plugin / ".claude-plugin" / "plugin.json").get("name") or plugin.name
+        if name not in listed:
+            problems.append(f"no lista el plugin '{name}'")
+    for entry in entries:
+        source = str(entry.get("source", ""))
+        if not source.startswith("./") or not (root / source).is_dir():
+            problems.append(f"la fuente '{source}' de '{entry.get('name')}' no existe")
+    if problems:
+        return Check(CHECK_CATALOG, False, "; ".join(problems))
+    return Check(CHECK_CATALOG, True, f"{len(entries)} plugin(s) listados con fuente relativa")
+
+
+def check_flow(root: Path) -> Check:
+    problems = []
+    for name in FLOW_SKILLS:
+        path = root / ".claude" / "skills" / name / "SKILL.md"
+        if not path.is_file():
+            problems.append(f"falta la skill {name}")
+            continue
+        tools = as_list(parse_frontmatter(_read(path)).get("allowed-tools"))
+        if not any(tool.startswith(MCP_PROJECTS) for tool in tools):
+            problems.append(
+                f"{name}: sus allowed-tools no incluyen herramientas del MCP de GitHub "
+                f"({MCP_PROJECTS}_*)"
+            )
+    command = root / ".claude" / "commands" / f"{FLOW_COMMAND}.md"
+    if not command.is_file():
+        problems.append(f"falta el comando {FLOW_COMMAND}")
+    else:
+        tools = as_list(parse_frontmatter(_read(command)).get("allowed-tools"))
+        if MCP_PROJECTS_WRITE not in tools:
+            problems.append(
+                f"el comando {FLOW_COMMAND} no mueve el ticket por el MCP "
+                f"(falta {MCP_PROJECTS_WRITE} en allowed-tools)"
+            )
+    if problems:
+        return Check(CHECK_FLOW, False, "; ".join(problems))
+    return Check(CHECK_FLOW, True, "skills del flujo y /abrir-pr usan el MCP de GitHub (projects)")
+
+
 _CHECKS = (
     check_memory,
     check_rules,
@@ -307,6 +448,9 @@ _CHECKS = (
     check_mcp,
     check_credentials,
     check_inventory,
+    check_plugin,
+    check_catalog,
+    check_flow,
 )
 
 
