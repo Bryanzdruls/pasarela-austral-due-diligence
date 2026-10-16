@@ -119,10 +119,10 @@ Comportamientos obligatorios:
 
 | ID | Comportamiento | Estado | Evidencia / pendiente |
 |---|---|---|---|
-| B1 | Coordinador que delega en al menos tres subagentes, cada uno solo con las herramientas de su frente | En rama | `due_diligence/agents.py`, `options.py`, `guards.py` (rama `002`). Sin verificar con el modelo real |
-| B2 | Contexto explícito; resultados que separan contenido y metadatos | En rama | `due_diligence/events.py`, `prompts.py` (rama `002`). Sin verificar con el modelo real |
-| B3 | Ejecución en paralelo de los frentes independientes; los dependientes esperan | En rama | Orden de eventos verificado con cliente falso; el paralelismo real queda sin verificar |
-| B4 | Ciclo agéntico por la razón de parada del modelo, sin contador ni búsqueda de palabras | En rama | `due_diligence/coordinator.py`, 8 mutaciones detectadas (rama `002`) |
+| B1 | Coordinador que delega en al menos tres subagentes, cada uno solo con las herramientas de su frente | En rama | `due_diligence/agents.py`, `options.py`, `guards.py` (rama `002`). Verificado con modelo real (5 casos, `specs/002-*/verification.md`): el SDK entrega el `agent_type` y cada frente usó solo su herramienta; el coordinador solo usó `Agent` |
+| B2 | Contexto explícito; resultados que separan contenido y metadatos | En rama | `due_diligence/events.py`, `prompts.py` (rama `002`). Verificado con modelo real: los `encargo` del caso 3 no contienen datos del comercio anterior y los informes separan contenido y metadatos (fuente y fecha) |
+| B3 | Ejecución en paralelo de los frentes independientes; los dependientes esperan | En rama | Verificado con modelo real en el caso 1: los tres frentes independientes arrancan antes de que termine cualquiera y las listas esperan al registro. Hizo falta forzar la ejecución en primer plano (`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS`, D15). En los casos 3 y 5 el riesgo no corrió en paralelo porque no había categoría declarada |
+| B4 | Ciclo agéntico por la razón de parada del modelo, sin contador ni búsqueda de palabras | En rama | `due_diligence/coordinator.py`, 8 mutaciones detectadas (rama `002`); con modelo real todos los turnos cerraron por `ResultMessage` (`end_turn`) |
 | B5 | Reglas 1 y 2 con **hooks del SDK** | **Falta** | Ticket #3 |
 | B6 | Descripciones de herramientas que eviten confusiones | Hecho | Descripciones verificadas por pruebas en `mcp_server/tests/test_server.py` |
 | B7 | Errores estructurados y cobertura parcial; el coordinador decide reintentar o declarar | Parcial | Servidor Hecho; coordinador: ticket #4 |
@@ -174,7 +174,7 @@ Cosas hechas de forma distinta a lo que pide el enunciado o a lo que se acordó,
 3. **El ecosistema de Claude Code se dejó como el ticket #9**, tarde, en lugar de configurarlo primero. La constitución v1.1.0 lo corrige (principio VIII).
 4. **En el ticket #1, las historias US3 y US4 se implementaron antes que sus pruebas**. En el #2 se respetó escribir las pruebas primero.
 5. **La revisión independiente del #1 la hizo un agente genérico**, porque el `code-reviewer` no estaba cargado en esa sesión.
-6. **La rama del #2 solo existe en el equipo local.**
+6. **La rama del #2 solo existía en el equipo local**; se subió a GitHub el 2026-10-16 tras fusionar el #10. Corregido.
 7. **Ticket #9 (nota):** el ecosistema se construyó con el orden #9 → #10 → #2 (ecosistema, luego plugin y flujo de tickets, luego el coordinador). Las verificaciones con Claude Code real están en `specs/009-ecosistema-claude-code/verification.md`; quedan **sin verificar** `/hooks` y `/memory` (interactivos) y la conexión del servidor `pasarela-fuentes`, que falló en la sesión.
 8. **Ticket #10 (nota):** el flujo de tickets y el plugin quedan en la rama `010`. El #9 y el #10 se ejecutaron en ese orden, como fija la constitución (v1.1.1); ningún ticket de funcionalidad se fusiona antes de que el #10 esté fusionado. Queda **sin verificar** el comportamiento de las skills con el servidor o el toolset no disponibles; el hook del plugin y la skill se comprobaron en una sesión real (con el inicio de sesión de claude.ai: la variable `ANTHROPIC_API_KEY` actual devuelve `Invalid API key`). Las evidencias están en `specs/010-automatizacion-project-plugin/verification.md`.
 

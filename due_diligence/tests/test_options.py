@@ -1,0 +1,88 @@
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+from due_diligence.agents import FRONT_TOOLS, build_agents
+from due_diligence.options import REPO_ROOT, build_options
+
+SERVER = "pasarela-fuentes"
+
+
+def test_coordinator_toolset_is_only_agent_and_nothing_extra_is_pre_approved():
+    o = build_options()
+    assert o.tools == ["Agent"]
+    # allowed_tools solo auto-aprueba: Agent y las 4 herramientas de frente (que los subagentes
+    # necesitan para no caer en el flujo de permisos). Nada más: ni integradas ni de salida.
+    assert o.allowed_tools == ["Agent", *FRONT_TOOLS.values()]
+
+
+def test_the_coordinator_prompt_is_actually_used():
+    from due_diligence.prompts import COORDINATOR_PROMPT
+
+    assert build_options().system_prompt == COORDINATOR_PROMPT
+
+
+def test_no_max_turns_and_no_inherited_project_settings():
+    o = build_options()
+    assert o.max_turns is None
+    assert o.setting_sources == []
+
+
+def test_agents_are_the_four_fronts():
+    assert set(build_options().agents) == set(build_agents())
+
+
+def test_the_isolation_guard_is_registered_for_every_pre_tool_use():
+    from due_diligence.guards import tool_guard
+
+    matchers = build_options().hooks["PreToolUse"]
+    assert len(matchers) == 1
+    assert matchers[0].matcher is None  # sin filtro: aplica a todas las herramientas
+    assert matchers[0].hooks == [tool_guard]
+
+
+def test_working_directory_is_the_repo_root():
+    assert Path(build_options().cwd) == REPO_ROOT
+    assert (REPO_ROOT / "mcp_server").is_dir()
+
+
+def test_mcp_server_is_a_stdio_python_module_without_unsupported_keys():
+    cfg = build_options().mcp_servers[SERVER]
+    assert cfg["type"] == "stdio"
+    assert cfg["command"] == sys.executable
+    assert cfg["args"] == ["-m", "mcp_server"]
+    assert "cwd" not in cfg  # McpStdioServerConfig no admite cwd
+    assert Path(cfg["env"]["PYTHONPATH"]) == REPO_ROOT
+
+
+def test_fault_and_runtime_variables_are_passed_only_when_set(monkeypatch, tmp_path):
+    monkeypatch.delenv("PASARELA_FAULTS", raising=False)
+    monkeypatch.delenv("PASARELA_RUNTIME_DIR", raising=False)
+    env = build_options().mcp_servers[SERVER]["env"]
+    assert "PASARELA_FAULTS" not in env and "PASARELA_RUNTIME_DIR" not in env
+
+    monkeypatch.setenv("PASARELA_FAULTS", "noticias")
+    monkeypatch.setenv("PASARELA_RUNTIME_DIR", str(tmp_path))
+    env = build_options().mcp_servers[SERVER]["env"]
+    assert env["PASARELA_FAULTS"] == "noticias"
+    assert env["PASARELA_RUNTIME_DIR"] == str(tmp_path)
+
+
+def test_server_module_is_importable_from_another_directory(tmp_path):
+    cfg = build_options().mcp_servers[SERVER]
+    proc = subprocess.run(
+        [cfg["command"], "-c", "import mcp_server.server"],
+        cwd=tmp_path,  # directorio distinto de la raíz del repo
+        env={**os.environ, **cfg["env"]},  # el entorno completo, como lo heredaría el servidor
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stderr
+
+
+def test_background_tasks_are_disabled_so_the_agent_tool_returns_the_front_result():
+    """Verificación con modelo real: por defecto la CLI lanza los subagentes en segundo plano y el
+    coordinador recibe solo un acuse; con esta variable la delegación devuelve el resultado."""
+    options = build_options()
+    assert options.env.get("CLAUDE_CODE_DISABLE_BACKGROUND_TASKS") == "1"

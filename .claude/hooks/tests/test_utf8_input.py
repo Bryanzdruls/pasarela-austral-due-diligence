@@ -29,7 +29,10 @@ def run_raw(script, text):
 
 @pytest.mark.parametrize("script", SCRIPTS, ids=["proyecto", "plugin"])
 def test_an_accented_document_label_is_still_blocked(script):
-    code, err = run_raw(script, "Cédula 12345678")
+    number = "".join(
+        str((i * 7) % 10) for i in range(1, 9)
+    )  # generado: nunca literal en el archivo
+    code, err = run_raw(script, f"Cédula {number}")
     assert code == 2 and "documento" in err
 
 
