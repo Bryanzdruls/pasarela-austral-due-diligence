@@ -36,11 +36,11 @@ La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el mo
 
 | ID | Regla | Estado | Evidencia / pendiente |
 |---|---|---|---|
-| R1 | Ninguna consulta a listas sin comercio identificado de forma unívoca en el registro | En rama | Hook `PreToolUse` sobre `consultar_listas_restrictivas`: solo para un comercio identificado de forma unívoca por el registro (o su representante), con lo que devolvió la fuente; `due_diligence/rules.py` y `rule_hooks.py` (rama `003`). verificado con modelo real (`specs/003-*/verification.md`): denegada con el modelo aunque se le ordenó saltarla |
-| R2 | Coincidencia en listas (comercio o representante) impide recomendar habilitación y escala | En rama | Hook sobre `registrar_informe` (rechaza `habilitar` tras una coincidencia del comercio o de su representante) y hook `Stop` que exige escalar antes de cerrar, una sola vez; `due_diligence/rules.py` y `rule_hooks.py` (rama `003`). verificado con modelo real (`specs/003-*/verification.md`). El contenido y el criterio del escalamiento: ticket #6 |
-| R3 | Alto riesgo nunca recibe habilitación automática | En rama | Hook sobre `registrar_informe` con la lista de la pasarela (apuestas, criptoactivos, suplementos dietarios, medicamentos) desde el registro, el catálogo y la solicitud del analista, también si el catálogo dice `sin_clasificar`; `due_diligence/rules.py` y `rule_hooks.py` (rama `003`). verificado con modelo real (`specs/003-*/verification.md`) |
+| R1 | Ninguna consulta a listas sin comercio identificado de forma unívoca en el registro | Hecho | Hook `PreToolUse` sobre `consultar_listas_restrictivas`: solo para un comercio identificado de forma unívoca por el registro (o su representante), con lo que devolvió la fuente; `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #17). verificado con modelo real (`specs/003-*/verification.md`): denegada con el modelo aunque se le ordenó saltarla |
+| R2 | Coincidencia en listas (comercio o representante) impide recomendar habilitación y escala | Hecho | Hook sobre `registrar_informe` (rechaza `habilitar` tras una coincidencia del comercio o de su representante) y hook `Stop` que exige escalar antes de cerrar, una sola vez; `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #17). verificado con modelo real (`specs/003-*/verification.md`). El contenido y el criterio del escalamiento: ticket #6 |
+| R3 | Alto riesgo nunca recibe habilitación automática | Hecho | Hook sobre `registrar_informe` con la lista de la pasarela (apuestas, criptoactivos, suplementos dietarios, medicamentos) desde el registro, el catálogo y la solicitud del analista, también si el catálogo dice `sin_clasificar`; `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #17). verificado con modelo real (`specs/003-*/verification.md`) |
 | R4 | Cada afirmación con su fuente; si dos fuentes se contradicen, se muestran ambas | Parcial | Servidor: cada respuesta lleva fuente y fecha, y las fechas contradictorias de `CO-FH-0006` se devuelven juntas con su origen (#1, Hecho). Informe del coordinador con procedencia: ticket #5 |
-| R5 | Si una fuente no responde, el informe indica qué frente quedó sin cubrir | Parcial | Servidor: error estructurado e inyección de fallas `PASARELA_FAULTS` (#1, Hecho). Cobertura declarada en el informe: ticket #4 |
+| R5 | Si una fuente no responde, el informe indica qué frente quedó sin cubrir | En rama | La cobertura sale de lo que el servidor devolvió (`PostToolUse`/`PostToolUseFailure`): `registrar_informe` y `escalar_a_cumplimiento` se rechazan si un frente caído no consta como `sin_cubrir` en `cobertura`, y `habilitar` exige registro y listas cubiertos; `due_diligence/rules.py` y `rule_hooks.py` (rama `004`), 35 mutaciones detectadas (`specs/004-*/verification.md`) |
 
 ## 3. Ciclo de vida: Spec Driven Development con Spec Kit
 
@@ -83,7 +83,7 @@ Los comandos que instala Spec Kit no cuentan. Cada pieza se justifica en `DECISI
 | E4 | 2 skills; entre todas usan `context: fork`, `allowed-tools` y `argument-hint` | Hecho | `revisar-cumplimiento` (`context: fork`) y `verificar-ecosistema` (`allowed-tools`, `argument-hint`) (rama `009`) (en `main`, PR #13) |
 | E5 | 2 hooks: uno que bloquea antes de ejecutar y uno posterior a una edición | Hecho | 4 hooks en `.claude/settings.json`: 3 `PreToolUse` y 1 `PostToolUse`; pruebas de los hooks y mutaciones detectadas (`specs/009-*/verification.md`) (en `main`, PR #13) |
 | E6 | 1 comando propio compartido por control de versiones | Hecho | `.claude/commands/abrir-pr.md` (en `main`) |
-| E7 | 2 servidores MCP (GitHub y el propio), sin credenciales en el repo | En rama | `.mcp.json` (rama `009`); sin credenciales. **Sin verificar** que `pasarela-fuentes` arranque: se lanza con `python -m uv run` y `uv` no está instalado en el equipo del autor |
+| E7 | 2 servidores MCP (GitHub y el propio), sin credenciales en el repo | Hecho | `.mcp.json`; sin credenciales. `pasarela-fuentes` se lanza con `python -m uv run python -m mcp_server`: handshake MCP por stdio comprobado el 2026-10-16, arranca y lista las 6 herramientas. Requiere `uv` (`python -m uv sync`). **Sin verificar** desde una sesión nueva de Claude Code (`claude mcp list` lo muestra pendiente de aprobación). El PR #14 (`python -m mcp_server` directo) se cerró sin fusionar: el `python` del sistema trae un `mcp` sin `mcp.server.mcpserver` |
 | E8 | 1 plugin con al menos 1 subagente, 1 skill y 1 hook reutilizables | Hecho | `plugins/pasarela-revision/` con subagente `compliance-reviewer`, skill `revisar-cumplimiento` y hook `real_data_guard`; `claude plugin validate --strict` sin avisos (rama `010`). En una sesión real en un repositorio ajeno el hook bloqueó un valor con forma de tarjeta y la skill resolvió el subagente del plugin; además lo cubren sus pruebas, la paridad con el hook del proyecto y 5 mutaciones detectadas (en `main`, PR #15) |
 
 Necesidades que el ecosistema debe resolver:
@@ -123,9 +123,9 @@ Comportamientos obligatorios:
 | B2 | Contexto explícito; resultados que separan contenido y metadatos | Hecho | `due_diligence/events.py`, `prompts.py` (rama `002`). Verificado con modelo real: los `encargo` del caso 3 no contienen datos del comercio anterior y los informes separan contenido y metadatos (fuente y fecha) (en `main`, PR #16) |
 | B3 | Ejecución en paralelo de los frentes independientes; los dependientes esperan | Hecho | Verificado con modelo real en el caso 1: los tres frentes independientes arrancan antes de que termine cualquiera y las listas esperan al registro. Hizo falta forzar la ejecución en primer plano (`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS`, D15). En los casos 3 y 5 el riesgo no corrió en paralelo porque no había categoría declarada (en `main`, PR #16) |
 | B4 | Ciclo agéntico por la razón de parada del modelo, sin contador ni búsqueda de palabras | Hecho | `due_diligence/coordinator.py`, 8 mutaciones detectadas (rama `002`); con modelo real todos los turnos cerraron por `ResultMessage` (`end_turn`) (en `main`, PR #16) |
-| B5 | Reglas 1 y 2 con **hooks del SDK** | En rama | Reglas 1 y 2 (y 3) con hooks del SDK, 15 mutaciones detectadas (`python scripts/mutate_rules.py`); `due_diligence/rules.py` y `rule_hooks.py` (rama `003`) |
+| B5 | Reglas 1 y 2 con **hooks del SDK** | Hecho | Reglas 1 y 2 (y 3) con hooks del SDK, 15 mutaciones detectadas (`python scripts/mutate_rules.py`); `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #17) |
 | B6 | Descripciones de herramientas que eviten confusiones | Hecho | Descripciones verificadas por pruebas en `mcp_server/tests/test_server.py` |
-| B7 | Errores estructurados y cobertura parcial; el coordinador decide reintentar o declarar | Parcial | Servidor Hecho; coordinador: ticket #4 |
+| B7 | Errores estructurados y cobertura parcial; el coordinador decide reintentar o declarar | En rama | Error estructurado del subagente (`FrontStatus.FALLIDO`), tope de un reintento y ninguno para lo no reintentable impuesto por hook (`check_fuente`), y declaración de la cobertura en el informe (rama `004`). El coordinador decide reintentar por su prompt; el hook solo pone el tope |
 | B8 | Procedencia y conflictos en el informe, con su origen | Parcial | Servidor Hecho; informe: ticket #5 |
 | B9 | Varios comercios parecidos: el coordinador pide el identificador | Parcial | Servidor devuelve todas las coincidencias; el coordinador lo pide en su prompt (rama `002`). Verificación completa: tickets #5 y #8 |
 | B10 | Escalar con criterio (listas y alto riesgo; no escalar bajo riesgo sin hallazgos) | **Falta** | Ticket #6 |
@@ -140,8 +140,8 @@ Casos de prueba que el repositorio debe incluir y pasar:
 | C2 | Comercio de bajo riesgo sin hallazgos, con habilitación | Falta | Datos listos (`CO-LB-0002`); ticket #8 |
 | C3 | Representante legal con coincidencia en listas | Falta | Datos listos (`CO-DA-0003`); ticket #8 |
 | C4 | Dos comercios con nombres casi idénticos | Falta | Datos listos (`CO-CA-0004`/`0005`); ticket #8 |
-| C5 | Consulta a listas sin identificación unívoca, bloqueada | En rama | Prueba del caso del enunciado en `due_diligence/tests/test_rule_hooks.py` (listas sin identificación unívoca, denegada con la regla 1) y bloqueo real con el modelo (`specs/003-*/verification-forzado.txt`). La automatización de extremo a extremo con el modelo: ticket #8 |
-| C6 | Falla del servicio de noticias con cobertura incompleta declarada | Falta | Inyección de fallas lista; informe: tickets #4 y #8 |
+| C5 | Consulta a listas sin identificación unívoca, bloqueada | Hecho | Prueba del caso del enunciado en `due_diligence/tests/test_rule_hooks.py` (listas sin identificación unívoca, denegada con la regla 1) y bloqueo real con el modelo (`specs/003-*/verification-forzado.txt`). La automatización de extremo a extremo con el modelo: ticket #8 |
+| C6 | Falla del servicio de noticias con cobertura incompleta declarada | Parcial | Verificado con el modelo real con `PASARELA_FAULTS=noticias` (`specs/004-*/verification.md`, rama `004`); la automatización de extremo a extremo con el modelo: ticket #8 |
 | C7 | Dos fuentes con fechas de constitución distintas | Falta | Datos listos (`CO-FH-0006`); ticket #8 |
 
 ## 7. Entregables y sustentación
@@ -161,7 +161,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 
 | Falta grave | Estado hoy | Cómo se controla |
 |---|---|---|
-| Una regla de negocio que dependa solo del prompt | **Cerrada en la rama `003` (pendiente de fusión)** | Las reglas 1 a 3 las imponen hooks del SDK, con pruebas, 13 mutaciones detectadas y verificación con el modelo real. Las reglas 4 y 5 no son de hook: se completan en los tickets #5 y #4; el escalamiento con criterio, en el #6 |
+| Una regla de negocio que dependa solo del prompt | **Cerrada en `main` (PR #17)** | Las reglas 1 a 3 las imponen hooks del SDK, con pruebas, 15 mutaciones detectadas y verificación con el modelo real. La regla 5 (informe parcial nunca como completo) también la impone un hook desde la rama `004`; la regla 4 (procedencia y conflictos) se completa en el #5 y el escalamiento con criterio, en el #6 |
 | Una credencial en el repositorio | Sin hallazgos | Escaneo de valores con forma de clave de Anthropic, de token de GitHub o de clave privada a mano antes de cada commit (sin hook de git que lo automatice) y, sobre la configuración, `scripts/tests/test_no_credentials.py`; `.env` ignorado; `.mcp.json` solo referencia variables |
 | Un dato que parezca real | Sin hallazgos | `test_datos_ficticios.py`; hook de datos reales en `main` (`real_data_guard.py`) |
 
@@ -185,12 +185,12 @@ Requisitos trazados: **84** (reglas generales, reglas de negocio, Spec Kit, GitH
 
 | Estado | Cantidad |
 |---|---|
-| Hecho | 49 |
+| Hecho | 55 |
 | Hecho (en main o en rama) | 3 |
-| En rama | 6 |
-| Parcial | 9 |
-| Falta | 14 |
+| En rama | 2 |
+| Parcial | 8 |
+| Falta | 13 |
 | Otro: En curso | 2 |
 | Otro: Pendiente | 1 |
 
-Última actualización: 2026-10-16, al preparar el PR del ticket #3 (pendiente de fusión; E7 lo actualiza el PR #14). Se actualiza al cerrar cada ticket.
+Última actualización: 2026-10-16, al preparar el PR del ticket #4 (pendiente de fusión). Se actualiza al cerrar cada ticket.

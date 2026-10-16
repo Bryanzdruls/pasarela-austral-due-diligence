@@ -80,6 +80,40 @@ LISTAS = "consultar_listas_restrictivas"
 RIESGO = "consultar_riesgo_categoria"
 INFORME = "registrar_informe"
 ESCALAR = "escalar_a_cumplimiento"
+NOTICIAS = "buscar_noticias"
+
+# Frentes de la investigación (los nombres del servidor, `PASARELA_FAULTS`) y la herramienta de
+# fuente que alimenta a cada uno. Los subagentes usan otros nombres (`FrontName`): ver
+# `front_of_alias`.
+FRENTES = ("registro", "listas", "noticias", "riesgo")
+SOURCE_TOOLS = {REGISTRO: "registro", LISTAS: "listas", NOTICIAS: "noticias", RIESGO: "riesgo"}
+_FRONT_ALIASES = {
+    "registro_mercantil": "registro",
+    "listas_restrictivas": "listas",
+    "riesgo_categoria": "riesgo",
+}
+# Una fuente se reintenta una vez: el intento y su reintento son dos llamadas.
+MAX_ATTEMPTS = 2
+
+
+def front_of_alias(name: Any) -> str | None:
+    """El frente (nombre del servidor) que designa `name`, o None si no es un frente."""
+    if not isinstance(name, str):
+        return None
+    key = normalize(name)
+    key = _FRONT_ALIASES.get(key, key)
+    return key if key in FRENTES else None
+
+
+@dataclass(frozen=True)
+class FrontFailure:
+    """La última llamada fallida de un sujeto: lo que el servidor devolvió (o no pudo devolver)."""
+
+    frente: str
+    sujeto: str
+    error_code: str
+    retryable: bool
+    obtenido: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -96,6 +130,8 @@ class CommerceCase:
     alto_riesgo: bool = False
     # Solo cuando el servidor confirmó el escalamiento (`ok: true`); un error no cuenta.
     escalado: bool = False
+    # Fallos vigentes de las fuentes por (frente, sujeto); un éxito del mismo sujeto lo borra.
+    fallos: dict[tuple[str, str], FrontFailure] = field(default_factory=dict)
 
 
 def _short_name(tool: Any) -> str:
@@ -127,6 +163,11 @@ class CaseBook:
         # para decidir `habilitar`, pero solo durante la solicitud: sin marca permanente ni
         # exigencia de escalar (podría referirse a un comercio nuevo aún sin identificar).
         self._fallback_commerces: set[str] = set()
+        # Cobertura (ticket #4): fallos que no se pueden asociar a un comercio (solo valen en la
+        # solicitud en curso) e intentos de la solicitud por (frente, sujeto): (fallos seguidos,
+        # si el último fue reintentable).
+        self.orphan_failures: dict[tuple[str, str], FrontFailure] = {}
+        self.attempts: dict[tuple[str, str], tuple[int, bool]] = {}
 
     def start_request(self, prompt: Any) -> None:
         """Nueva solicitud del analista: su texto es evidencia de la categoría declarada.
@@ -138,6 +179,8 @@ class CaseBook:
             self._carry_text = (self._carry_text + " " + self.declared_text)[-2000:]
         self.declared_text = prompt if isinstance(prompt, str) else ""
         self.risk_observations = []
+        self.orphan_failures = {}
+        self.attempts = {}
         self._request_commerces = {cid for cid in self.commerces if cid in self.declared_text}
         self._fallback_commerces = (
             set(self.commerces)
@@ -158,6 +201,8 @@ class CaseBook:
         if tool == RIESGO:
             self._observe_riesgo(tool_input, response)
         envelope = parse_envelope(response)
+        if tool in SOURCE_TOOLS:
+            self._observe_coverage(SOURCE_TOOLS[tool], tool_input, envelope)
         if envelope is None or envelope.get("ok") is not True:
             return
         content = envelope.get("content")
@@ -194,8 +239,129 @@ class CaseBook:
         self.commerces[commerce_id] = case
         self._request_commerces.add(commerce_id)
         self._fallback_commerces.clear()  # ya hay un comercio identificado en esta solicitud
+        self._adopt_orphans(case)
         self._mark_request_commerces()
         self._carry_text = ""  # la categoría arrastrada ya la consumió el comercio identificado
+
+    # ------------------------------------------------------------------ cobertura (ticket #4)
+
+    def _observe_coverage(
+        self, frente: str, tool_input: Any, envelope: dict[str, Any] | None
+    ) -> None:
+        """Lo que devolvió una fuente: un éxito borra el fallo del sujeto; lo demás es un fallo."""
+        if envelope is not None and envelope.get("ok") is True:
+            self._clear_failure((frente, _subject(frente, tool_input)))
+            return
+        if envelope is None:
+            self._record_failure(frente, tool_input, "ilegible", False, {})
+            return
+        partial = envelope.get("partial")
+        self._record_failure(
+            frente,
+            tool_input,
+            _text(envelope.get("error_code")) or "desconocido",
+            envelope.get("retryable") is True,
+            partial if isinstance(partial, dict) else {},
+        )
+
+    def observe_failure(self, tool: Any, tool_input: Any) -> None:
+        """Una llamada a una fuente que falló sin devolver sobre (`PostToolUseFailure`)."""
+        try:
+            frente = SOURCE_TOOLS.get(_short_name(tool))
+            if frente is not None:
+                self._record_failure(frente, tool_input, "llamada_fallida", False, {})
+        except Exception:  # noqa: BLE001 - no registrar es lo seguro: no se convierte en permiso
+            return
+
+    def _record_failure(
+        self,
+        frente: str,
+        tool_input: Any,
+        error_code: str,
+        retryable: bool,
+        obtenido: dict[str, Any],
+    ) -> None:
+        key = (frente, _subject(frente, tool_input))
+        failure = FrontFailure(frente, key[1], error_code, retryable, obtenido)
+        seguidos = self.attempts.get(key, (0, True))[0]
+        self.attempts[key] = (seguidos + 1, retryable)
+        self.orphan_failures.pop(key, None)
+        targets = self._failure_targets(frente, tool_input)
+        if not targets:
+            self.orphan_failures[key] = failure
+        for case in targets:
+            case.fallos[key] = failure
+
+    def _failure_targets(self, frente: str, tool_input: Any) -> list[CommerceCase]:
+        """Los comercios a los que pertenece una falla; vacío si no se puede asociar a ninguno."""
+        data = tool_input if isinstance(tool_input, dict) else {}
+        if frente == "listas":
+            referencia = _text(data.get("referencia"))
+            if data.get("tipo") == "comercio" and referencia in self.commerces:
+                return [self.commerces[referencia]]
+            if data.get("tipo") == "persona":
+                return [c for c in self.commerces.values() if c.representante_id == referencia]
+            return []
+        if frente == "registro":
+            consulta = _text(data.get("consulta"))
+            return [self.commerces[consulta]] if consulta in self.commerces else []
+        return [self.commerces[cid] for cid in self._request_commerces if cid in self.commerces]
+
+    def _clear_failure(self, key: tuple[str, str]) -> None:
+        self.attempts.pop(key, None)
+        self.orphan_failures.pop(key, None)
+        for case in self.commerces.values():
+            case.fallos.pop(key, None)
+
+    def _adopt_orphans(self, case: CommerceCase) -> None:
+        """El registro identificó un comercio: adopta las fallas de noticias y riesgo (corren en
+        paralelo con el registro) y descarta las del propio registro, que ya respondió."""
+        for key, failure in list(self.orphan_failures.items()):
+            if failure.frente in ("noticias", "riesgo"):
+                case.fallos[key] = failure
+                del self.orphan_failures[key]
+            elif failure.frente == "registro":
+                del self.orphan_failures[key]
+
+    def failed_fronts(self, commerce_id: Any) -> dict[str, FrontFailure]:
+        """Frentes con un fallo vigente del comercio, incluidos los huérfanos de la solicitud."""
+        case = self.commerces.get(commerce_id) if isinstance(commerce_id, str) else None
+        failures = [*(case.fallos.values() if case else ()), *self.orphan_failures.values()]
+        result: dict[str, FrontFailure] = {}
+        for failure in failures:
+            result.setdefault(failure.frente, failure)
+        return result
+
+    def check_fuente(self, tool: Any, tool_input: Any) -> Decision:
+        """Tope de reintentos: se reintenta una vez, y nunca una falla no reintentable."""
+        frente = SOURCE_TOOLS.get(_short_name(tool))
+        if frente is None:
+            return ALLOW
+        state = self.attempts.get((frente, _subject(frente, tool_input)))
+        if state is None:
+            return ALLOW
+        seguidos, retryable = state
+        if not retryable:
+            return _deny_reintento(frente, "la falla no es reintentable")
+        if seguidos >= MAX_ATTEMPTS:
+            return _deny_reintento(frente, "ya se reintentó una vez y volvió a fallar")
+        return ALLOW
+
+    def _check_cobertura(self, data: dict[str, Any]) -> Decision | None:
+        """Todo frente con un fallo vigente debe constar como `sin_cubrir` en la cobertura."""
+        failed = self.failed_fronts(_text(data.get("comercio_id")))
+        declared = _declared_fronts(data.get("cobertura"))
+        missing = [frente for frente in FRENTES if frente in failed and frente not in declared]
+        return _deny_cobertura(missing) if missing else None
+
+    def _listas_faltantes(self, case: CommerceCase) -> list[str]:
+        """Lo que falta de las listas para habilitar: el comercio y su representante legal."""
+        faltan = []
+        if "comercio" not in case.listas:
+            faltan.append("del comercio")
+        if case.representante_id is not None and "persona" not in case.listas:
+            faltan.append("de su representante legal")
+        return faltan
 
     def _observe_riesgo(self, tool_input: Any, response: Any) -> None:
         """Se anota la categoría consultada (aunque la llamada fallara) y el riesgo devuelto."""
@@ -282,6 +448,8 @@ class CaseBook:
         recomendacion = data.get("recomendacion")
         if not isinstance(recomendacion, str) or recomendacion not in RECOMMENDATIONS:
             return _deny_vocabulario()
+        if (sin_declarar := self._check_cobertura(data)) is not None:
+            return sin_declarar
         if recomendacion != "habilitar":
             return ALLOW
         case = self.commerces.get(_text(data.get("comercio_id")) or "")
@@ -291,6 +459,8 @@ class CaseBook:
             return _deny_regla_2(case)
         if self._is_high_risk(case):
             return _deny_regla_3(case)
+        if faltan := self._listas_faltantes(case):
+            return _deny_cobertura_habilitar(case, faltan)
         return ALLOW
 
     def escalation_reasons(self) -> dict[str, list[str]]:
@@ -322,8 +492,69 @@ class CaseBook:
         return include_fallback and case.id in self._fallback_commerces and self._request_evidence()
 
     def check_escalar(self, tool_input: Any) -> Decision:
-        """Escalar a un oficial de cumplimiento siempre se permite."""
-        return ALLOW
+        """Escalar se permite, declarando los frentes sin cubrir para que el oficial lo sepa."""
+        data = tool_input if isinstance(tool_input, dict) else {}
+        return self._check_cobertura(data) or ALLOW
+
+
+def _subject(frente: str, tool_input: Any) -> str:
+    """Qué identifica una consulta, normalizado: reescribirla no la convierte en otra consulta."""
+    data = tool_input if isinstance(tool_input, dict) else {}
+    if frente in ("registro", "noticias"):
+        # La fuente responde o no, sea cual sea la redacción de la consulta: con el modelo real un
+        # subagente reintentó noticias con tres redacciones distintas.
+        return "*"
+    if frente == "listas":
+        return f"{normalize(data.get('tipo'))}:{normalize(data.get('referencia'))}"
+    return normalize(data.get("categoria"))
+
+
+def _declared_fronts(cobertura: Any) -> set[str]:
+    """Frentes que la cobertura declara `sin_cubrir`; cualquier otra forma no declara nada."""
+    if not isinstance(cobertura, dict):
+        return set()
+    return {
+        frente
+        for name, value in cobertura.items()
+        if (frente := front_of_alias(name)) is not None
+        and isinstance(value, dict)
+        and value.get("estado") == "sin_cubrir"
+    }
+
+
+def _deny_reintento(frente: str, motivo: str) -> Decision:
+    return Decision(
+        False,
+        "reintento",
+        f"No se vuelve a consultar la fuente de {frente}: {motivo}. Qué hacer: no la llames otra "
+        "vez; responde con el error estructurado (frente, lo obtenido y si es reintentable) y "
+        "el frente se declarará sin cubrir en el informe.",
+    )
+
+
+def _deny_cobertura(missing: list[str]) -> Decision:
+    frentes = ", ".join(f"`{frente}`" for frente in missing)
+    ejemplo = '{"' + missing[0] + '": {"estado": "sin_cubrir", "motivo": "..."}}'
+    return Decision(
+        False,
+        "cobertura",
+        "Regla 5: un informe parcial no puede presentarse como completo. Faltan por declarar "
+        f"como sin cubrir: {frentes}; la fuente no respondió y no constan así en `cobertura`. "
+        "Qué hacer: vuelve a llamar a la herramienta con `cobertura` declarando cada uno, p. ej. "
+        f"{ejemplo}.",
+    )
+
+
+def _deny_cobertura_habilitar(case: CommerceCase, faltan: list[str]) -> Decision:
+    detalle = " y ".join(faltan)
+    return Decision(
+        False,
+        "cobertura_habilitar",
+        f"No se puede recomendar habilitar {case.id}: las listas restrictivas {detalle} no se "
+        "consultaron con éxito. Qué hacer: consúltalas con `consultar_listas_restrictivas` o "
+        "registra el informe con `no_habilitar` o `escalar_a_cumplimiento`, declarando el frente "
+        "`listas` como sin cubrir.",
+    )
 
 
 def _deny_vocabulario() -> Decision:

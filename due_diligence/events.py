@@ -32,6 +32,10 @@ class FrontName(StrEnum):
 
 class FrontStatus(StrEnum):
     COMPLETO = "completo"
+    # El subagente reportó un error estructurado de su fuente (ticket #4): informa al coordinador
+    # y al chat; que el frente cuente como sin cubrir lo decide el CaseBook con lo que devolvió el
+    # servidor, no esta respuesta.
+    FALLIDO = "fallido"
     NO_ESTRUCTURADO = "no_estructurado"
     NO_COMPLETADO = "no_completado"
 
@@ -125,23 +129,46 @@ def _is_iso_date(value: str) -> bool:
     return True
 
 
-def _validated(frente: FrontName, data: Any) -> FrontResult | None:
-    if not isinstance(data, dict):
-        return None
-    contenido, metadatos = data.get("contenido"), data.get("metadatos")
-    if not (isinstance(contenido, dict) and contenido and isinstance(metadatos, dict)):
+def _valid_metadatos(frente: FrontName, metadatos: Any) -> dict[str, str] | None:
+    """Fuente propia del frente y fecha ISO; None si no cumplen."""
+    if not isinstance(metadatos, dict):
         return None
     if not all(isinstance(metadatos.get(k), str) and metadatos[k].strip() for k in _META_KEYS):
         return None
     if metadatos["fuente"] != EXPECTED_SOURCES[frente] or not _is_iso_date(metadatos["fecha"]):
         return None
-    return FrontResult(
-        frente, contenido, {k: metadatos[k] for k in _META_KEYS}, FrontStatus.COMPLETO
-    )
+    return {k: metadatos[k] for k in _META_KEYS}
+
+
+def _validated(frente: FrontName, data: Any) -> FrontResult | None:
+    if not isinstance(data, dict):
+        return None
+    contenido = data.get("contenido")
+    metadatos = _valid_metadatos(frente, data.get("metadatos"))
+    if not (isinstance(contenido, dict) and contenido and metadatos):
+        return None
+    return FrontResult(frente, contenido, metadatos, FrontStatus.COMPLETO)
+
+
+def _validated_error(frente: FrontName, data: Any) -> FrontResult | None:
+    """Error estructurado de un subagente: `{"estado": "error", "frente", "reintentable", ...}`."""
+    if not isinstance(data, dict) or data.get("estado") != "error":
+        return None
+    reintentable, obtenido = data.get("reintentable", False), data.get("obtenido", {})
+    metadatos = _valid_metadatos(frente, data.get("metadatos"))
+    if data.get("frente") != frente.value or not metadatos:
+        return None
+    if not isinstance(reintentable, bool) or not isinstance(obtenido, dict):
+        return None
+    error: dict[str, Any] = {"reintentable": reintentable, "obtenido": obtenido}
+    motivo = data.get("motivo")
+    if isinstance(motivo, str) and motivo.strip():
+        error["motivo"] = motivo.strip()
+    return FrontResult(frente, {"error": error}, metadatos, FrontStatus.FALLIDO)
 
 
 def parse_front_result(frente: FrontName, raw: str) -> FrontResult:
-    """Convierte la respuesta de un subagente en FrontResult.
+    """Convierte la respuesta de un subagente en FrontResult (completo, fallido o no estructurado).
 
     Es tolerante con la forma (texto antes del JSON, valla de código) y estricta con el fondo:
     contenido no vacío, fuente propia del frente y fecha ISO válida. Nunca da por buena una
@@ -149,7 +176,8 @@ def parse_front_result(frente: FrontName, raw: str) -> FrontResult:
     """
     for candidate in _json_candidates(raw):
         try:
-            result = _validated(frente, json.loads(candidate))
+            data = json.loads(candidate)
+            result = _validated_error(frente, data) or _validated(frente, data)
         except (ValueError, TypeError):
             continue
         if result is not None:

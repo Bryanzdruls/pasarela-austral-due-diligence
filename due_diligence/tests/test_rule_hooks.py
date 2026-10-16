@@ -178,6 +178,19 @@ async def test_the_post_hook_never_raises_and_never_blocks_whatever_it_receives(
 
 from due_diligence.tests.test_rules import informe, lista_resp  # noqa: E402
 
+
+async def observe_clean_listas(book, comercio_id="CO-XX-0001", representante_id="PE-0001"):
+    """Listas consultadas sin coincidencia (ticket #4: habilitar exige haberlas consultado)."""
+    for tipo, referencia in (("comercio", comercio_id), ("persona", representante_id)):
+        await observe(
+            book,
+            "consultar_listas_restrictivas",
+            {"tipo": tipo, "referencia": referencia},
+            lista_resp(False),
+            agent_type="listas_restrictivas",
+        )
+
+
 INFORME = "registrar_informe"
 ESCALAR = "escalar_a_cumplimiento"
 
@@ -222,6 +235,7 @@ async def test_without_a_match_habilitar_is_not_denied_by_rule_2():
     await observe(
         book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registro([comercio()])
     )
+    await observe_clean_listas(book)
     assert await run(book, INFORME, informe("habilitar"), agent_type=None) == {}
 
 
@@ -288,6 +302,7 @@ async def test_a_low_risk_commerce_is_not_denied_by_rule_3():
         riesgo_resp("librería", "bajo"),
         agent_type="riesgo_categoria",
     )
+    await observe_clean_listas(book)
     assert await run(book, INFORME, informe("habilitar"), agent_type=None) == {}
 
 
@@ -382,3 +397,169 @@ async def test_the_stop_demand_names_the_rule_that_applies():
     registry = registro([comercio(categoria="criptoactivos")])
     await observe(book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registry)
     assert "regla 3" in (await stop(book))["reason"]
+
+
+# --------------------------------------------------------------------------- cobertura (#4)
+
+from due_diligence.rule_hooks import make_post_tool_use_failure  # noqa: E402
+from due_diligence.tests.test_rules_cobertura import (  # noqa: E402
+    NOTICIAS,
+    declared,
+    error_resp,
+    informe_con,
+)
+
+NEWS_INPUT = {"consulta": "Comercio de prueba SAS"}
+
+
+async def fail_news(book, retryable=True, tool_input=None):
+    return await observe(
+        book,
+        NOTICIAS,
+        tool_input or NEWS_INPUT,
+        error_resp(retryable=retryable),
+        agent_type="noticias",
+    )
+
+
+async def call_news(book, tool_input=None):
+    return await run(book, NOTICIAS, tool_input or NEWS_INPUT, agent_type="noticias")
+
+
+async def test_a_failed_source_may_be_retried_once_and_not_twice():
+    book = CaseBook()
+    await fail_news(book)
+    assert await call_news(book) == {}  # el reintento
+    await fail_news(book)
+    output = await call_news(book)
+    assert decision_of(output) == "deny"
+    assert "noticias" in reason_of(output) and "sin cubrir" in reason_of(output)
+
+
+async def test_a_non_retryable_failure_is_never_retried():
+    book = CaseBook()
+    await fail_news(book, retryable=False)
+    output = await call_news(book)
+    assert decision_of(output) == "deny"
+    assert "no es reintentable" in reason_of(output)
+
+
+async def test_a_recovered_retry_allows_calling_again():
+    book = CaseBook()
+    await fail_news(book)
+    await observe(
+        book,
+        NOTICIAS,
+        NEWS_INPUT,
+        json.dumps({"ok": True, "content": {"noticias": []}, "metadata": {}}),
+        agent_type="noticias",
+    )
+    await fail_news(book)
+    assert await call_news(book) == {}
+
+
+async def test_the_retry_cap_governs_the_four_source_tools_and_leaves_the_others_alone():
+    book = CaseBook()
+    for tool, tool_input in (
+        ("consultar_registro_mercantil", {"consulta": "x"}),
+        ("consultar_listas_restrictivas", {"tipo": "comercio", "referencia": "CO-XX-0001"}),
+        ("buscar_noticias", {"consulta": "x"}),
+        ("consultar_riesgo_categoria", {"categoria": "x"}),
+    ):
+        await observe(book, tool, tool_input, error_resp(retryable=False), agent_type="x")
+        output = await run(book, tool, tool_input, agent_type=None)
+        assert decision_of(output) == "deny", tool
+    assert await run(book, "Agent", {"prompt": "x"}, agent_type=None) == {}
+
+
+async def test_an_informe_that_omits_the_failed_front_is_denied_and_declaring_it_is_allowed():
+    book = CaseBook()
+    await observe(
+        book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registro([comercio()])
+    )
+    await observe_clean_listas(book)
+    await prompt(book, "Due diligence de CO-XX-0001")
+    await fail_news(book)
+    omit = await run(book, INFORME, informe_con("no_habilitar", {}), agent_type=None)
+    assert decision_of(omit) == "deny"
+    assert "noticias" in reason_of(omit)
+    declare = informe_con("no_habilitar", declared("noticias"))
+    assert await run(book, INFORME, declare, agent_type=None) == {}
+
+
+async def test_two_commerces_with_different_failures_do_not_mix():
+    book = CaseBook()
+    for cid, rep in (("CO-XX-0001", "PE-0001"), ("CO-XX-0002", "PE-0002")):
+        await observe(
+            book,
+            "consultar_registro_mercantil",
+            {"consulta": cid},
+            registro([comercio(cid, rep)]),
+        )
+    await observe(
+        book,
+        "consultar_listas_restrictivas",
+        {"tipo": "comercio", "referencia": "CO-XX-0002"},
+        error_resp(),
+        agent_type="listas_restrictivas",
+    )
+    ok_one = informe_con("no_habilitar", {"x": 1}, "CO-XX-0001")
+    bad_two = informe_con("no_habilitar", {"x": 1}, "CO-XX-0002")
+    assert await run(book, INFORME, ok_one, agent_type=None) == {}
+    assert decision_of(await run(book, INFORME, bad_two, agent_type=None)) == "deny"
+
+
+async def test_escalating_without_declaring_the_failed_front_is_denied():
+    book = CaseBook()
+    await observe(
+        book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registro([comercio()])
+    )
+    await prompt(book, "Due diligence de CO-XX-0001")
+    await fail_news(book)
+    sin = {"comercio_id": "CO-XX-0001", "cobertura": {}}
+    assert decision_of(await run(book, ESCALAR, sin, agent_type=None)) == "deny"
+    con = {"comercio_id": "CO-XX-0001", "cobertura": declared("noticias")}
+    assert await run(book, ESCALAR, con, agent_type=None) == {}
+
+
+async def test_the_stop_hook_still_demands_escalation_once_with_a_failed_front():
+    book = await identified_with_match("comercio", "CO-XX-0001")
+    await fail_news(book)
+    assert (await stop(book))["decision"] == "block"
+    assert await stop(book, active=True) == {}
+
+
+async def test_an_unreadable_coverage_state_denies_habilitar_fail_closed():
+    book = CaseBook()
+    await observe(
+        book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registro([comercio()])
+    )
+    await observe_clean_listas(book)
+    book.commerces["CO-XX-0001"].fallos = None  # estado corrupto
+    output = await run(book, INFORME, informe("habilitar"), agent_type=None)
+    assert decision_of(output) == "deny"
+    assert "no pudo evaluarse" in reason_of(output)
+
+
+def failure_input(tool, tool_input, error="MCP server closed", agent_type="noticias"):
+    data = pre_input(tool, tool_input, agent_type)
+    data.update({"hook_event_name": "PostToolUseFailure", "error": error, "is_interrupt": False})
+    return data
+
+
+async def test_a_call_that_fails_without_an_envelope_is_recorded_as_a_failed_front():
+    book = CaseBook()
+    hook = make_post_tool_use_failure(book)
+    assert await hook(failure_input(NOTICIAS, NEWS_INPUT), "tu_1", None) == {}
+    failed = book.failed_fronts(None)
+    assert set(failed) == {"noticias"}
+    assert failed["noticias"].retryable is False
+    assert decision_of(await call_news(book)) == "deny"
+
+
+async def test_the_failure_hook_never_raises_and_ignores_other_tools():
+    book = CaseBook()
+    hook = make_post_tool_use_failure(book)
+    for data in ({}, {"tool_name": None}, failure_input("Agent", {"prompt": "x"}), None, 5):
+        assert await hook(data, None, None) == {}  # type: ignore[arg-type]
+    assert book.failed_fronts(None) == {}

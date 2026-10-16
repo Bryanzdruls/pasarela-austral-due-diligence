@@ -11,6 +11,7 @@ from due_diligence.guards import tool_guard
 from due_diligence.prompts import COORDINATOR_PROMPT
 from due_diligence.rule_hooks import (
     make_post_tool_use,
+    make_post_tool_use_failure,
     make_pre_tool_use,
     make_stop,
     make_user_prompt_submit,
@@ -37,7 +38,7 @@ def _mcp_server_config() -> dict:
 
 
 def _hooks(book: CaseBook) -> dict:
-    """Aislamiento por rol y reglas de negocio 1 a 3, todos sobre el mismo `CaseBook`."""
+    """Aislamiento por rol, reglas 1 a 3 y cobertura de los frentes, sobre el mismo `CaseBook`."""
 
     def everywhere(*hooks):  # sin filtro: aplica a todas las herramientas
         return [HookMatcher(matcher=None, hooks=list(hooks))]
@@ -45,6 +46,7 @@ def _hooks(book: CaseBook) -> dict:
     return {
         "PreToolUse": everywhere(tool_guard, make_pre_tool_use(book)),
         "PostToolUse": everywhere(make_post_tool_use(book)),
+        "PostToolUseFailure": everywhere(make_post_tool_use_failure(book)),
         "UserPromptSubmit": everywhere(make_user_prompt_submit(book)),
         "Stop": everywhere(make_stop(book)),
     }

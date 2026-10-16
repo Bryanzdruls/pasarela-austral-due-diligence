@@ -43,6 +43,23 @@ los tres valores, hallazgos por frente con su fuente, cobertura y conflictos). S
 escalar, llama también a la herramienta `escalar_a_cumplimiento` (comercio_id, hallazgos por frente \
 con sus fuentes, cobertura, causa y acción recomendada) antes de dar la respuesta por terminada.
 
+## Cuando un frente falla
+
+- Un subagente cuya fuente falla responde `{"estado": "error", ...}` con el frente, lo obtenido y \
+si es `reintentable`. Si es reintentable, vuelve a lanzar ese mismo frente una sola vez; si \
+vuelve a fallar, o si no es reintentable, no reintentes: el frente queda sin cubrir.
+- Los hallazgos de los frentes que sí respondieron se conservan en el informe.
+- Declara cada frente sin cubrir en `cobertura`, tanto en `registrar_informe` como en \
+`escalar_a_cumplimiento`, con las claves `registro`, `listas`, `noticias` y `riesgo`: \
+{"registro": {"estado": "cubierto"}, "listas": {"estado": "cubierto"}, "noticias": \
+{"estado": "sin_cubrir", "motivo": "servicio no disponible tras un reintento"}, "riesgo": \
+{"estado": "cubierto"}}.
+- No presentes un informe parcial como completo ni digas "sin hallazgos" de un frente que no \
+pudiste consultar: dilo con todas las letras en la respuesta al analista.
+- Para recomendar `habilitar` el registro mercantil debe haber identificado al comercio y las \
+listas restrictivas deben haberse consultado con éxito para el comercio y para su representante \
+legal. Si no, usa `no_habilitar` o `escalar_a_cumplimiento` y declara el frente sin cubrir.
+
 ## Seguimiento y cambio de comercio
 
 - Si el analista hace una pregunta de seguimiento sobre un frente que ya investigaste, respóndela \
@@ -54,15 +71,23 @@ datos del comercio actual, nunca del comercio anterior.
 
 Este texto te orienta. Las reglas de negocio de la pasarela (consultar listas solo con el comercio \
 identificado de forma unívoca; una coincidencia en listas impide habilitar; el alto riesgo nunca se \
-habilita automáticamente) se hacen cumplir con hooks del sistema, no con estas instrucciones; \
-respétalas igualmente.
+habilita automáticamente; regla 5: un informe parcial nunca se presenta como completo) se hacen \
+cumplir con hooks del sistema, no con estas instrucciones; respétalas igualmente.
 """
 
 _RESPONSE_FORMAT = """\
 Responde ÚNICAMENTE con un objeto JSON, sin texto adicional, con esta forma:
 {"contenido": {...lo que devolvió la herramienta...}, "metadatos": {"fuente": "...", "fecha": "..."}}
 `contenido` son los datos hallados; `metadatos.fuente` y `metadatos.fecha` son la fuente y la fecha \
-de consulta que devolvió la herramienta. No mezcles metadatos dentro de `contenido`."""
+de consulta que devolvió la herramienta. No mezcles metadatos dentro de `contenido`.
+
+Si la herramienta devuelve un error (`ok: false`), no inventes datos ni los completes de memoria: \
+responde ÚNICAMENTE con este objeto, sin texto adicional:
+{"estado": "error", "frente": "<el nombre de tu frente>", "reintentable": true, "obtenido": {...}, \
+"metadatos": {"fuente": "...", "fecha": "..."}}
+`reintentable` es el campo `retryable` del error; `obtenido` es lo que alcanzaste a obtener (su \
+campo `partial`, o {} si nada); `metadatos.fuente` es la fuente del error y `metadatos.fecha` la \
+fecha de hoy en formato ISO 8601."""
 
 SUBAGENT_PROMPTS: dict[str, str] = {
     "registro_mercantil": (

@@ -96,7 +96,7 @@ def test_background_tasks_are_disabled_so_the_agent_tool_returns_the_front_resul
 
 def test_the_rule_hooks_are_registered_for_every_event_they_need():
     hooks = build_options().hooks
-    for event in ("PreToolUse", "PostToolUse", "UserPromptSubmit", "Stop"):
+    for event in ("PreToolUse", "PostToolUse", "PostToolUseFailure", "UserPromptSubmit", "Stop"):
         assert event in hooks and hooks[event], event
         assert all(m.matcher is None for m in hooks[event]), event
 

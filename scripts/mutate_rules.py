@@ -62,8 +62,8 @@ MUTATIONS = [
     (
         "regla 3: no limpiar la evidencia al cambiar de solicitud",
         RULES,
-        "        self.risk_observations = []\n        self._request_commerces",
-        "        self._request_commerces",
+        "        self.risk_observations = []\n        self.orphan_failures = {}",
+        "        self.orphan_failures = {}",
     ),
     (
         "regla 3: la evidencia de una solicitud se aplica a todos los comercios",
@@ -106,6 +106,155 @@ MUTATIONS = [
         HOOKS,
         '            return _deny(\n                f"Una regla de negocio no pudo evaluarse',
         '            return {}\n            return _deny(\n                f"Una regla de negocio no pudo evaluarse',
+    ),
+]
+
+# Cobertura de los frentes (ticket #4). Los fragmentos llevan saltos de línea reales.
+_RESET = """        self.orphan_failures = {}
+        self.attempts = {}"""
+
+MUTATIONS += [
+    (
+        "reintentos: registro y noticias se cuentan por redacción de la consulta",
+        RULES,
+        """        return "*"
+""",
+        """        return normalize(data.get("consulta"))
+""",
+    ),
+    (
+        "cobertura: no registrar los fallos de las fuentes",
+        RULES,
+        """        if tool in SOURCE_TOOLS:
+            self._observe_coverage(SOURCE_TOOLS[tool], tool_input, envelope)""",
+        """        if False:
+            self._observe_coverage(SOURCE_TOOLS[tool], tool_input, envelope)""",
+    ),
+    (
+        "cobertura: un éxito no borra el fallo del sujeto",
+        RULES,
+        """            self._clear_failure((frente, _subject(frente, tool_input)))
+            return""",
+        """            return""",
+    ),
+    (
+        "cobertura: un éxito de otro sujeto borra el fallo del frente",
+        RULES,
+        """            case.fallos.pop(key, None)""",
+        """            for other in [k for k in case.fallos if k[0] == key[0]]:
+                case.fallos.pop(other)""",
+    ),
+    (
+        "cobertura: el sujeto no se normaliza",
+        RULES,
+        """    return normalize(data.get("categoria"))""",
+        """    return str(data.get("categoria"))""",
+    ),
+    (
+        "cobertura: la respuesta ilegible cuenta como cubierta",
+        RULES,
+        """        if envelope is None:
+            self._record_failure(frente, tool_input, "ilegible", False, {})
+            return""",
+        """        if envelope is None:
+            return""",
+    ),
+    (
+        "cobertura: los fallos huérfanos no los adopta el comercio",
+        RULES,
+        """                case.fallos[key] = failure
+                del self.orphan_failures[key]""",
+        """                del self.orphan_failures[key]""",
+    ),
+    (
+        "cobertura: el fallo de un comercio se mezcla con el de otro",
+        RULES,
+        """        failures = [*(case.fallos.values() if case else ()), *self.orphan_failures.values()]""",
+        """        failures = [
+            *(f for c in self.commerces.values() for f in c.fallos.values()),
+            *self.orphan_failures.values(),
+        ]""",
+    ),
+    (
+        "cobertura: el fallo del comercio no persiste entre solicitudes",
+        RULES,
+        _RESET,
+        _RESET
+        + """
+        for case in self.commerces.values():
+            case.fallos.clear()""",
+    ),
+    (
+        "reintentos: no se limitan",
+        RULES,
+        """        if seguidos >= MAX_ATTEMPTS:""",
+        """        if False:""",
+    ),
+    (
+        "reintentos: se repite lo no reintentable",
+        RULES,
+        """        if not retryable:
+            return _deny_reintento(frente, "la falla no es reintentable")""",
+        """        if False:
+            return _deny_reintento(frente, "la falla no es reintentable")""",
+    ),
+    (
+        "reintentos: los intentos no se reinician con la solicitud",
+        RULES,
+        _RESET,
+        """        self.orphan_failures = {}""",
+    ),
+    (
+        "reintentos: las fuentes no pasan por el tope en el hook",
+        HOOKS,
+        """            if tool in SOURCE_TOOLS:
+                decisions.append(book.check_fuente(tool, tool_input))""",
+        """            if False:
+                decisions.append(book.check_fuente(tool, tool_input))""",
+    ),
+    (
+        "declaración: un informe que omite el frente caído se acepta",
+        RULES,
+        """        return _deny_cobertura(missing) if missing else None""",
+        """        return None""",
+    ),
+    (
+        "declaración: `cubierto` cuenta como declarar el frente sin cubrir",
+        RULES,
+        '        and value.get("estado") == "sin_cubrir"',
+        """        and value.get("estado") in ("sin_cubrir", "cubierto")""",
+    ),
+    (
+        "declaración: escalar no exige declarar los frentes caídos",
+        RULES,
+        """        return self._check_cobertura(data) or ALLOW""",
+        """        return ALLOW""",
+    ),
+    (
+        "habilitar: no se exige la consulta de listas del comercio",
+        RULES,
+        """        if "comercio" not in case.listas:""",
+        """        if False:""",
+    ),
+    (
+        "habilitar: no se exige la consulta de listas del representante",
+        RULES,
+        """        if case.representante_id is not None and "persona" not in case.listas:""",
+        """        if False:""",
+    ),
+    (
+        "habilitar: la cobertura de listas no se evalúa",
+        RULES,
+        """        if faltan := self._listas_faltantes(case):
+            return _deny_cobertura_habilitar(case, faltan)""",
+        """        if False:
+            return _deny_cobertura_habilitar(case, [])""",
+    ),
+    (
+        "hook: PostToolUseFailure no registra la falla",
+        HOOKS,
+        """            book.observe_failure(input_data.get("tool_name"), input_data.get("tool_input"))""",
+        """            pass""",
     ),
 ]
 
