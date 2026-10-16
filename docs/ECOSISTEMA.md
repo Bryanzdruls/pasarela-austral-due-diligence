@@ -33,7 +33,7 @@ Los hooks reducen el riesgo, no lo eliminan. Esto es lo que no cubren:
 
 - Una orden que construya en tiempo de ejecución el nombre del archivo o el valor sensible puede eludir la inspección del texto de `Bash`.
 - `Grep` y `Glob` se revisan por su `path` y su `glob`: una búsqueda sobre un directorio sin filtro (`path: "."`) o con un patrón de nombre amplio (`.e*`, `*.env`) puede devolver líneas de un archivo de secretos; ahí solo protege `permissions.deny`, que tampoco cubre `Grep`.
-- El recorte de mensajes de commit y de pull request se hace con expresiones regulares, no analizando la orden: una construcción adversarial con comillas anidadas puede ocultar texto que sí se ejecuta.
+- El hook de secretos inspecciona el texto entero de la orden, también el de un mensaje de commit o de pull request: un mensaje que nombre un archivo de secretos se bloquea. Se decidió así tras cinco revisiones que seguían evadiendo la poda de mensajes con expresiones regulares: se prefiere un falso bloqueo a una lectura permitida. El mensaje se escribe en un archivo y se pasa con `git commit -F archivo`.
 - `NotebookEdit` no está cubierto: el proyecto no usa notebooks.
 - El aislamiento a nivel de sistema operativo requeriría el modo aislado (sandbox) de Claude Code, fuera de alcance.
 - Los hooks de proyecto se leen al arrancar la sesión y requieren la confianza del proyecto: un hook defectuoso solo protege tras reiniciar.

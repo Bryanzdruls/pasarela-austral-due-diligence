@@ -127,21 +127,25 @@ def test_ordinary_terminal_commands_and_the_template_are_allowed(repo, comando):
     assert code == 0, err
 
 
-# ------------------------------------------------------- mensajes (hallazgo del uso real)
+# ------------------------------------------------------- mensajes de commit
 
 
 @pytest.mark.parametrize(
     "comando",
     [
         'git commit -m "no se versiona el archivo .env"',
-        "git commit -m 'secrets/ y *.pem quedan fuera'",
-        "git commit -F - <<'EOF'\nHook de secretos\n\n- .env, .env.* y secrets/ no se leen\nEOF",
-        "cd repo && git add docs && git commit -q -F - <<'EOF'\nCubre .env y llave.key\nEOF\ngit log",  # noqa: E501
+        "git commit -F - <<'EOF'\nHook de secretos\n\n- .env y secrets/ no se leen\nEOF",
         'gh issue comment 9 --body "ignora .env y secrets/"',
-        "gh pr create --title \"Protege .env\" --body 'texto con secrets/x'",
     ],
 )
-def test_text_of_commit_and_pull_request_messages_is_not_a_file_access(repo, comando):
+def test_a_message_that_names_a_secret_file_is_blocked_on_purpose(repo, comando):
+    """No se distingue un mensaje de código: se inspecciona todo (el mensaje va con `-F`)."""
+    code, _, err = run_hook(SCRIPT, payload("Bash", repo, command=comando), repo)
+    assert code == 2 and "secretos" in err
+
+
+def test_a_message_read_from_a_file_is_allowed(repo):
+    comando = "git commit -q -F mensaje.txt"
     code, _, err = run_hook(SCRIPT, payload("Bash", repo, command=comando), repo)
     assert code == 0, err
 
@@ -193,18 +197,6 @@ def test_a_listing_command_does_not_hide_a_chained_access(repo, comando):
 def test_a_message_with_command_substitution_is_still_inspected(repo, comando):
     code, _, err = run_hook(SCRIPT, payload("Bash", repo, command=comando), repo)
     assert code == 2 and "secretos" in err
-
-
-@pytest.mark.parametrize(
-    "comando",
-    [
-        "git commit -m 'el archivo $(cat .env) no se ejecuta entre comillas simples'",
-        "git commit -F - <<'EOF'\n$(cat .env) literal\nEOF",
-    ],
-)
-def test_quoted_literal_messages_stay_allowed(repo, comando):
-    code, _, err = run_hook(SCRIPT, payload("Bash", repo, command=comando), repo)
-    assert code == 0, err
 
 
 @pytest.mark.parametrize(

@@ -66,3 +66,7 @@ La poda del cuerpo de un heredoc seguía teniendo huecos (prefijo antes de `git 
 ### Cuarta ronda
 
 Hallazgo bloqueante: un `<<` dentro de comillas o de un comentario, o un `<<-` con tabulaciones, hacía que la expresión podara código que el shell sí ejecuta. La poda se restringió a la forma simple `<<TAG` sin comillas ni `#` antes del `<<`; el resto se inspecciona completo. Pruebas en `test_bypasses_round4.py`.
+
+### Quinta ronda: se elimina la causa
+
+Cinco revisiones seguidas encontraron evasiones nuevas de la poda de mensajes de commit con expresiones regulares (comillas, `<<<`, `<<-`, `&`). En vez de parchear de nuevo, se **eliminó la poda**: el hook inspecciona la orden entera. Coste aceptado: un mensaje de commit que nombre un archivo de secretos se bloquea (falla hacia el lado seguro) y se pasa con `git commit -F archivo`. Las pruebas de "mensaje permitido" se sustituyeron por pruebas de bloqueo (`test_secrets_guard.py`, `test_bypasses_round5.py`). No se hizo una sexta revisión de código.
