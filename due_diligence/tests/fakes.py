@@ -64,8 +64,9 @@ def result(
 class FakeClient:
     """Cliente falso: cada `query` consume el siguiente turno preparado."""
 
-    def __init__(self, turns: list[list[Any]]):
+    def __init__(self, turns: list[list[Any]], raise_after: Exception | None = None):
         self._turns = list(turns)
+        self._raise_after = raise_after  # el SDK lanza tras un ResultMessage de error
         self.queries: list[str] = []
         self.opened = False
         self.closed = False
@@ -86,18 +87,21 @@ class FakeClient:
     async def receive_response(self) -> AsyncIterator[Any]:
         for message in self._current:
             yield message
+        if self._raise_after is not None:
+            raise self._raise_after
 
 
 class FakeClientFactory:
     """Fábrica inyectable que cuenta cuántos clientes se crean."""
 
-    def __init__(self, turns: list[list[Any]]):
+    def __init__(self, turns: list[list[Any]], raise_after: Exception | None = None):
         self._turns = turns
+        self._raise_after = raise_after
         self.created: list[FakeClient] = []
         self.options_received: list[Any] = []
 
     def __call__(self, options: Any = None) -> FakeClient:
         self.options_received.append(options)
-        client = FakeClient(self._turns)
+        client = FakeClient(self._turns, self._raise_after)
         self.created.append(client)
         return client

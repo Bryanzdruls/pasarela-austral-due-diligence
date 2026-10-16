@@ -4,9 +4,10 @@ import os
 import sys
 from pathlib import Path
 
-from claude_agent_sdk import ClaudeAgentOptions
+from claude_agent_sdk import ClaudeAgentOptions, HookMatcher
 
 from due_diligence.agents import build_agents
+from due_diligence.guards import tool_guard
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SERVER_NAME = "pasarela-fuentes"
@@ -34,6 +35,7 @@ def build_options() -> ClaudeAgentOptions:
         allowed_tools=["Agent"],  # solo auto-aprueba; no restringe por sí solo
         mcp_servers={SERVER_NAME: _mcp_server_config()},
         setting_sources=[],  # no heredar la configuración del proyecto de desarrollo
+        hooks={"PreToolUse": [HookMatcher(matcher=None, hooks=[tool_guard])]},
         cwd=str(REPO_ROOT),
         # Sin max_turns: el ciclo termina por la razón de parada del modelo (FR-008).
     )

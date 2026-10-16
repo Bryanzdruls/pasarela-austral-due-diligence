@@ -24,6 +24,15 @@ def test_agents_are_the_four_fronts():
     assert set(build_options().agents) == set(build_agents())
 
 
+def test_the_isolation_guard_is_registered_for_every_pre_tool_use():
+    from due_diligence.guards import tool_guard
+
+    matchers = build_options().hooks["PreToolUse"]
+    assert len(matchers) == 1
+    assert matchers[0].matcher is None  # sin filtro: aplica a todas las herramientas
+    assert matchers[0].hooks == [tool_guard]
+
+
 def test_working_directory_is_the_repo_root():
     assert Path(build_options().cwd) == REPO_ROOT
     assert (REPO_ROOT / "mcp_server").is_dir()

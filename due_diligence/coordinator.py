@@ -5,7 +5,7 @@ from typing import Any
 
 from claude_agent_sdk import ClaudeSDKClient
 
-from due_diligence.events import DomainEvent, Translator
+from due_diligence.events import DomainEvent, RunFinished, Translator
 from due_diligence.options import build_options
 
 
@@ -35,7 +35,15 @@ class DueDiligenceSession:
         if self._client is None:
             raise RuntimeError("La sesión no está abierta: usa `async with DueDiligenceSession()`.")
         translator = Translator()
+        finished = False
         await self._client.query(text)
-        async for message in self._client.receive_response():
-            for event in translator.translate(message):
-                yield event
+        try:
+            async for message in self._client.receive_response():
+                for event in translator.translate(message):
+                    finished = finished or isinstance(event, RunFinished)
+                    yield event
+        except Exception:
+            # El SDK puede lanzar tras un ResultMessage de error (p. ej. error_max_turns): el
+            # turno ya terminó y su resultado se entregó en RunFinished. Antes de eso, no se oculta.
+            if not finished:
+                raise
