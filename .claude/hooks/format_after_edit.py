@@ -37,7 +37,7 @@ def format_file(
     for command in candidates(which):
         try:
             result = run(
-                [*command, path], cwd=root, capture_output=True, text=True, timeout=60, check=False
+                [*command, path], cwd=root, capture_output=True, text=True, timeout=25, check=False
             )
         except (OSError, subprocess.SubprocessError):
             continue  # este formateador no está o no responde: se prueba el siguiente

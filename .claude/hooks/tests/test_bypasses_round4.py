@@ -15,7 +15,7 @@ SECRETS = "secrets_guard.py"
         "git commit -F - <<-EOF\nmsg\n\tEOF\ncat .env\nEOF",
     ],
 )
-def test_a_heredoc_that_may_not_be_one_is_never_pruned(tmp_path, comando):
+def test_a_heredoc_lookalike_never_hides_a_protected_file(tmp_path, comando):
     repo = make_repo(tmp_path, "009-x")
     code, _, err = run_hook(SECRETS, payload("Bash", repo, command=comando), repo)
     assert code == 2 and "secretos" in err

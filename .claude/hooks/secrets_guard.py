@@ -17,11 +17,7 @@ from typing import Any
 import common
 
 _TEMPLATE_NAMES = frozenset({".env.example"})
-_SAFE_COMMANDS = frozenset({"ls", "dir", "test-path", "stat"})  # solo nombran el archivo
 _SPLIT = re.compile(r"""[\s'"`$(){},;|&<>=]+""")
-
-_SUBSTITUTION = re.compile(r"\$\(|`|\$\{")
-_COMMAND_SEGMENTS = re.compile(r"&&|\|\||[;|&\n]")
 
 
 def is_protected(path: str) -> bool:
@@ -49,9 +45,10 @@ def referenced_secrets(command: str) -> list[str]:
     return [part for part in candidates if is_protected(part)]
 
 
-def _first_word(command: str) -> str:
-    words = command.strip().split()
-    return words[0].lower() if words else ""
+def _variants(text: str) -> list[str]:
+    """El texto tal cual y unido como lo une el shell: `.e'n'v` y `.en\\v` leen el mismo."""
+    joined = re.sub(r"['\"]", "", text)
+    return [text, joined, joined.replace("\\", "")]
 
 
 def handle(payload: dict[str, Any]) -> None:
@@ -67,14 +64,9 @@ def handle(payload: dict[str, Any]) -> None:
             offenders.append(path)
     elif tool in ("Bash", "PowerShell"):
         command = tool_input.get("command") or ""
-        for segment in _COMMAND_SEGMENTS.split(command):
-            # cada tramo se juzga por separado y una sustitución de comandos nunca es "segura"
-            if (
-                _first_word(segment) not in _SAFE_COMMANDS
-                or _SUBSTITUTION.search(segment)
-                or ">" in segment
-            ):
-                offenders += referenced_secrets(segment)
+        # ninguna orden se exime, ni siquiera `ls`: puede alimentar a otra con una tubería
+        for variant in _variants(command):
+            offenders += referenced_secrets(variant)
     elif tool in ("Grep", "Glob"):
         for key in ("path", "glob", "pattern"):
             value = tool_input.get(key)

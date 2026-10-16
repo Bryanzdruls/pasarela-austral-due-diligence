@@ -119,7 +119,6 @@ def test_terminal_commands_that_touch_protected_files_are_blocked(repo, comando)
         "python -m uv run pytest -q",
         "echo hola",
         "cat mcp_server/environment.py",
-        "ls .env",  # solo lista el nombre; no lee el contenido
     ],
 )
 def test_ordinary_terminal_commands_and_the_template_are_allowed(repo, comando):

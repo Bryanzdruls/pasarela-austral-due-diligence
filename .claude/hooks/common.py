@@ -78,7 +78,9 @@ def is_production_path(rel: str) -> bool:
 _SEPARATORS = {"|", ";", "&&", "||", "&"}
 _COPY_VERBS = {"cp", "mv", "copy", "move", "copy-item", "move-item", "xcopy"}
 _PS_WRITERS = {"set-content", "add-content", "out-file"}
-_GLUED_REDIRECT = re.compile(r"""(?<=\S)(?<![<>\-=])\d?>{1,2}(?![=&])\s*["']?([^\s&|;<>()"']+)""")
+_GLUED_REDIRECT = re.compile(
+    r"""(?<=\S)(?<![<>\-=])\d?>{1,2}\|?(?![=&])\s*["']?([^\s&|;<>()"']+)"""
+)
 _PY_OPEN_WRITE = re.compile(r"""open\(\s*['"]([^'"]+)['"]\s*,\s*['"][^'"]*[wax+][^'"]*['"]""")
 _PY_PATH_WRITE = re.compile(r"""Path\(\s*['"]([^'"]+)['"]\s*\)\.write_(?:text|bytes)""")
 
@@ -109,6 +111,8 @@ def bash_write_targets(command: str) -> list[str]:
         redirect = re.fullmatch(r"\d?>{1,2}(.*)", token)
         if redirect:
             rest = redirect.group(1)
+            if rest == "|":  # `>|` fuerza la escritura: el destino es la palabra siguiente
+                rest = ""
             if rest and not rest.startswith("&"):
                 targets.append(_unquote(rest))
             elif not rest and index + 1 < len(tokens):

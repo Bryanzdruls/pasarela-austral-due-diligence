@@ -70,3 +70,7 @@ Hallazgo bloqueante: un `<<` dentro de comillas o de un comentario, o un `<<-` c
 ### Quinta ronda: se elimina la causa
 
 Cinco revisiones seguidas encontraron evasiones nuevas de la poda de mensajes de commit con expresiones regulares (comillas, `<<<`, `<<-`, `&`). En vez de parchear de nuevo, se **eliminó la poda**: el hook inspecciona la orden entera. Coste aceptado: un mensaje de commit que nombre un archivo de secretos se bloquea (falla hacia el lado seguro) y se pasa con `git commit -F archivo`. Las pruebas de "mensaje permitido" se sustituyeron por pruebas de bloqueo (`test_secrets_guard.py`, `test_bypasses_round5.py`). No se hizo una sexta revisión de código.
+
+### Sexta ronda
+
+La sexta revisión de código (solo lectura) dio tres evasiones razonadas del hook de secretos: una orden de listado que alimenta a un lector por tubería, texto que el shell une (`.e''nv`, `.en\v`) y la agrupación de PowerShell. Se corrigió quitando `_SAFE_COMMANDS` (ninguna orden se exime) y comparando también el texto sin comillas y sin barras invertidas. Además: `>|` ya cuenta como redirección en `spec_gate`, el temporizador interno del formateador baja a 25 s (el hook se registra con 30), `research.md` describe la decisión vigente y el nombre de la prueba de la cuarta ronda ya no habla de poda. Pruebas en `test_bypasses_round6.py` (comprueban código 2 y el mensaje). Los menores de `real_data_guard.py` quedaron como límites conocidos. No se hizo una séptima revisión.
