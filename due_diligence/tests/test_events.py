@@ -284,3 +284,84 @@ def test_retrying_a_front_is_not_a_parallelism_violation():
         tool_result("t5", _valid("registro_mercantil")),
     )
     assert parallelism_violations(events) == []
+
+
+# --- #4: error estructurado de un frente -------------------------------------------------
+
+
+def _error(frente="noticias", **changes):
+    data = {
+        "estado": "error",
+        "frente": frente,
+        "reintentable": True,
+        "obtenido": {},
+        "metadatos": {"fuente": "noticias_ficticias", "fecha": "2026-10-16T10:00:00+00:00"},
+    }
+    data.update(changes)
+    return json.dumps(data)
+
+
+def test_a_structured_error_is_a_failed_front_with_what_was_obtained_and_retryability():
+    f = finished_for(_error(obtenido={"titulares": ["uno"]}, motivo="servicio caído"))
+    assert f.result.estado is FrontStatus.FALLIDO
+    assert f.result.contenido["error"] == {
+        "reintentable": True,
+        "obtenido": {"titulares": ["uno"]},
+        "motivo": "servicio caído",
+    }
+    assert f.result.metadatos == {
+        "fuente": "noticias_ficticias",
+        "fecha": "2026-10-16T10:00:00+00:00",
+    }
+
+
+def test_a_structured_error_without_the_retryable_flag_is_taken_as_not_retryable():
+    data = json.loads(_error())
+    del data["reintentable"]
+    f = finished_for(json.dumps(data))
+    assert f.result.estado is FrontStatus.FALLIDO
+    assert f.result.contenido["error"]["reintentable"] is False
+
+
+def test_a_structured_error_wrapped_in_a_code_fence_is_accepted():
+    f = finished_for("```json\n" + _error() + "\n```")
+    assert f.result.estado is FrontStatus.FALLIDO
+
+
+def test_an_error_for_another_front_is_not_structured():
+    f = finished_for(_error(frente="registro_mercantil"))  # se delegó a noticias
+    assert f.result.estado is FrontStatus.NO_ESTRUCTURADO
+
+
+def test_an_error_with_a_non_boolean_retryable_or_bad_metadata_is_not_structured():
+    assert finished_for(_error(reintentable="si")).result.estado is FrontStatus.NO_ESTRUCTURADO
+    bad_source = {"fuente": "otra", "fecha": "2026-10-16T10:00:00+00:00"}
+    assert finished_for(_error(metadatos=bad_source)).result.estado is FrontStatus.NO_ESTRUCTURADO
+    assert finished_for(_error(metadatos={})).result.estado is FrontStatus.NO_ESTRUCTURADO
+    assert finished_for(_error(obtenido="nada")).result.estado is FrontStatus.NO_ESTRUCTURADO
+
+
+def test_a_response_without_any_known_shape_is_still_not_structured_and_the_old_shape_holds():
+    assert finished_for("algo sin forma").result.estado is FrontStatus.NO_ESTRUCTURADO
+    assert finished_for(json.dumps(VALID)).result.estado is FrontStatus.COMPLETO
+    other_state = json.dumps({**VALID, "estado": "ok"})
+    assert finished_for(other_state).result.estado is FrontStatus.COMPLETO
+
+
+def test_lists_does_not_start_after_a_failed_registry():
+    events = run(
+        assistant(agent_call("t1", "registro_mercantil", "e")),
+        tool_result(
+            "t1",
+            _error(
+                frente="registro_mercantil",
+                metadatos={
+                    "fuente": "registro_mercantil_ficticio",
+                    "fecha": "2026-10-16T10:00:00+00:00",
+                },
+            ),
+        ),
+        assistant(agent_call("t4", "listas_restrictivas", "e")),
+    )
+    violations = dependency_violations(events)
+    assert len(violations) == 1 and "completo" in violations[0]

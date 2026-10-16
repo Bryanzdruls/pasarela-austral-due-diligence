@@ -277,6 +277,13 @@ def with_listas(book, tipo, referencia, match):
     return book
 
 
+def with_clean_listas(book, comercio_id="CO-XX-0001", representante_id="PE-0001"):
+    """Listas consultadas sin coincidencia para el comercio y su representante (ticket #4: habilitar
+    exige que se hayan consultado)."""
+    with_listas(book, "comercio", comercio_id, False)
+    return with_listas(book, "persona", representante_id, False)
+
+
 def test_a_match_of_the_commerce_in_listas_blocks_habilitar_with_rule_2():
     book = with_listas(identified(comercio()), "comercio", "CO-XX-0001", True)
     decision = book.check_informe(informe("habilitar"))
@@ -301,6 +308,7 @@ def test_a_match_of_one_commerce_does_not_affect_another():
     book = identified(comercio("CO-XX-0001", "PE-0001"), comercio("CO-XX-0002", "PE-0002"))
     with_listas(book, "comercio", "CO-XX-0001", True)
     assert_blocked(book.check_informe(informe("habilitar", "CO-XX-0001")), rule="2")
+    with_clean_listas(book, "CO-XX-0002", "PE-0002")
     assert book.check_informe(informe("habilitar", "CO-XX-0002")).allowed is True
 
 
@@ -385,6 +393,7 @@ def test_a_low_risk_commerce_without_alerts_can_be_enabled():
     book.start_request("Necesito el due diligence de Libros del Faro, CO-XX-0001")
     book.observe(REGISTRO, {"consulta": "CO-XX-0001"}, registro([comercio(categoria="librería")]))
     consult_catalog(book, "librería", "bajo")
+    with_clean_listas(book)
     assert book.check_informe(informe("habilitar")).allowed is True
 
 
@@ -412,6 +421,7 @@ def test_the_evidence_of_a_request_does_not_pass_to_a_low_risk_commerce_investig
         {"consulta": "CO-XX-0002"},
         registro([comercio("CO-XX-0002", "PE-0002", "librería")]),
     )
+    with_clean_listas(book, "CO-XX-0002", "PE-0002")
     assert book.check_informe(informe("habilitar", "CO-XX-0002")).allowed is True
 
     # lo ya determinado de un comercio se conserva en las solicitudes siguientes
@@ -482,7 +492,7 @@ def test_the_non_enabling_recommendations_do_not_need_an_identified_commerce(rec
 
 
 def test_a_clean_identified_commerce_can_be_enabled():
-    assert identified(comercio()).check_informe(informe("habilitar")).allowed is True
+    assert with_clean_listas(identified(comercio())).check_informe(informe("habilitar")).allowed
 
 
 # ------------------------------------------------------------ escalamiento pendiente (A1)
@@ -547,6 +557,7 @@ def test_a_later_request_about_a_high_risk_commerce_never_marks_a_clean_one():
         {"consulta": "CO-XX-0001"},
         registro([comercio("CO-XX-0001", "PE-0001", "librería")]),
     )
+    with_clean_listas(book, "CO-XX-0001", "PE-0001")
     assert book.check_informe(informe("habilitar", "CO-XX-0001")).allowed is True
 
     book.start_request("Ahora Tienda Verde, CO-XX-0002, suplementos dietarios")
@@ -618,4 +629,5 @@ def test_a_carried_category_is_consumed_by_the_first_commerce_identified():
         {"consulta": "CO-XX-0002"},
         registro([comercio("CO-XX-0002", "PE-0002", "servicios")]),
     )
+    with_clean_listas(book, "CO-XX-0002", "PE-0002")
     assert book.check_informe(informe("habilitar", "CO-XX-0002")).allowed is True

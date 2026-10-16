@@ -62,3 +62,47 @@ def test_declares_the_closed_recommendation_vocabulary_and_the_output_tools():
 
 def test_still_says_the_rules_are_enforced_by_hooks_and_not_by_the_prompt():
     assert "hooks" in LOWER and "no con estas instrucciones" in LOWER
+
+
+# --- #4: errores estructurados y cobertura parcial ----------------------------------------
+
+
+def test_every_subagent_prompt_describes_the_structured_error_and_forbids_inventing_data():
+    from due_diligence.prompts import SUBAGENT_PROMPTS
+
+    assert set(SUBAGENT_PROMPTS) == {f.value for f in FrontName}
+    for front, prompt in SUBAGENT_PROMPTS.items():
+        for field in ('"estado": "error"', '"frente"', '"reintentable"', '"obtenido"'):
+            assert field in prompt, (front, field)
+        assert "no inventes" in prompt.lower(), front
+        assert "ok: false" in prompt or '"ok": false' in prompt, front
+
+
+def test_the_coordinator_retries_once_what_is_retryable_and_declares_the_rest():
+    text = COORDINATOR_PROMPT.lower()
+    assert "una sola vez" in text and "reintentable" in text
+    assert "no reintentes" in text
+    assert "sin_cubrir" in text and "cobertura" in text
+
+
+def test_the_coordinator_never_presents_a_partial_report_as_complete():
+    text = COORDINATOR_PROMPT.lower()
+    assert "no presentes" in text and "completo" in text
+    assert "sin hallazgos" in text
+
+
+def test_the_coordinator_prompt_shows_the_coverage_format_with_the_four_fronts():
+    for front in ("registro", "listas", "noticias", "riesgo"):
+        assert f'"{front}"' in COORDINATOR_PROMPT, front
+    assert '"estado": "sin_cubrir"' in COORDINATOR_PROMPT
+
+
+def test_the_coordinator_prompt_says_habilitar_needs_registry_and_listas_consulted():
+    text = COORDINATOR_PROMPT.lower()
+    assert "para recomendar `habilitar`" in text
+    assert "listas" in text and "representante" in text
+
+
+def test_the_coverage_rule_is_enforced_by_hooks_too_and_the_prompt_only_guides():
+    text = COORDINATOR_PROMPT.lower()
+    assert "hooks" in text and "regla 5" in text

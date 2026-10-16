@@ -14,11 +14,12 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from due_diligence.guards import _deny
-from due_diligence.rules import ESCALAR, INFORME, LISTAS, CaseBook, Decision
+from due_diligence.rules import ESCALAR, INFORME, LISTAS, SOURCE_TOOLS, CaseBook, Decision
 
 Hook = Callable[[dict[str, Any], str | None, Any], Awaitable[dict[str, Any]]]
 
-# Herramientas cuyo uso deciden las reglas (el resto lo decide el guard de aislamiento).
+# Herramientas cuyo uso deciden las reglas (el resto lo decide el guard de aislamiento). Las cuatro
+# herramientas de fuentes además pasan por el tope de reintentos (`check_fuente`, ticket #4).
 _GOVERNED = {LISTAS: "check_listas", INFORME: "check_informe", ESCALAR: "check_escalar"}
 
 
@@ -48,10 +49,16 @@ def make_pre_tool_use(book: CaseBook) -> Hook:
         input_data: dict[str, Any], tool_use_id: str | None, context: Any
     ) -> dict[str, Any]:
         try:
-            check = _GOVERNED.get(_short_name(input_data.get("tool_name")))
-            if check is None:
+            tool = _short_name(input_data.get("tool_name"))
+            tool_input = input_data.get("tool_input")
+            decisions: list[Decision] = []
+            if tool in _GOVERNED:
+                decisions.append(getattr(book, _GOVERNED[tool])(tool_input))
+            if tool in SOURCE_TOOLS:
+                decisions.append(book.check_fuente(tool, tool_input))
+            if not decisions:
                 return {}
-            decision: Decision = getattr(book, check)(input_data.get("tool_input"))
+            decision = next((d for d in decisions if not d.allowed), decisions[0])
             _trace(input_data, decision)
             return {} if decision.allowed else _deny(decision.reason)
         except Exception as exc:  # noqa: BLE001 - falla cerrado: ante un error, se deniega
@@ -80,6 +87,21 @@ def make_post_tool_use(book: CaseBook) -> Hook:
         return {}
 
     return post_tool_use
+
+
+def make_post_tool_use_failure(book: CaseBook) -> Hook:
+    """`PostToolUseFailure`: una fuente que falla sin devolver sobre no queda como cubierta."""
+
+    async def post_tool_use_failure(
+        input_data: dict[str, Any], tool_use_id: str | None, context: Any
+    ) -> dict[str, Any]:
+        try:
+            book.observe_failure(input_data.get("tool_name"), input_data.get("tool_input"))
+        except Exception:  # noqa: BLE001 - no registrar es lo seguro
+            pass
+        return {}
+
+    return post_tool_use_failure
 
 
 def make_user_prompt_submit(book: CaseBook) -> Hook:
