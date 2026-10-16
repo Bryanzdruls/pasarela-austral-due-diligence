@@ -13,7 +13,7 @@ import json
 import os
 from typing import Any
 
-from due_diligence.agents import FRONT_TOOLS
+from due_diligence.agents import FRONT_TOOLS, OUTPUT_TOOLS
 from due_diligence.events import FrontName
 
 DELEGATION_TOOLS = frozenset({"Agent", "Task"})
@@ -49,7 +49,12 @@ def _decide(input_data: dict[str, Any]) -> dict[str, Any]:
                     "resultado del frente, no un acuse."
                 )
             return {}
-        return _deny(f"El coordinador no puede usar {tool}: solo delega con Agent.")
+        if tool in OUTPUT_TOOLS:  # el informe y el escalamiento; las reglas deciden (rule_hooks)
+            return {}
+        return _deny(
+            f"El coordinador no puede usar {tool}: solo delega con Agent, registra el informe y "
+            "escala."
+        )
 
     if agent_type not in _FRONTS:
         return _deny(f"Subagente desconocido {agent_type!r}: no se le permite usar {tool}.")

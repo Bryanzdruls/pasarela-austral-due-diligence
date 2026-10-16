@@ -439,3 +439,85 @@ def test_a_high_risk_result_that_arrives_after_the_registry_in_the_same_request_
 def test_rule_2_is_reported_before_rule_3_when_both_apply():
     book = with_listas(identified(comercio(categoria="apuestas")), "comercio", "CO-XX-0001", True)
     assert_blocked(book.check_informe(informe("habilitar")), rule="2")
+
+
+# ------------------------------------------------------------ vocabulario y FR-010 (US4)
+
+ESCALAR = "escalar_a_cumplimiento"
+ESCALAR_OK = json.dumps({"ok": True, "content": {"escalamiento_id": "E-0001"}, "metadata": {}})
+ESCALAR_ERROR = json.dumps(
+    {"ok": False, "source": "x", "error_code": "invalid_input", "retryable": False, "partial": {}}
+)
+
+
+@pytest.mark.parametrize(
+    "recomendacion",
+    ["Habilitar", "habilitar comercio", " habilitar", "HABILITAR", "", None, 5, ["habilitar"]],
+)
+def test_a_recommendation_outside_the_closed_vocabulary_is_rejected_listing_the_allowed_values(
+    recomendacion,
+):
+    decision = identified(comercio()).check_informe(informe(recomendacion))
+    assert_blocked(decision, rule="vocabulario")
+    for allowed in ("habilitar", "no_habilitar", "escalar_a_cumplimiento"):
+        assert allowed in decision.reason
+
+
+@pytest.mark.parametrize("tool_input", [None, {}, "habilitar", [], {"comercio_id": "CO-XX-0001"}])
+def test_an_informe_without_a_recommendation_is_rejected(tool_input):
+    assert_blocked(identified(comercio()).check_informe(tool_input), rule="vocabulario")
+
+
+def test_habilitar_for_a_commerce_never_identified_is_rejected():
+    decision = CaseBook().check_informe(informe("habilitar", "CO-XX-0009"))
+    assert_blocked(decision, rule="identificacion", hint="identificado")
+    other = identified(comercio("CO-XX-0001"))
+    assert_blocked(other.check_informe(informe("habilitar", "CO-XX-0002")), rule="identificacion")
+    assert_blocked(other.check_informe(informe("habilitar", None)), rule="identificacion")
+
+
+@pytest.mark.parametrize("recomendacion", ["no_habilitar", "escalar_a_cumplimiento"])
+def test_the_non_enabling_recommendations_do_not_need_an_identified_commerce(recomendacion):
+    assert CaseBook().check_informe(informe(recomendacion, "CO-XX-0009")).allowed is True
+
+
+def test_a_clean_identified_commerce_can_be_enabled():
+    assert identified(comercio()).check_informe(informe("habilitar")).allowed is True
+
+
+# ------------------------------------------------------------ escalamiento pendiente (A1)
+
+
+def test_a_commerce_with_a_match_in_listas_is_pending_until_it_is_escalated():
+    book = with_listas(identified(comercio()), "comercio", "CO-XX-0001", True)
+    assert book.pending_escalations() == ["CO-XX-0001"]
+    book.observe(ESCALAR, {"comercio_id": "CO-XX-0001"}, ESCALAR_OK)
+    assert book.pending_escalations() == []
+
+
+def test_a_high_risk_commerce_is_pending_until_it_is_escalated():
+    book = identified(comercio(categoria="criptoactivos"))
+    assert book.pending_escalations() == ["CO-XX-0001"]
+    book.observe(ESCALAR, {"comercio_id": "CO-XX-0001"}, ESCALAR_OK)
+    assert book.pending_escalations() == []
+
+
+def test_a_rejected_escalation_does_not_count_as_escalated():
+    book = with_listas(identified(comercio()), "comercio", "CO-XX-0001", True)
+    book.observe(ESCALAR, {"comercio_id": "CO-XX-0001"}, ESCALAR_ERROR)
+    book.observe(ESCALAR, {"comercio_id": "CO-XX-0001"}, "basura")
+    assert book.pending_escalations() == ["CO-XX-0001"]
+
+
+def test_a_low_risk_commerce_without_matches_is_never_pending():
+    book = identified(comercio(categoria="librería"))
+    with_listas(book, "comercio", "CO-XX-0001", False)
+    assert book.pending_escalations() == []
+
+
+def test_escalating_one_commerce_does_not_clear_another():
+    book = identified(
+        comercio("CO-XX-0001", "PE-0001", "apuestas"), comercio("CO-XX-0002", "PE-0002", "apuestas")
+    )
+    book.observe(ESCALAR, {"comercio_id": "CO-XX-0001"}, ESCALAR_OK)
+    assert book.pending_escalations() == ["CO-XX-0002"]

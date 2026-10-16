@@ -94,6 +94,8 @@ class CommerceCase:
     listas: dict[str, bool] = field(default_factory=dict)
     # Una vez determinado que es de alto riesgo, se conserva en las solicitudes siguientes.
     alto_riesgo: bool = False
+    # Solo cuando el servidor confirmó el escalamiento (`ok: true`); un error no cuenta.
+    escalado: bool = False
 
 
 def _short_name(tool: Any) -> str:
@@ -146,6 +148,8 @@ class CaseBook:
             self._observe_registro(content)
         elif tool == LISTAS:
             self._observe_listas(tool_input, content)
+        elif tool == ESCALAR:
+            self._observe_escalar(tool_input)
 
     def _observe_registro(self, content: dict[str, Any]) -> None:
         matches = content.get("matches")
@@ -196,6 +200,11 @@ class CaseBook:
             for commerce_id in self._request_commerces:
                 self.commerces[commerce_id].alto_riesgo = True
 
+    def _observe_escalar(self, tool_input: Any) -> None:
+        commerce_id = _text(tool_input.get("comercio_id")) if isinstance(tool_input, dict) else None
+        if commerce_id in self.commerces:
+            self.commerces[commerce_id].escalado = True
+
     def _observe_listas(self, tool_input: Any, content: dict[str, Any]) -> None:
         if not isinstance(tool_input, dict):
             return
@@ -245,13 +254,27 @@ class CaseBook:
     def check_informe(self, tool_input: Any) -> Decision:
         """Reglas sobre el informe que se va a registrar (la recomendación decide)."""
         data = tool_input if isinstance(tool_input, dict) else {}
-        if data.get("recomendacion") == "habilitar":
-            case = self.commerces.get(_text(data.get("comercio_id")) or "")
-            if case is not None and any(case.listas.values()):
-                return _deny_regla_2(case)
-            if case is not None and self._is_high_risk(case):
-                return _deny_regla_3(case)
+        recomendacion = data.get("recomendacion")
+        if not isinstance(recomendacion, str) or recomendacion not in RECOMMENDATIONS:
+            return _deny_vocabulario()
+        if recomendacion != "habilitar":
+            return ALLOW
+        case = self.commerces.get(_text(data.get("comercio_id")) or "")
+        if case is None:
+            return _deny_identificacion(_text(data.get("comercio_id")))
+        if any(case.listas.values()):
+            return _deny_regla_2(case)
+        if self._is_high_risk(case):
+            return _deny_regla_3(case)
         return ALLOW
+
+    def pending_escalations(self) -> list[str]:
+        """Comercios con coincidencia en listas (regla 2) o de alto riesgo (regla 3) sin escalar."""
+        return [
+            commerce_id
+            for commerce_id, case in self.commerces.items()
+            if not case.escalado and (any(case.listas.values()) or self._is_high_risk(case))
+        ]
 
     def _is_high_risk(self, case: CommerceCase) -> bool:
         """Regla 3: registro, catálogo o solicitud del analista; la lista de la pasarela manda."""
@@ -262,6 +285,28 @@ class CaseBook:
     def check_escalar(self, tool_input: Any) -> Decision:
         """Escalar a un oficial de cumplimiento siempre se permite."""
         return ALLOW
+
+
+def _deny_vocabulario() -> Decision:
+    permitidos = ", ".join(f"`{value}`" for value in RECOMMENDATIONS)
+    return Decision(
+        False,
+        "vocabulario",
+        "La recomendación del informe debe ser exactamente uno de estos valores: "
+        f"{permitidos} (en minúsculas y con guion bajo). Qué hacer: vuelve a registrar el informe "
+        "con uno de ellos.",
+    )
+
+
+def _deny_identificacion(commerce_id: str | None) -> Decision:
+    quien = f"el comercio {commerce_id}" if commerce_id else "un comercio sin identificador"
+    return Decision(
+        False,
+        "identificacion",
+        f"No se puede recomendar habilitar: {quien} no fue identificado de forma unívoca en el "
+        "registro mercantil durante esta conversación. Qué hacer: identifícalo en el registro "
+        "mercantil o registra el informe con `no_habilitar` o `escalar_a_cumplimiento`.",
+    )
 
 
 def _deny_regla_2(case: CommerceCase) -> Decision:

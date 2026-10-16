@@ -14,7 +14,12 @@ def test_coordinator_toolset_is_only_agent_and_nothing_extra_is_pre_approved():
     assert o.tools == ["Agent"]
     # allowed_tools solo auto-aprueba: Agent y las 4 herramientas de frente (que los subagentes
     # necesitan para no caer en el flujo de permisos). Nada más: ni integradas ni de salida.
-    assert o.allowed_tools == ["Agent", *FRONT_TOOLS.values()]
+    # Ticket #3: el coordinador también registra el informe y escala, solo bajo las reglas.
+    output = [
+        "mcp__pasarela-fuentes__registrar_informe",
+        "mcp__pasarela-fuentes__escalar_a_cumplimiento",
+    ]
+    assert o.allowed_tools == ["Agent", *FRONT_TOOLS.values(), *output]
 
 
 def test_the_coordinator_prompt_is_actually_used():
@@ -39,7 +44,8 @@ def test_the_isolation_guard_is_registered_for_every_pre_tool_use():
     matchers = build_options().hooks["PreToolUse"]
     assert len(matchers) == 1
     assert matchers[0].matcher is None  # sin filtro: aplica a todas las herramientas
-    assert matchers[0].hooks == [tool_guard]
+    assert matchers[0].hooks[0] is tool_guard  # el aislamiento va primero
+    assert len(matchers[0].hooks) == 2  # y después las reglas de negocio
 
 
 def test_working_directory_is_the_repo_root():
@@ -86,3 +92,50 @@ def test_background_tasks_are_disabled_so_the_agent_tool_returns_the_front_resul
     coordinador recibe solo un acuse; con esta variable la delegación devuelve el resultado."""
     options = build_options()
     assert options.env.get("CLAUDE_CODE_DISABLE_BACKGROUND_TASKS") == "1"
+
+
+def test_the_rule_hooks_are_registered_for_every_event_they_need():
+    hooks = build_options().hooks
+    for event in ("PreToolUse", "PostToolUse", "UserPromptSubmit", "Stop"):
+        assert event in hooks and hooks[event], event
+        assert all(m.matcher is None for m in hooks[event]), event
+
+
+async def test_every_hook_of_build_options_shares_the_same_case_book():
+    from due_diligence.rules import CaseBook
+
+    book = CaseBook()
+    hooks = build_options(book).hooks
+    first = lambda event: hooks[event][0].hooks[-1]  # noqa: E731
+    await first("UserPromptSubmit")(
+        {"prompt": "Due diligence de CO-XX-0001, venta de apuestas"}, None, None
+    )
+    registry = (
+        '{"ok":true,"content":{"match_count":1,"ambiguous":false,"matches":[{"id":"CO-XX-0001",'
+        '"existe":true,"representante_legal":{"id":"PE-0001"},"categoria":"librería"}]}}'
+    )
+    await first("PostToolUse")(
+        {
+            "tool_name": "mcp__pasarela-fuentes__consultar_registro_mercantil",
+            "tool_input": {},
+            "tool_response": registry,
+        },
+        None,
+        None,
+    )
+    out = await first("PreToolUse")(
+        {
+            "tool_name": "mcp__pasarela-fuentes__registrar_informe",
+            "tool_input": {"comercio_id": "CO-XX-0001", "recomendacion": "habilitar"},
+        },
+        None,
+        None,
+    )
+    assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+    assert (await first("Stop")({"stop_hook_active": False}, None, None))["decision"] == "block"
+    assert book.pending_escalations() == ["CO-XX-0001"]
+
+
+def test_two_builds_without_a_book_never_share_state():
+    a, b = build_options(), build_options()
+    assert a.hooks["Stop"][0].hooks[0] is not b.hooks["Stop"][0].hooks[0]

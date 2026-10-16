@@ -95,3 +95,35 @@ def make_user_prompt_submit(book: CaseBook) -> Hook:
         return {}
 
     return user_prompt_submit
+
+
+def make_stop(book: CaseBook) -> Hook:
+    """`Stop`: exige escalar antes de cerrar la respuesta si la regla 2 o la 3 aplican (D12).
+
+    La exigencia se hace una sola vez: con `stop_hook_active` verdadero (ya se pidió) deja cerrar,
+    para no entrar en un bucle. Un error interno tampoco atrapa la conversación.
+    """
+
+    async def stop(
+        input_data: dict[str, Any], tool_use_id: str | None, context: Any
+    ) -> dict[str, Any]:
+        try:
+            if input_data.get("stop_hook_active"):
+                return {}
+            pending = book.pending_escalations()
+            if not pending:
+                return {}
+            return {
+                "decision": "block",
+                "reason": (
+                    "Antes de terminar: la regla 2 o la 3 aplican a "
+                    + ", ".join(pending)
+                    + " y el caso no fue escalado. Escala el caso a un oficial de cumplimiento con "
+                    "`escalar_a_cumplimiento` (comercio_id, hallazgos por frente con sus fuentes, "
+                    "cobertura, causa y acción recomendada) y después da la respuesta."
+                ),
+            }
+        except Exception:  # noqa: BLE001 - un fallo aquí no debe dejar la conversación atrapada
+            return {}
+
+    return stop

@@ -295,3 +295,81 @@ async def test_the_prompt_hook_never_raises_whatever_it_receives():
     book = CaseBook()
     for data in ({}, {"prompt": None}, {"prompt": 5}, {"hook_event_name": "UserPromptSubmit"}):
         assert await make_user_prompt_submit(book)(data, None, None) == {}
+
+
+# --------------------------------------------------------------------------- escalamiento y rastro
+
+from due_diligence.rule_hooks import make_stop  # noqa: E402
+from due_diligence.tests.test_rules import ESCALAR_ERROR, ESCALAR_OK  # noqa: E402
+
+
+async def stop(book, active=False):
+    data = {"hook_event_name": "Stop", "session_id": "s1", "cwd": ".", "stop_hook_active": active}
+    return await make_stop(book)(data, None, None)
+
+
+async def test_stop_is_blocked_once_while_a_commerce_with_a_match_is_not_escalated():
+    book = await identified_with_match("comercio", "CO-XX-0001")
+    output = await stop(book)
+    assert output["decision"] == "block"
+    assert "escalar_a_cumplimiento" in output["reason"] and "CO-XX-0001" in output["reason"]
+
+
+async def test_stop_is_allowed_after_a_successful_escalation():
+    book = await identified_with_match("comercio", "CO-XX-0001")
+    await observe(
+        book, "escalar_a_cumplimiento", {"comercio_id": "CO-XX-0001"}, ESCALAR_OK, agent_type=None
+    )
+    assert await stop(book) == {}
+
+
+async def test_a_rejected_escalation_keeps_the_stop_blocked():
+    book = await identified_with_match("comercio", "CO-XX-0001")
+    await observe(
+        book,
+        "escalar_a_cumplimiento",
+        {"comercio_id": "CO-XX-0001"},
+        ESCALAR_ERROR,
+        agent_type=None,
+    )
+    assert (await stop(book))["decision"] == "block"
+
+
+async def test_the_stop_demand_is_made_only_once_per_closing():
+    book = await identified_with_match("comercio", "CO-XX-0001")
+    assert (await stop(book))["decision"] == "block"
+    assert await stop(book, active=True) == {}  # ya se exigió: no se entra en un bucle
+
+
+async def test_a_low_risk_commerce_never_blocks_the_closing():
+    book = CaseBook()
+    await observe(
+        book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registro([comercio()])
+    )
+    assert await stop(book) == {}
+
+
+async def test_the_stop_hook_never_traps_the_conversation_on_an_internal_error():
+    class Broken(CaseBook):
+        def pending_escalations(self):
+            raise RuntimeError("x")
+
+    assert await stop(Broken()) == {}
+
+
+async def test_the_trace_records_the_rule_of_each_decision(tmp_path, monkeypatch):
+    import json as _json
+
+    trace = tmp_path / "trace.jsonl"
+    monkeypatch.setenv("PASARELA_HOOK_TRACE", str(trace))
+    await run(
+        CaseBook(),
+        "consultar_listas_restrictivas",
+        {"tipo": "comercio", "referencia": "CO-XX-0001"},
+    )
+    book = await identified_with_match("comercio", "CO-XX-0001")
+    await run(book, INFORME, informe("habilitar"), agent_type=None)
+    await run(book, INFORME, informe("no_habilitar"), agent_type=None)
+    rows = [_json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines()]
+    assert [(r["decision"], r["rule"]) for r in rows[:2]] == [("deny", "1"), ("deny", "2")]
+    assert rows[-1]["decision"] == "allow" and rows[-1]["rule"] is None
