@@ -51,6 +51,11 @@ def _drop_heredoc(match: re.Match[str]) -> str:
     own_segment = not _COMMAND_SEGMENTS.split(match.string[: match.start()])[-1].strip()
     if not own_segment or re.search(r"[&;|`]|\$\(", match.group("intro")):
         return match.group(0)
+    # Solo la forma simple `<<TAG`: con comillas o `#` antes del `<<` puede no ser un heredoc, y con
+    # `<<-` el shell recorta tabulaciones al buscar el terminador y la expresión no lo imita.
+    before = match.group("intro").split("<<")[0]
+    if re.search(r"[\"'#]", before) or "<<-" in match.group("intro"):
+        return match.group(0)
     return match.group("intro")
 
 

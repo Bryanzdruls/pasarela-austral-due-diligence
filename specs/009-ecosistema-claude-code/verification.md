@@ -62,3 +62,7 @@ No se ejecutaron los comandos interactivos `/hooks` y `/memory` (no se pueden la
 ### Tercera ronda
 
 La poda del cuerpo de un heredoc seguía teniendo huecos (prefijo antes de `git commit`, `&` simple, heredoc dentro de `$(...)`). Ahora solo se poda si `git commit`/`gh` abre su propio tramo de la orden y su línea no encadena ni sustituye nada; todo lo demás se inspecciona completo. Pruebas en `test_bypasses_round3.py`. Sentido del error: un commit legítimo con una construcción rara puede bloquearse, nunca al revés.
+
+### Cuarta ronda
+
+Hallazgo bloqueante: un `<<` dentro de comillas o de un comentario, o un `<<-` con tabulaciones, hacía que la expresión podara código que el shell sí ejecuta. La poda se restringió a la forma simple `<<TAG` sin comillas ni `#` antes del `<<`; el resto se inspecciona completo. Pruebas en `test_bypasses_round4.py`.
