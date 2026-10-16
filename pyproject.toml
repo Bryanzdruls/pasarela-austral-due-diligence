@@ -17,7 +17,13 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["mcp_server", "due_diligence"]
+testpaths = [
+    "mcp_server",
+    "due_diligence",
+    ".claude/hooks/tests",
+    "scripts/tests",
+    "plugins/pasarela-revision/tests",
+]
 pythonpath = ["."]
 asyncio_mode = "auto"
 
