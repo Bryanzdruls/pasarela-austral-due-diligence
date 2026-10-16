@@ -36,9 +36,9 @@ La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el mo
 
 | ID | Regla | Estado | Evidencia / pendiente |
 |---|---|---|---|
-| R1 | Ninguna consulta a listas sin comercio identificado de forma unívoca en el registro | **Falta** | Hook del SDK: ticket #3. En la rama `002` solo hay orientación en el prompt, que **no cuenta** |
-| R2 | Coincidencia en listas (comercio o representante) impide recomendar habilitación y escala | **Falta** | Hook del SDK: ticket #3; escalamiento: #6 |
-| R3 | Alto riesgo nunca recibe habilitación automática | **Falta** | Hook del SDK: ticket #3 |
+| R1 | Ninguna consulta a listas sin comercio identificado de forma unívoca en el registro | En rama | Hook `PreToolUse` sobre `consultar_listas_restrictivas`: solo para un comercio identificado de forma unívoca por el registro (o su representante), con lo que devolvió la fuente; `due_diligence/rules.py` y `rule_hooks.py` (rama `003`). verificado con modelo real (`specs/003-*/verification.md`): denegada con el modelo aunque se le ordenó saltarla |
+| R2 | Coincidencia en listas (comercio o representante) impide recomendar habilitación y escala | En rama | Hook sobre `registrar_informe` (rechaza `habilitar` tras una coincidencia del comercio o de su representante) y hook `Stop` que exige escalar antes de cerrar, una sola vez; `due_diligence/rules.py` y `rule_hooks.py` (rama `003`). verificado con modelo real (`specs/003-*/verification.md`). El contenido y el criterio del escalamiento: ticket #6 |
+| R3 | Alto riesgo nunca recibe habilitación automática | En rama | Hook sobre `registrar_informe` con la lista de la pasarela (apuestas, criptoactivos, suplementos dietarios, medicamentos) desde el registro, el catálogo y la solicitud del analista, también si el catálogo dice `sin_clasificar`; `due_diligence/rules.py` y `rule_hooks.py` (rama `003`). verificado con modelo real (`specs/003-*/verification.md`) |
 | R4 | Cada afirmación con su fuente; si dos fuentes se contradicen, se muestran ambas | Parcial | Servidor: cada respuesta lleva fuente y fecha, y las fechas contradictorias de `CO-FH-0006` se devuelven juntas con su origen (#1, Hecho). Informe del coordinador con procedencia: ticket #5 |
 | R5 | Si una fuente no responde, el informe indica qué frente quedó sin cubrir | Parcial | Servidor: error estructurado e inyección de fallas `PASARELA_FAULTS` (#1, Hecho). Cobertura declarada en el informe: ticket #4 |
 
@@ -64,11 +64,11 @@ La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el mo
 | P1 | Repo y Project con campo de estado (Todo, In progress, In review, Done) | Hecho | Project nº 4 con las cuatro opciones |
 | P2 | Backlog propio: un issue por funcionalidad, añadidos al Project | Hecho | Issues #1 a #11, todos en el Project |
 | P3 | Servidor MCP de GitHub en Claude Code con el toolset `projects` habilitado | Hecho | `.mcp.json` en rama `009` (commit `66ec80b`), con la cabecera `X-MCP-Toolsets: default,projects` y el token por variable de entorno. Comprobado en uso: se movieron tickets con `projects_write` (en `main`, PR #13) |
-| P4 | Claude Code toma el siguiente ticket del Project y lo usa como insumo de `/speckit.specify` | En rama | Skill `/siguiente-ticket` (rama `010`): elige el ticket por el orden del proyecto, lo pasa a `In Progress` por el MCP y entrega su contenido como insumo de `/speckit-specify`. Probada contra el Project real: con #2 y #10 en progreso se detiene y pide confirmación |
-| P5 | Al iniciar un ticket lo mueve a In progress; al abrir el PR, a In review; al fusionar, a Done | En rama | `/siguiente-ticket` (a `In Progress`), `/abrir-pr` ampliado (a `In review` y comentario Especificado/Decidido/Pendiente por el MCP) y `/sincronizar-tickets` (a `Done` al fusionar, idempotente; ejecutada sobre el estado real sin cambios). Done se registra al sincronizar, no en el instante de la fusión; el ciclo completo del #10 se cierra tras su fusión (T033) |
+| P4 | Claude Code toma el siguiente ticket del Project y lo usa como insumo de `/speckit.specify` | Hecho | Skill `/siguiente-ticket` (rama `010`): elige el ticket por el orden del proyecto, lo pasa a `In Progress` por el MCP y entrega su contenido como insumo de `/speckit-specify`. Probada contra el Project real: con #2 y #10 en progreso se detiene y pide confirmación (en `main`, PR #15) |
+| P5 | Al iniciar un ticket lo mueve a In progress; al abrir el PR, a In review; al fusionar, a Done | Hecho | `/siguiente-ticket` (a `In Progress`), `/abrir-pr` ampliado (a `In review` y comentario Especificado/Decidido/Pendiente por el MCP) y `/sincronizar-tickets` (a `Done` al fusionar, idempotente; ejecutada sobre el estado real sin cambios). Done se registra al sincronizar, no en el instante de la fusión; el ciclo completo del #10 se cierra tras su fusión (T033) (en `main`, PR #15) |
 | P6 | Cada PR referencia y cierra su issue | Hecho | PR #12 cierra #1 |
 | P7 | El issue recibe comentarios de avance (qué se especificó, decidió y quedó pendiente) | Hecho | Comentarios en #1 y #2; el cierre del #2 está pendiente |
-| P8 | Automatización por comando, skill, subagente, hook o combinación | En rama | Combinación de skills (`siguiente-ticket`, `sincronizar-tickets`) y comando (`/abrir-pr`) con `allowed-tools` limitadas al MCP de GitHub; verificadas por `scripts/tests/test_flow_skills.py` y el verificador del ecosistema |
+| P8 | Automatización por comando, skill, subagente, hook o combinación | Hecho | Combinación de skills (`siguiente-ticket`, `sincronizar-tickets`) y comando (`/abrir-pr`) con `allowed-tools` limitadas al MCP de GitHub; verificadas por `scripts/tests/test_flow_skills.py` y el verificador del ecosistema (en `main`, PR #15) |
 | P9 | Un evaluador puede reconstruir el avance solo mirando GitHub | En curso | Se valida al final |
 
 ## 5. Ecosistema de Claude Code (mínimos)
@@ -84,7 +84,7 @@ Los comandos que instala Spec Kit no cuentan. Cada pieza se justifica en `DECISI
 | E5 | 2 hooks: uno que bloquea antes de ejecutar y uno posterior a una edición | Hecho | 4 hooks en `.claude/settings.json`: 3 `PreToolUse` y 1 `PostToolUse`; pruebas de los hooks y mutaciones detectadas (`specs/009-*/verification.md`) (en `main`, PR #13) |
 | E6 | 1 comando propio compartido por control de versiones | Hecho | `.claude/commands/abrir-pr.md` (en `main`) |
 | E7 | 2 servidores MCP (GitHub y el propio), sin credenciales en el repo | En rama | `.mcp.json` (rama `009`); sin credenciales. **Sin verificar** que `pasarela-fuentes` arranque: se lanza con `python -m uv run` y `uv` no está instalado en el equipo del autor |
-| E8 | 1 plugin con al menos 1 subagente, 1 skill y 1 hook reutilizables | En rama | `plugins/pasarela-revision/` con subagente `compliance-reviewer`, skill `revisar-cumplimiento` y hook `real_data_guard`; `claude plugin validate --strict` sin avisos (rama `010`). En una sesión real en un repositorio ajeno el hook bloqueó un valor con forma de tarjeta y la skill resolvió el subagente del plugin; además lo cubren sus pruebas, la paridad con el hook del proyecto y 5 mutaciones detectadas |
+| E8 | 1 plugin con al menos 1 subagente, 1 skill y 1 hook reutilizables | Hecho | `plugins/pasarela-revision/` con subagente `compliance-reviewer`, skill `revisar-cumplimiento` y hook `real_data_guard`; `claude plugin validate --strict` sin avisos (rama `010`). En una sesión real en un repositorio ajeno el hook bloqueó un valor con forma de tarjeta y la skill resolvió el subagente del plugin; además lo cubren sus pruebas, la paridad con el hook del proyecto y 5 mutaciones detectadas (en `main`, PR #15) |
 
 Necesidades que el ecosistema debe resolver:
 
@@ -99,8 +99,8 @@ Necesidades que el ecosistema debe resolver:
 | N7 | El código queda formateado tras cada edición | Hecho | Hook `format_after_edit.py` (`ruff format`); comprobado en Claude Code real (en `main`, PR #13) |
 | N8 | Revisión independiente antes de abrir un PR | Hecho | `/abrir-pr` lanza `code-reviewer` y `compliance-reviewer` en contexto aislado (en `main`, PR #13) |
 | N9 | Revisión de cumplimiento de las reglas de negocio | Hecho | Subagente `compliance-reviewer` y skill `revisar-cumplimiento` (en `main`, PR #13) |
-| N10 | Estado de los tickets sincronizado sin intervención manual | En rama | Skills `siguiente-ticket` y `sincronizar-tickets` y `/abrir-pr` ampliado (rama `010`). Sin intervención manual para mover tarjetas; Done al sincronizar. El caso 'servidor o toolset no disponibles' solo está verificado en el texto de la skill |
-| N11 | Otro equipo puede instalar las piezas reutilizables | En rama | Catálogo `.claude-plugin/marketplace.json` (`pasarela-austral`) y plugin `pasarela-revision`: instalado en un repositorio ajeno y desinstalado sin residuos en 5 s (rama `010`) |
+| N10 | Estado de los tickets sincronizado sin intervención manual | Hecho | Skills `siguiente-ticket` y `sincronizar-tickets` y `/abrir-pr` ampliado (rama `010`). Sin intervención manual para mover tarjetas; Done al sincronizar. El caso 'servidor o toolset no disponibles' solo está verificado en el texto de la skill (en `main`, PR #15) |
+| N11 | Otro equipo puede instalar las piezas reutilizables | Hecho | Catálogo `.claude-plugin/marketplace.json` (`pasarela-austral`) y plugin `pasarela-revision`: instalado en un repositorio ajeno y desinstalado sin residuos en 5 s (rama `010`) (en `main`, PR #15) |
 
 ## 6. Sistema multi-agente y servidor MCP
 
@@ -119,11 +119,11 @@ Comportamientos obligatorios:
 
 | ID | Comportamiento | Estado | Evidencia / pendiente |
 |---|---|---|---|
-| B1 | Coordinador que delega en al menos tres subagentes, cada uno solo con las herramientas de su frente | En rama | `due_diligence/agents.py`, `options.py`, `guards.py` (rama `002`). Verificado con modelo real (5 casos, `specs/002-*/verification.md`): el SDK entrega el `agent_type` y cada frente usó solo su herramienta; el coordinador solo usó `Agent` |
-| B2 | Contexto explícito; resultados que separan contenido y metadatos | En rama | `due_diligence/events.py`, `prompts.py` (rama `002`). Verificado con modelo real: los `encargo` del caso 3 no contienen datos del comercio anterior y los informes separan contenido y metadatos (fuente y fecha) |
-| B3 | Ejecución en paralelo de los frentes independientes; los dependientes esperan | En rama | Verificado con modelo real en el caso 1: los tres frentes independientes arrancan antes de que termine cualquiera y las listas esperan al registro. Hizo falta forzar la ejecución en primer plano (`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS`, D15). En los casos 3 y 5 el riesgo no corrió en paralelo porque no había categoría declarada |
-| B4 | Ciclo agéntico por la razón de parada del modelo, sin contador ni búsqueda de palabras | En rama | `due_diligence/coordinator.py`, 8 mutaciones detectadas (rama `002`); con modelo real todos los turnos cerraron por `ResultMessage` (`end_turn`) |
-| B5 | Reglas 1 y 2 con **hooks del SDK** | **Falta** | Ticket #3 |
+| B1 | Coordinador que delega en al menos tres subagentes, cada uno solo con las herramientas de su frente | Hecho | `due_diligence/agents.py`, `options.py`, `guards.py` (rama `002`). Verificado con modelo real (5 casos, `specs/002-*/verification.md`): el SDK entrega el `agent_type` y cada frente usó solo su herramienta; el coordinador solo usó `Agent` (en `main`, PR #16) |
+| B2 | Contexto explícito; resultados que separan contenido y metadatos | Hecho | `due_diligence/events.py`, `prompts.py` (rama `002`). Verificado con modelo real: los `encargo` del caso 3 no contienen datos del comercio anterior y los informes separan contenido y metadatos (fuente y fecha) (en `main`, PR #16) |
+| B3 | Ejecución en paralelo de los frentes independientes; los dependientes esperan | Hecho | Verificado con modelo real en el caso 1: los tres frentes independientes arrancan antes de que termine cualquiera y las listas esperan al registro. Hizo falta forzar la ejecución en primer plano (`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS`, D15). En los casos 3 y 5 el riesgo no corrió en paralelo porque no había categoría declarada (en `main`, PR #16) |
+| B4 | Ciclo agéntico por la razón de parada del modelo, sin contador ni búsqueda de palabras | Hecho | `due_diligence/coordinator.py`, 8 mutaciones detectadas (rama `002`); con modelo real todos los turnos cerraron por `ResultMessage` (`end_turn`) (en `main`, PR #16) |
+| B5 | Reglas 1 y 2 con **hooks del SDK** | En rama | Reglas 1 y 2 (y 3) con hooks del SDK, 13 mutaciones detectadas; `due_diligence/rules.py` y `rule_hooks.py` (rama `003`) |
 | B6 | Descripciones de herramientas que eviten confusiones | Hecho | Descripciones verificadas por pruebas en `mcp_server/tests/test_server.py` |
 | B7 | Errores estructurados y cobertura parcial; el coordinador decide reintentar o declarar | Parcial | Servidor Hecho; coordinador: ticket #4 |
 | B8 | Procedencia y conflictos en el informe, con su origen | Parcial | Servidor Hecho; informe: ticket #5 |
@@ -140,7 +140,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 | C2 | Comercio de bajo riesgo sin hallazgos, con habilitación | Falta | Datos listos (`CO-LB-0002`); ticket #8 |
 | C3 | Representante legal con coincidencia en listas | Falta | Datos listos (`CO-DA-0003`); ticket #8 |
 | C4 | Dos comercios con nombres casi idénticos | Falta | Datos listos (`CO-CA-0004`/`0005`); ticket #8 |
-| C5 | Consulta a listas sin identificación unívoca, bloqueada | **Falta** | Requiere el hook del ticket #3 |
+| C5 | Consulta a listas sin identificación unívoca, bloqueada | En rama | Prueba del caso del enunciado en `due_diligence/tests/test_rule_hooks.py` (listas sin identificación unívoca, denegada con la regla 1) y bloqueo real con el modelo (`specs/003-*/verification-forzado.txt`). La automatización de extremo a extremo con el modelo: ticket #8 |
 | C6 | Falla del servicio de noticias con cobertura incompleta declarada | Falta | Inyección de fallas lista; informe: tickets #4 y #8 |
 | C7 | Dos fuentes con fechas de constitución distintas | Falta | Datos listos (`CO-FH-0006`); ticket #8 |
 
@@ -161,7 +161,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 
 | Falta grave | Estado hoy | Cómo se controla |
 |---|---|---|
-| Una regla de negocio que dependa solo del prompt | **ABIERTA** | Las reglas 1-3 no tienen hook todavía (ticket #3). Cerrar antes del cierre del proyecto |
+| Una regla de negocio que dependa solo del prompt | **Cerrada en la rama `003` (pendiente de fusión)** | Las reglas 1 a 3 las imponen hooks del SDK, con pruebas, 13 mutaciones detectadas y verificación con el modelo real. Las reglas 4 y 5 no son de hook: se completan en los tickets #5 y #4; el escalamiento con criterio, en el #6 |
 | Una credencial en el repositorio | Sin hallazgos | Escaneo de valores con forma de clave de Anthropic, de token de GitHub o de clave privada a mano antes de cada commit (sin hook de git que lo automatice) y, sobre la configuración, `scripts/tests/test_no_credentials.py`; `.env` ignorado; `.mcp.json` solo referencia variables |
 | Un dato que parezca real | Sin hallazgos | `test_datos_ficticios.py`; hook de datos reales en `main` (`real_data_guard.py`) |
 
@@ -177,6 +177,7 @@ Cosas hechas de forma distinta a lo que pide el enunciado o a lo que se acordó,
 6. **La rama del #2 solo existía en el equipo local**; se subió a GitHub el 2026-10-16 tras fusionar el #10. Corregido.
 7. **Ticket #9 (nota):** el ecosistema se construyó con el orden #9 → #10 → #2 (ecosistema, luego plugin y flujo de tickets, luego el coordinador). Las verificaciones con Claude Code real están en `specs/009-ecosistema-claude-code/verification.md`; quedan **sin verificar** `/hooks` y `/memory` (interactivos) y la conexión del servidor `pasarela-fuentes`, que falló en la sesión.
 8. **Ticket #10 (nota):** el flujo de tickets y el plugin quedan en la rama `010`. El #9 y el #10 se ejecutaron en ese orden, como fija la constitución (v1.1.1); ningún ticket de funcionalidad se fusiona antes de que el #10 esté fusionado. Queda **sin verificar** el comportamiento de las skills con el servidor o el toolset no disponibles; el hook del plugin y la skill se comprobaron en una sesión real (con el inicio de sesión de claude.ai: la variable `ANTHROPIC_API_KEY` actual devuelve `Invalid API key`). Las evidencias están en `specs/010-automatizacion-project-plugin/verification.md`.
+9. **Ticket #3 (nota):** los hooks de las reglas 1 a 3 quedan en la rama `003`. La verificación con modelo real mostró que el modelo respeta su prompt en el flujo normal, así que las denegaciones se ejercieron con un prompt de sistema de prueba que le ordena violar cada regla (los hooks son los de producción). Queda **sin verificar** con una `ANTHROPIC_API_KEY` válida (se usó el inicio de sesión de claude.ai) y la regla 3 por la categoría declarada se detecta con raíces de la lista, no con sinónimos.
 
 ## 10. Resumen
 
@@ -184,12 +185,12 @@ Requisitos trazados: **84** (reglas generales, reglas de negocio, Spec Kit, GitH
 
 | Estado | Cantidad |
 |---|---|
-| Hecho | 39 |
+| Hecho | 49 |
 | Hecho (en main o en rama) | 3 |
-| En rama | 11 |
+| En rama | 6 |
 | Parcial | 9 |
-| Falta | 19 |
+| Falta | 14 |
 | Otro: En curso | 2 |
 | Otro: Pendiente | 1 |
 
-Última actualización: 2026-10-16, al preparar el PR del ticket #10 (pendiente de fusión; E7 lo actualiza el PR #14). Se actualiza al cerrar cada ticket.
+Última actualización: 2026-10-16, al preparar el PR del ticket #3 (pendiente de fusión; E7 lo actualiza el PR #14). Se actualiza al cerrar cada ticket.
