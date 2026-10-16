@@ -60,3 +60,11 @@ def test_all_six_descriptions_carry_their_contract_hints():
     assert "sin_clasificar" in tools["consultar_riesgo_categoria"]
     assert "no valida ni decide" in tools["registrar_informe"]
     assert "no ve la conversación" in tools["escalar_a_cumplimiento"]
+
+
+def test_the_informe_description_states_the_shape_of_findings_conflicts_and_coverage():
+    tools = {t.name: t.description for t in asyncio.run(server.list_tools())}
+    text = tools["registrar_informe"]
+    assert "`fuente` y `fecha`" in text  # cada hallazgo de un frente cita su fuente y su fecha
+    assert "`conflictos`" in text and "`valor` y `fuente`" in text
+    assert "sin_cubrir" in text

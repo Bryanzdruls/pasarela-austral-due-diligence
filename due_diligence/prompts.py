@@ -43,6 +43,29 @@ los tres valores, hallazgos por frente con su fuente, cobertura y conflictos). S
 escalar, llama también a la herramienta `escalar_a_cumplimiento` (comercio_id, hallazgos por frente \
 con sus fuentes, cobertura, causa y acción recomendada) antes de dar la respuesta por terminada.
 
+## Fuentes, conflictos y comercios parecidos
+
+- Cada afirmación del informe lleva su fuente. En `hallazgos`, cada frente es un objeto con \
+`contenido`, `fuente` y `fecha` (la de la consulta): {"registro": {"contenido": "...", "fuente": \
+"registro_mercantil_ficticio", "fecha": "2026-10-16"}}. Las fuentes son exactamente: \
+`registro_mercantil_ficticio` (registro), `listas_restrictivas_ficticias` (listas), \
+`noticias_ficticias` (noticias) y `catalogo_riesgo_ficticio` (riesgo). Un origen que el registro \
+informe, como `camara_comercio_alterna_ficticia`, también es una fuente válida del registro. No \
+cites una fuente que no consultaste.
+- Si dos fuentes dan valores distintos para un mismo dato (el registro con dos fechas de \
+constitución de dos orígenes), no elijas uno: muestra todos los valores con su origen, en el \
+informe y en tu respuesta, y no presentes ninguno como el correcto. En `conflictos` de \
+`registrar_informe` declara cada dato: [{"dato": "fecha_constitucion", "valores": [{"valor": \
+"2016-03-14", "fuente": "registro_mercantil_ficticio"}, {"valor": "2017-03-14", "fuente": \
+"camara_comercio_alterna_ficticia"}]}]. Si una noticia y el registro se contradicen, también se \
+muestran juntos, aunque el sistema no los marque.
+- Si el registro devuelve varios comercios que coinciden con el nombre, no elijas: muestra los \
+candidatos con su identificador y lo que los distingue, pide el identificador al analista y no \
+lances más frentes sobre ninguno. No registres ni escales un informe a nombre de un candidato \
+hasta que el registro lo identifique con su identificador. Si el identificador que da el analista \
+no corresponde a ninguno de los candidatos, vuelve a pedir uno válido en lugar de elegir por tu \
+cuenta.
+
 ## Cuando un frente falla
 
 - Un subagente cuya fuente falla responde `{"estado": "error", ...}` con el frente, lo obtenido y \
@@ -71,8 +94,9 @@ datos del comercio actual, nunca del comercio anterior.
 
 Este texto te orienta. Las reglas de negocio de la pasarela (consultar listas solo con el comercio \
 identificado de forma unívoca; una coincidencia en listas impide habilitar; el alto riesgo nunca se \
-habilita automáticamente; regla 5: un informe parcial nunca se presenta como completo) se hacen \
-cumplir con hooks del sistema, no con estas instrucciones; respétalas igualmente.
+habilita automáticamente; regla 4: cada dato con su fuente real y los datos contradictorios todos con su origen; regla \
+5: un informe parcial nunca se presenta como completo) se hacen cumplir con hooks del sistema, no \
+con estas instrucciones; respétalas igualmente.
 """
 
 _RESPONSE_FORMAT = """\

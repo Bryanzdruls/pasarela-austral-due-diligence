@@ -1,0 +1,130 @@
+##### caso 1 (C7): Ferretería Horizonte, CO-FH-0006, dos fechas de constitución
+
+Analista> Necesito el due diligence de Ferretería Horizonte SAS, identificador CO-FH-0006.
+[2026-10-16T23:26:23.102108+00:00] > Subagente registro_mercantil iniciado | encargo: Identifica en el registro mercantil al comercio "Ferretería Horizonte SAS", identificador CO-FH-0006. Devuelve existencia, fecha(s) de constitución con su origen, representante legal (nombre e identificador), estado y categoría/actividad si la reporta. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T23:26:24.159726+00:00] > Subagente noticias iniciado | encargo: Busca menciones en el corpus de noticias del comercio "Ferretería Horizonte SAS", identificador CO-FH-0006. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T23:26:28.876215+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-16T23:26:29.668435+00:00] < Subagente noticias terminó | estado: completo
+[2026-10-16T23:26:32.238602+00:00] > Subagente listas_restrictivas iniciado | encargo: Verifica contra las listas restrictivas al comercio con identificador CO-FH-0006 (tipo comercio) y a su representante legal con identificador PE-0006 (tipo persona). Responde con un objeto JSON con `contenido` (resultado para cada uno) y `metadatos` (fuente y fecha).
+[2026-10-16T23:26:33.326453+00:00] > Subagente riesgo_categoria iniciado | encargo: Consulta el nivel de riesgo de la categoría de negocio "ferreteria" (comercio CO-FH-0006). Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-16T23:26:37.311997+00:00] < Subagente riesgo_categoria terminó | estado: completo
+[2026-10-16T23:26:38.515466+00:00] < Subagente listas_restrictivas terminó | estado: completo
+[2026-10-16T23:26:54.473652+00:00] Coordinador: Recomiendo **habilitar** a Ferretería Horizonte SAS (CO-FH-0006). Respondieron los cuatro frentes y ninguno trajo hallazgos negativos. Hay una sola discrepancia: dos fuentes dan fechas de constitución distintas. El informe quedó registrado como **INF-0001**, con fecha de consulta 2026-10-16.
+
+**1. Registro mercantil** (`registro_mercantil_ficticio`)
+- El registro identificó al comercio sin ambigüedad: hay una sola coincidencia.
+- Ferretería Horizonte SAS, NIT FICT-1006, está **activa**.
+- Representante legal: Ana Inventada Mora (identificador PE-0006, documento FICT-0006).
+- Categoría que figura en el registro: ferretería. Volumen mensual estim
+[2026-10-16T23:26:54.482995+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+fallos_vigentes: {"CO-FH-0006": []}
+
+
+##### caso 2 y 3 (C4): Cafetería Aurora, nombres casi idénticos, y después el identificador CO-CA-0004
+
+Analista> Necesito el due diligence de Cafetería Aurora.
+[2026-10-16T23:27:02.856711+00:00] Coordinador: Arranco con el registro mercantil y las noticias en paralelo. No me pasaste la categoría de negocio, así que el riesgo de categoría queda pendiente hasta tenerla. No voy a suponerla a partir del nombre.
+[2026-10-16T23:27:05.312416+00:00] > Subagente registro_mercantil iniciado | encargo: Identifica en el registro mercantil al comercio "Cafetería Aurora". Devuelve un objeto JSON con `contenido` (existencia, identificador del comercio, fecha(s) de constitución con su origen, representante legal con su identificador, estado, categoría de negocio si el registro la informa) y `metadatos` (fuente y fecha de la consulta). Si hay varias coincidencias, lista todos los candidatos con su identificador y lo que los distingue, sin elegir. Si no hay ninguna, indícalo. Si la fuente falla, responde {"estado": "error", "frente": "registro", "obtenido": ..., "reintentable": true/false}.
+[2026-10-16T23:27:07.204015+00:00] > Subagente noticias iniciado | encargo: Busca menciones del comercio "Cafetería Aurora" en el corpus de noticias. Devuelve un objeto JSON con `contenido` (las noticias encontradas, con titular/resumen y fecha de cada una, o la indicación de que no hay menciones) y `metadatos` (fuente y fecha de la consulta). Una mención en noticias no es una coincidencia en listas restrictivas. Si la fuente falla, responde {"estado": "error", "frente": "noticias", "obtenido": ..., "reintentable": true/false}.
+[2026-10-16T23:27:11.456739+00:00] < Subagente noticias terminó | estado: completo
+[2026-10-16T23:27:12.362693+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-16T23:27:20.454193+00:00] Coordinador: No puedo seguir con el due diligence todavía: en el registro mercantil hay dos comercios con ese nombre y no voy a elegir uno por mi cuenta. Necesito que me digas el identificador del que quieres investigar.
+
+**Candidatos** (fuente: `registro_mercantil_ficticio`, consulta del 2026-10-16)
+
+| | CO-CA-0004 | CO-CA-0005 |
+|---|---|---|
+| Razón social | Cafetería Aurora SAS | Cafeteria Aurora S.A.S. |
+| NIT | FICT-1004 | FICT-1005 |
+| Estado | activo | activo |
+| Fecha de constitución | 2020-01-15 | 2022-06-30 |
+| Representante legal | Lucía Demo Campos (PE-0004) | Camilo Ejemplo Duarte (PE-0005) |
+| Categoría registrada | cafeteria | cafeteria |
+| 
+[2026-10-16T23:27:20.487197+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+Analista> CO-CA-0004
+[2026-10-16T23:27:26.311094+00:00] > Subagente registro_mercantil iniciado | encargo: Identifica en el registro mercantil al comercio con identificador "CO-CA-0004". Devuelve un objeto JSON con `contenido` (existencia, identificador, razón social, fecha(s) de constitución con su origen, representante legal con su identificador, estado, categoría) y `metadatos` (fuente y fecha de la consulta). Si hay conflictos entre orígenes, muéstralos todos. Si la fuente falla, responde {"estado": "error", "frente": "registro", "obtenido": ..., "reintentable": true/false}.
+[2026-10-16T23:27:28.000835+00:00] > Subagente riesgo_categoria iniciado | encargo: Consulta el nivel de riesgo de la categoría de negocio "cafeteria" (comercio CO-CA-0004). Devuelve un objeto JSON con `contenido` (categoría y nivel de riesgo; si es sin_clasificar, indícalo sin asumir nivel) y `metadatos` (fuente y fecha de la consulta). Si la fuente falla, responde {"estado": "error", "frente": "riesgo", "obtenido": ..., "reintentable": true/false}.
+[2026-10-16T23:27:31.870690+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-16T23:27:32.081424+00:00] < Subagente riesgo_categoria terminó | estado: completo
+[2026-10-16T23:27:35.462739+00:00] > Subagente listas_restrictivas iniciado | encargo: Verifica contra las listas restrictivas: (1) el comercio con identificador "CO-CA-0004" (tipo comercio) y (2) su representante legal con identificador "PE-0004" (tipo persona). Devuelve un objeto JSON con `contenido` (resultado de cada verificación: coincidencia sí/no y detalle) y `metadatos` (fuente y fecha de la consulta). Si alguna consulta falla, responde {"estado": "error", "frente": "listas", "obtenido": ..., "reintentable": true/false}, indicando qué consulta sí se completó.
+[2026-10-16T23:27:41.825172+00:00] < Subagente listas_restrictivas terminó | estado: completo
+[2026-10-16T23:27:58.519246+00:00] Coordinador: Recomiendo **habilitar** Cafetería Aurora SAS (CO-CA-0004). Se consultaron los cuatro frentes y ninguno dio alertas. El informe quedó guardado como **INF-0001**.
+
+**Registro mercantil** (`registro_mercantil_ficticio`, 2026-10-16)
+- Cafetería Aurora SAS, NIT FICT-1004, existe y está **activa**.
+- Fecha de constitución: 2020-01-15. Solo hay un origen, así que no hay datos contradictorios.
+- Representante legal: Lucía Demo Campos (PE-0004, documento FICT-0004).
+- Categoría registrada: cafeteria. Volumen mensual estimado según el registro: 12.000.000.
+
+**Listas restrictivas** (`listas_restrictivas_ficticias`, 2026-10-16)
+- Comercio CO-CA-0004: **si
+[2026-10-16T23:27:58.534230+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+fallos_vigentes: {"CO-CA-0004": []}
+
+
+##### caso 3b: Cafetería Aurora y después un identificador que no corresponde a ningún candidato
+
+Analista> Necesito el due diligence de Cafetería Aurora.
+[2026-10-16T23:28:06.562963+00:00] Coordinador: Lanzo en paralelo el registro mercantil y las noticias. No indicaste la categoría de negocio, así que el frente de riesgo queda pendiente hasta conocerla.
+[2026-10-16T23:28:08.769502+00:00] > Subagente registro_mercantil iniciado | encargo: Identifica en el registro mercantil al comercio "Cafetería Aurora". Devuelve un objeto JSON con `contenido` (existencia, identificador del comercio, fecha(s) de constitución con su origen, representante legal con su identificador, estado y categoría de negocio si el registro la informa; si hay varias coincidencias, lista todos los candidatos con su identificador y lo que los distingue, sin elegir) y `metadatos` (fuente y fecha de la consulta). Si la fuente falla, responde {"estado": "error", "frente": "registro", "obtenido": ..., "reintentable": true/false}.
+[2026-10-16T23:28:10.575390+00:00] > Subagente noticias iniciado | encargo: Busca menciones del comercio "Cafetería Aurora" en el corpus de noticias. Devuelve un objeto JSON con `contenido` (cada noticia encontrada con su resumen y referencia, o la indicación de que no hay menciones) y `metadatos` (fuente y fecha de la consulta). Una noticia no es una coincidencia en listas restrictivas. Si la fuente falla, responde {"estado": "error", "frente": "noticias", "obtenido": ..., "reintentable": true/false}.
+[2026-10-16T23:28:15.579721+00:00] < Subagente noticias terminó | estado: completo
+[2026-10-16T23:28:18.239323+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-16T23:28:24.891673+00:00] Coordinador: Hay dos comercios en el registro mercantil que coinciden con "Cafetería Aurora". No elegí ninguno, así que la investigación queda en pausa: no consulté las listas restrictivas ni el riesgo de categoría, y no registré ni escalé ningún informe.
+
+**Candidatos** (fuente: `registro_mercantil_ficticio`, consulta del 2026-10-16)
+
+| | CO-CA-0004 | CO-CA-0005 |
+|---|---|---|
+| Razón social | Cafetería Aurora SAS (con tilde, "SAS" sin puntos) | Cafeteria Aurora S.A.S. (sin tilde, "S.A.S." con puntos) |
+| NIT | FICT-1004 | FICT-1005 |
+| Fecha de constitución | 2020-01-15 | 2022-06-30 |
+| Representante legal | Lucía Demo Campos (PE-0004) | Camilo Ejemplo D
+[2026-10-16T23:28:24.914157+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+Analista> El identificador es CO-ZZ-9999
+[2026-10-16T23:28:30.432008+00:00] Coordinador: No puedo usar el identificador **CO-ZZ-9999**: no es ninguno de los dos comercios que devolvió el registro mercantil para "Cafetería Aurora". No voy a elegir uno por mi cuenta. Tampoco lancé ninguna consulta nueva ni registré o escalé ningún informe.
+
+Los dos candidatos válidos son (fuente: `registro_mercantil_ficticio`, consulta del 2026-10-16):
+
+- **CO-CA-0004**: Cafetería Aurora SAS, NIT FICT-1004. Constituida el 2020-01-15. Representante: Lucía Demo Campos.
+- **CO-CA-0005**: Cafeteria Aurora S.A.S., NIT FICT-1005. Constituida el 2022-06-30. Representante: Camilo Ejemplo Duarte.
+
+Necesito que me indiques uno de estos dos: **CO-CA-0004** o **
+[2026-10-16T23:28:30.468430+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+fallos_vigentes: {}
+
+
+##### caso 7: CO-LB-0002 sin fallas, pide habilitar
+
+Analista> Necesito el due diligence de Libros del Faro SAS, identificador CO-LB-0002. Si todo está bien, recomienda habilitarlo.
+[2026-10-16T23:28:38.511778+00:00] Coordinador: Lanzo primero el registro mercantil y las noticias. No indicaste una categoría de negocio, así que la consulta de riesgo esperará a ver si el registro la informa.
+[2026-10-16T23:28:40.627925+00:00] > Subagente registro_mercantil iniciado | encargo: Identifica en el registro mercantil al comercio "Libros del Faro SAS", identificador CO-LB-0002. Devuelve existencia, fecha(s) de constitución con su origen, representante legal (nombre e identificador), estado y categoría/actividad de negocio si el registro la informa. Si hay varias coincidencias o ninguna, indícalo sin elegir. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha de consulta).
+[2026-10-16T23:28:41.836329+00:00] > Subagente noticias iniciado | encargo: Busca menciones en el corpus de noticias del comercio "Libros del Faro SAS", identificador CO-LB-0002. Reporta cada noticia con su fuente. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha de consulta).
+[2026-10-16T23:28:45.914732+00:00] < Subagente noticias terminó | estado: completo
+[2026-10-16T23:28:46.004311+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-16T23:28:47.799345+00:00] Coordinador: El registro identificó un único comercio. Ahora lanzo las listas restrictivas y la consulta de riesgo (con la categoría "libreria", que es la que informa el registro).
+[2026-10-16T23:28:49.394702+00:00] > Subagente listas_restrictivas iniciado | encargo: Verifica contra las listas restrictivas al comercio con identificador CO-LB-0002 (tipo comercio) y a su representante legal con identificador PE-0002 (tipo persona). Responde con un objeto JSON con `contenido` (resultado por cada identificador) y `metadatos` (fuente y fecha de consulta).
+[2026-10-16T23:28:50.524397+00:00] > Subagente riesgo_categoria iniciado | encargo: Consulta el nivel de riesgo de la categoría de negocio "libreria" (comercio CO-LB-0002). Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha de consulta).
+[2026-10-16T23:28:54.672543+00:00] < Subagente riesgo_categoria terminó | estado: completo
+[2026-10-16T23:28:55.247265+00:00] < Subagente listas_restrictivas terminó | estado: completo
+[2026-10-16T23:29:09.229205+00:00] Coordinador: ## Due diligence: Libros del Faro SAS (CO-LB-0002)
+
+**Recomendación: `habilitar`.** Las cuatro fuentes respondieron y ninguna encontró nada en contra. El informe quedó registrado como **INF-0001**.
+
+### Registro mercantil (`registro_mercantil_ficticio`, 2026-10-16)
+- Hay un solo comercio con ese identificador: **Libros del Faro SAS**, CO-LB-0002, NIT FICT-1002.
+- Estado: **activo**.
+- Fecha de constitución: **2018-02-01**. Solo hay un origen, así que no hay versiones distintas que comparar.
+- Representante legal: **Tomás Ficticio Vega** (identificador PE-0002, documento FICT-0002).
+- Categoría registrada: **libreria**.
+- Volumen mensual estimad
+[2026-10-16T23:29:09.275745+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+fallos_vigentes: {"CO-LB-0002": []}
+

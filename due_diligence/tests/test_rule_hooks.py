@@ -563,3 +563,117 @@ async def test_the_failure_hook_never_raises_and_ignores_other_tools():
     for data in ({}, {"tool_name": None}, failure_input("Agent", {"prompt": "x"}), None, 5):
         assert await hook(data, None, None) == {}  # type: ignore[arg-type]
     assert book.failed_fronts(None) == {}
+
+
+# ------------------------------------------------------- #5: procedencia, conflictos y ambigüedad
+# Protección contra regresiones de extremo a extremo: `PreToolUse` ya llama a `check_informe` y
+# `check_escalar`, así que estas pruebas pasan al escribirlas; lo que prueban es la integración con
+# el sobre real (texto JSON con `metadata`) y con la traza de reglas.
+
+from due_diligence.tests.test_rules_procedencia import (  # noqa: E402
+    DOS_FECHAS,
+    SRC_NOTICIAS,
+    SRC_REGISTRO,
+    comercio_con_fuentes,
+    conflicto_de,
+    hallazgo,
+    registro_resp,
+    sobre,
+)
+from due_diligence.tests.test_rules_procedencia import informe_con as informe_campos  # noqa: E402
+
+BUSQUEDA = {"consulta": "Ferretería Horizonte"}
+
+
+async def observe_registro_resp(book, *matches):
+    return await observe(
+        book,
+        "consultar_registro_mercantil",
+        BUSQUEDA,
+        registro_resp(list(matches)),
+        agent_type="registro_mercantil",
+    )
+
+
+async def test_one_date_of_a_conflicting_commerce_is_denied_and_both_dates_are_allowed():
+    book = CaseBook()
+    await observe_registro_resp(book, comercio_con_fuentes("CO-XX-0006", "PE-0006"))
+    una = informe("no_habilitar", "CO-XX-0006")
+    output = await run(book, INFORME, una, agent_type=None)
+    assert decision_of(output) == "deny"
+    assert "fecha_constitucion" in reason_of(output)
+    ambas = {**una, "conflictos": [conflicto_de(*DOS_FECHAS)]}
+    assert await run(book, INFORME, ambas, agent_type=None) == {}
+
+
+async def test_the_conflict_of_one_commerce_is_not_required_of_another_in_the_hooks():
+    book = CaseBook()
+    await observe_registro_resp(book, comercio_con_fuentes("CO-XX-0006", "PE-0006"))
+    await observe_registro_resp(book, comercio("CO-XX-0001", "PE-0001"))
+    assert await run(book, INFORME, informe("no_habilitar", "CO-XX-0001"), agent_type=None) == {}
+    output = await run(book, INFORME, informe("no_habilitar", "CO-XX-0006"), agent_type=None)
+    assert decision_of(output) == "deny"
+
+
+async def test_an_ambiguous_registry_result_denies_the_report_and_the_escalation_of_a_candidate():
+    book = CaseBook()
+    await observe_registro_resp(book, comercio("CO-XX-0004", "PE-0004"), comercio("CO-XX-0005"))
+    for recomendacion in ("habilitar", "no_habilitar", "escalar_a_cumplimiento"):
+        output = await run(book, INFORME, informe(recomendacion, "CO-XX-0004"), agent_type=None)
+        assert decision_of(output) == "deny", recomendacion
+        assert "identificador" in reason_of(output)
+    escalar = {"comercio_id": "CO-XX-0005", "cobertura": {"x": 1}}
+    assert decision_of(await run(book, ESCALAR, escalar, agent_type=None)) == "deny"
+
+
+async def test_after_the_identifier_the_chosen_commerce_is_allowed_in_the_hooks():
+    book = CaseBook()
+    await observe_registro_resp(book, comercio("CO-XX-0004", "PE-0004"), comercio("CO-XX-0005"))
+    await observe_registro_resp(book, comercio("CO-XX-0004", "PE-0004"))
+    assert await run(book, INFORME, informe("no_habilitar", "CO-XX-0004"), agent_type=None) == {}
+    other = await run(book, INFORME, informe("no_habilitar", "CO-XX-0005"), agent_type=None)
+    assert decision_of(other) == "deny"
+
+
+async def test_a_finding_that_cites_a_source_that_was_not_consulted_is_denied_in_the_hooks():
+    book = CaseBook()
+    await observe(
+        book,
+        "buscar_noticias",
+        {"consulta": "x"},
+        sobre({"noticias": []}, SRC_NOTICIAS),
+        agent_type="noticias",
+    )
+    mala = informe_campos("no_habilitar", hallazgos={"noticias": hallazgo("diario_ficticio")})
+    output = await run(book, INFORME, mala, agent_type=None)
+    assert decision_of(output) == "deny"
+    assert "noticias" in reason_of(output) and SRC_NOTICIAS in reason_of(output)
+    buena = informe_campos("no_habilitar", hallazgos={"noticias": hallazgo(SRC_NOTICIAS)})
+    assert await run(book, INFORME, buena, agent_type=None) == {}
+    escalar = {"comercio_id": "CO-XX-0001", "hallazgos": mala["hallazgos"], "cobertura": {"x": 1}}
+    assert decision_of(await run(book, ESCALAR, escalar, agent_type=None)) == "deny"
+
+
+async def test_the_trace_records_the_new_rules(tmp_path, monkeypatch):
+    trace = tmp_path / "trace.jsonl"
+    monkeypatch.setenv("PASARELA_HOOK_TRACE", str(trace))
+    book = CaseBook()
+    await observe_registro_resp(book, comercio_con_fuentes("CO-XX-0006", "PE-0006"))
+    await observe_registro_resp(book, comercio("CO-XX-0004", "PE-0004"), comercio("CO-XX-0005"))
+    mala = informe_campos("no_habilitar", hallazgos={"registro": hallazgo("diario_ficticio")})
+    await run(book, INFORME, informe("no_habilitar", "CO-XX-0006"), agent_type=None)
+    await run(book, INFORME, informe("no_habilitar", "CO-XX-0004"), agent_type=None)
+    await run(book, INFORME, {**mala, "comercio_id": "CO-XX-0001"}, agent_type=None)
+    rows = [json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines()]
+    assert [r["rule"] for r in rows] == ["conflicto", "ambiguedad", "procedencia"]
+    assert all(r["decision"] == "deny" for r in rows)
+
+
+async def test_an_unreadable_state_denies_the_report_fail_closed():
+    book = CaseBook()
+    await observe_registro_resp(book, comercio("CO-XX-0004", "PE-0004"), comercio("CO-XX-0005"))
+    book.candidates = None  # estado corrupto
+    output = await run(book, INFORME, informe("no_habilitar", "CO-XX-0001"), agent_type=None)
+    assert decision_of(output) == "deny"
+    assert "no pudo evaluarse" in reason_of(output)
+    assert SRC_REGISTRO  # la fuente real del registro sigue siendo la constante de las pruebas

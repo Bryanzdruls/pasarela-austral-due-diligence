@@ -6,6 +6,7 @@ deniega (falla cerrado).
 """
 
 import json
+import re
 import unicodedata
 from dataclasses import dataclass, field
 from typing import Any
@@ -100,9 +101,14 @@ def front_of_alias(name: Any) -> str | None:
     """El frente (nombre del servidor) que designa `name`, o None si no es un frente."""
     if not isinstance(name, str):
         return None
-    key = normalize(name)
+    key = "_".join(re.split(r"[\s_\-]+", normalize(name)))
     key = _FRONT_ALIASES.get(key, key)
-    return key if key in FRENTES else None
+    if key in FRENTES:
+        return key
+    # La primera palabra decide: `registro mercantil` o `noticias_adversas` son el frente;
+    # `datos_del_analista` no lo es (revisión del #5: otra grafía esquivaba la procedencia).
+    first = key.split("_", 1)[0]
+    return first if first in FRENTES else None
 
 
 @dataclass(frozen=True)
@@ -132,6 +138,9 @@ class CommerceCase:
     escalado: bool = False
     # Fallos vigentes de las fuentes por (frente, sujeto); un éxito del mismo sujeto lo borra.
     fallos: dict[tuple[str, str], FrontFailure] = field(default_factory=dict)
+    # Datos con valores distintos entre las fuentes del registro (ticket #5): dato -> pares
+    # (valor, fuente). Lo señala el servidor en `conflicts`; el informe debe declararlos todos.
+    conflictos: dict[str, tuple[tuple[str, str], ...]] = field(default_factory=dict)
 
 
 def _short_name(tool: Any) -> str:
@@ -168,6 +177,11 @@ class CaseBook:
         # intento: (fallos seguidos, si el último fue reintentable).
         self.orphan_failures: dict[tuple[str, str], FrontFailure] = {}
         self.attempts: dict[tuple[str, str], tuple[int, bool]] = {}
+        # Procedencia y ambigüedad (ticket #5): fuentes que respondieron por frente (fuente
+        # normalizada -> fecha de consulta) y comercios de un resultado ambiguo del registro que
+        # aún no se identificaron de forma unívoca.
+        self.responded: dict[str, dict[str, str]] = {}
+        self.candidates: set[str] = set()
 
     def start_request(self, prompt: Any) -> None:
         """Nueva solicitud del analista: su texto es evidencia de la categoría declarada.
@@ -204,6 +218,8 @@ class CaseBook:
             self._observe_coverage(SOURCE_TOOLS[tool], tool_input, envelope)
         if envelope is None or envelope.get("ok") is not True:
             return
+        if tool in SOURCE_TOOLS:
+            self._observe_responded(SOURCE_TOOLS[tool], envelope)
         content = envelope.get("content")
         if not isinstance(content, dict):
             return
@@ -214,7 +230,33 @@ class CaseBook:
         elif tool == ESCALAR:
             self._observe_escalar(tool_input)
 
+    def _observe_responded(self, frente: str, envelope: dict[str, Any]) -> None:
+        """La fuente (y la fecha) de una respuesta correcta: es lo que un hallazgo puede citar."""
+        metadata = envelope.get("metadata")
+        fecha = (_text(metadata.get("fetched_at")) or "") if isinstance(metadata, dict) else ""
+        sources = [metadata.get("source") if isinstance(metadata, dict) else None]
+        if frente == "registro":
+            sources += _registry_origins(envelope.get("content"))
+        for source in sources:
+            if normalize(source):
+                self.responded.setdefault(frente, {})[normalize(source)] = fecha
+
+    def _observe_candidates(self, content: dict[str, Any]) -> None:
+        """Varias coincidencias: ninguna se identifica hasta que el analista da su id."""
+        matches = content.get("matches")
+        if (
+            content.get("ambiguous") is not True
+            or not isinstance(matches, list)
+            or len(matches) < 2
+        ):
+            return
+        for match in matches:
+            candidate = _text(match.get("id")) if isinstance(match, dict) else None
+            if candidate is not None and candidate not in self.commerces:
+                self.candidates.add(candidate)
+
     def _observe_registro(self, content: dict[str, Any]) -> None:
+        self._observe_candidates(content)
         matches = content.get("matches")
         unique = (
             content.get("match_count") == 1
@@ -235,7 +277,9 @@ class CaseBook:
             _text(representante.get("id")) if isinstance(representante, dict) else None
         )
         case.categoria_registro = _text(match.get("categoria"))
+        case.conflictos = _contradictions(match.get("conflicts"), match.get("fuentes_registro"))
         self.commerces[commerce_id] = case
+        self.candidates.discard(commerce_id)
         self._request_commerces.add(commerce_id)
         self._fallback_commerces.clear()  # ya hay un comercio identificado en esta solicitud
         self._adopt_orphans(case)
@@ -359,6 +403,47 @@ class CaseBook:
         missing = [frente for frente in FRENTES if frente in failed and frente not in declared]
         return _deny_cobertura(missing) if missing else None
 
+    def _check_ambiguedad(self, data: dict[str, Any]) -> Decision | None:
+        """Un candidato de un resultado ambiguo no admite informe ni escalamiento hasta que el
+        analista dé su identificador y el registro lo identifique de forma unívoca."""
+        wanted = (_text(data.get("comercio_id")) or "").strip().upper()
+        candidate = next((c for c in self.candidates if c.upper() == wanted), None)
+        if candidate is not None and not any(c.upper() == wanted for c in self.commerces):
+            return _deny_ambiguedad(candidate, sorted(self.candidates - set(self.commerces)))
+        return None
+
+    def _check_procedencia(self, data: dict[str, Any]) -> Decision | None:
+        """Cada hallazgo de un frente cita una fuente que respondió, con la fecha de su consulta."""
+        hallazgos = data.get("hallazgos")
+        if not isinstance(hallazgos, dict):
+            return None  # el servidor ya exige que sea un objeto con fuente por frente
+        uncovered = _declared_fronts(data.get("cobertura"))
+        problems: list[str] = []
+        for key, finding in hallazgos.items():
+            frente = front_of_alias(key)
+            if frente is None or frente in uncovered:
+                continue
+            problem = _finding_problem(finding, self.responded.get(frente, {}))
+            if problem:
+                problems.append(f"`{key}`: {problem}")
+        return _deny_procedencia(problems) if problems else None
+
+    def _check_conflictos(self, data: dict[str, Any]) -> Decision | None:
+        """Regla 4: los datos contradictorios del comercio se declaran todos, con su origen."""
+        wanted = (_text(data.get("comercio_id")) or "").strip().upper()
+        case = next((c for cid, c in self.commerces.items() if cid.upper() == wanted), None)
+        if case is None:
+            return None
+        declared = data.get("conflictos")
+        declared = declared if isinstance(declared, list) else []
+        missing = [
+            (dato, valor, fuente)
+            for dato, pares in case.conflictos.items()
+            for valor, fuente in pares
+            if not _declares(declared, dato, valor, fuente)
+        ]
+        return _deny_conflicto(case, missing) if missing else None
+
     def _listas_faltantes(self, case: CommerceCase) -> list[str]:
         """Lo que falta de las listas para habilitar: el comercio y su representante legal."""
         faltan = []
@@ -453,8 +538,14 @@ class CaseBook:
         recomendacion = data.get("recomendacion")
         if not isinstance(recomendacion, str) or recomendacion not in RECOMMENDATIONS:
             return _deny_vocabulario()
+        if (ambiguo := self._check_ambiguedad(data)) is not None:
+            return ambiguo
         if (sin_declarar := self._check_cobertura(data)) is not None:
             return sin_declarar
+        if (sin_fuente := self._check_procedencia(data)) is not None:
+            return sin_fuente
+        if (sin_conflicto := self._check_conflictos(data)) is not None:
+            return sin_conflicto
         if recomendacion != "habilitar":
             return ALLOW
         case = self.commerces.get(_text(data.get("comercio_id")) or "")
@@ -499,7 +590,12 @@ class CaseBook:
     def check_escalar(self, tool_input: Any) -> Decision:
         """Escalar se permite, declarando los frentes sin cubrir para que el oficial lo sepa."""
         data = tool_input if isinstance(tool_input, dict) else {}
-        return self._check_cobertura(data) or ALLOW
+        return (
+            self._check_ambiguedad(data)
+            or self._check_cobertura(data)
+            or self._check_procedencia(data)
+            or ALLOW
+        )
 
 
 def _subject(frente: str, tool_input: Any) -> str:
@@ -566,6 +662,131 @@ def _deny_cobertura_habilitar(case: CommerceCase, faltan: list[str]) -> Decision
         "consultaron con éxito. Qué hacer: consúltalas con `consultar_listas_restrictivas` o "
         "registra el informe con `no_habilitar` o `escalar_a_cumplimiento`, declarando el frente "
         "`listas` como sin cubrir.",
+    )
+
+
+def _registry_origins(content: Any) -> list[Any]:
+    """Los `source` de `fuentes_registro` de las coincidencias: orígenes legítimos del registro."""
+    matches = content.get("matches") if isinstance(content, dict) else None
+    origins: list[Any] = []
+    for match in matches if isinstance(matches, list) else []:
+        entries = match.get("fuentes_registro") if isinstance(match, dict) else None
+        origins += (
+            [e.get("source") for e in entries if isinstance(e, dict)]
+            if isinstance(entries, list)
+            else []
+        )
+    return origins
+
+
+_DATE_KEYS = ("fecha", "fecha_consulta", "fetched_at")
+
+
+def _finding_problem(finding: Any, responded: dict[str, str]) -> str | None:
+    """Qué falla de un hallazgo de un frente (None si cita una fuente real y trae su fecha)."""
+    if not isinstance(finding, dict):
+        return "el hallazgo debe ser un objeto con `fuente` y `fecha`"
+    if not responded:
+        return "no hay respuesta de esa fuente en la conversación (no se consultó o falló)"
+    cited = finding.get("fuente")
+    cited = cited if isinstance(cited, list) else [cited]
+    texts = [normalize(c) for c in cited]
+    if not texts or not all(texts):
+        return "no cita una `fuente` legible"
+    quoted = ", ".join(sorted(responded))
+    if not all(any(source in text for source in responded) for text in texts):
+        return f"cita una fuente que no respondió para este frente; la que consta es: {quoted}"
+    if not any(_text(finding.get(key)) for key in _DATE_KEYS):
+        return "no trae la fecha de la consulta (`fecha`)"
+    return None
+
+
+def _deny_procedencia(problems: list[str]) -> Decision:
+    return Decision(
+        False,
+        "procedencia",
+        "Regla 4: cada afirmación del informe debe citar la fuente que de verdad respondió y la "
+        f"fecha de su consulta. Falla: {'; '.join(problems)}. Qué hacer: vuelve a llamar a la "
+        'herramienta con `hallazgos` por frente como {"noticias": {"contenido": "...", "fuente": '
+        '"<la fuente que devolvió el frente>", "fecha": "<fecha de la consulta>"}}.',
+    )
+
+
+def _deny_ambiguedad(commerce_id: str, candidates: list[str]) -> Decision:
+    lista = ", ".join(candidates)
+    return Decision(
+        False,
+        "ambiguedad",
+        f"{commerce_id} es uno de varios comercios que coinciden con el nombre buscado ({lista}) y "
+        "no fue identificado de forma unívoca. Qué hacer: muestra los candidatos al analista con "
+        "su identificador y lo que los distingue, pídele el identificador del comercio que "
+        "investiga y no registres ni escales un informe hasta que el registro lo identifique.",
+    )
+
+
+def _norm_dato(name: Any) -> str:
+    """Nombre de un dato sin tildes ni artículos: `Fecha de Constitución` = `fecha_constitucion`."""
+    words = re.split(r"[\s_]+", normalize(name))
+    return "_".join(w for w in words if w and w not in ("de", "del", "la", "el"))
+
+
+def _as_text(value: Any) -> str:
+    return normalize(value if isinstance(value, str) else str(value))
+
+
+def _contradictions(conflicts: Any, origins: Any) -> dict[str, tuple[tuple[str, str], ...]]:
+    """Los datos marcados en `conflicts`, con cada (valor, fuente) de `fuentes_registro`.
+
+    Solo cuenta como contradicción si los valores difieren de verdad; una lista mal formada no
+    produce nada (no se inventa un conflicto, y el registro ya devolvió lo que devolvió).
+    """
+    if not isinstance(conflicts, list) or not isinstance(origins, list):
+        return {}
+    result: dict[str, tuple[tuple[str, str], ...]] = {}
+    for dato in conflicts:
+        if not isinstance(dato, str):
+            continue
+        pairs = tuple(
+            (str(entry[dato]), source)
+            for entry in origins
+            if isinstance(entry, dict)
+            and dato in entry
+            and (source := _text(entry.get("source"))) is not None
+        )
+        if len({_as_text(valor) for valor, _ in pairs}) > 1:
+            result[dato] = pairs
+    return result
+
+
+def _declares(declared: list[Any], dato: str, valor: str, fuente: str) -> bool:
+    """¿Alguna entrada de `conflictos` declara este dato con este valor y esta fuente?"""
+    for entry in declared:
+        values = entry.get("valores") if isinstance(entry, dict) else None
+        if not isinstance(values, list) or _norm_dato(entry.get("dato")) != _norm_dato(dato):
+            continue
+        for item in values:
+            if not isinstance(item, dict):
+                continue
+            same_value = _as_text(item.get("valor")) == _as_text(valor)
+            names_source = normalize(fuente) in normalize(item.get("fuente"))
+            if same_value and names_source:
+                return True
+    return False
+
+
+def _deny_conflicto(case: CommerceCase, missing: list[tuple[str, str, str]]) -> Decision:
+    faltan = "; ".join(f"{dato}: {valor} ({fuente})" for dato, valor, fuente in missing)
+    dato = missing[0][0]
+    ejemplo = (
+        '[{"dato": "' + dato + '", "valores": [{"valor": "...", "fuente": "..."}, '
+        '{"valor": "...", "fuente": "..."}]}]'
+    )
+    return Decision(
+        False,
+        "conflicto",
+        f"Regla 4: las fuentes de {case.id} se contradicen y el informe debe mostrar todos los "
+        f"valores con su origen, sin elegir uno. Falta declarar en `conflictos`: {faltan}. "
+        f"Qué hacer: vuelve a registrar el informe con `conflictos` como {ejemplo}.",
     )
 
 
