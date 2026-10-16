@@ -6,7 +6,7 @@
 
 ## Summary
 
-Un coordinador construido con el Claude Agent SDK (Python) recibe la solicitud del analista y delega en cuatro subagentes definidos con `AgentDefinition`, cada uno restringido a la herramienta de su frente del servidor MCP del ticket #1. Los tres frentes independientes se lanzan en un mismo turno del coordinador (paralelo); el de listas se lanza después, porque necesita el identificador y el representante que devuelve el registro. El SDK ejecuta el ciclo agéntico internamente según la razón de parada del modelo; nuestro código solo consume los mensajes hasta el resultado final y los traduce a eventos de dominio (para pruebas y para la interfaz del ticket #7).
+Un coordinador construido con el Claude Agent SDK (Python) recibe la solicitud del analista y delega en cuatro subagentes definidos con `AgentDefinition`, cada uno restringido a la herramienta de su frente del servidor MCP del ticket #1. Los tres frentes independientes se lanzan en un mismo turno del coordinador (paralelo); el de listas se lanza después, porque necesita el identificador y el representante que devuelve el registro. El SDK ejecuta el ciclo agéntico internamente según la razón de parada del modelo; nuestro código solo consume los mensajes de cada turno hasta el resultado final y los traduce a eventos de dominio (para pruebas y para la interfaz del ticket #7). La conversación con el analista es **multi-turno**: una `DueDiligenceSession` envuelve un `ClaudeSDKClient` que conserva el contexto entre turnos, de modo que los seguimientos se responden con lo ya investigado.
 
 ## Technical Context
 
@@ -16,7 +16,7 @@ Un coordinador construido con el Claude Agent SDK (Python) recibe la solicitud d
 
 **Storage**: N/A (los informes los guarda el servidor MCP; este ticket no persiste nada)
 
-**Testing**: pytest, con los tests junto al código (`due_diligence/**/tests/`). Sin llamar al modelo: se inyecta una función `query` falsa que emite `AssistantMessage`/`ResultMessage` y los hooks se prueban llamándolos directamente. Una verificación manual con modelo real queda en el quickstart (requiere `ANTHROPIC_API_KEY`)
+**Testing**: pytest, con los tests junto al código (`due_diligence/**/tests/`). Sin llamar al modelo: se inyecta una fábrica de cliente falsa (con `query` y `receive_response`) que emite `AssistantMessage`/`ResultMessage`, y los hooks se prueban llamándolos directamente. Una verificación manual con modelo real queda en el quickstart (requiere `ANTHROPIC_API_KEY`)
 
 **Target Platform**: Proceso local en Windows/Linux/macOS
 
@@ -34,7 +34,7 @@ Un coordinador construido con el Claude Agent SDK (Python) recibe la solicitud d
 
 | Principio | Cumple | Cómo |
 |---|---|---|
-| I. Reglas de negocio garantizadas | Parcial, con riesgo declarado | Las reglas 1-3 van en hooks en el ticket #3. Aquí solo se garantiza el aislamiento de herramientas por hook (`guards.py`). La dependencia listas → registro es de datos, pero su garantía es el hook del #3. Hasta entonces el sistema no se usa para decisiones reales (spec, Assumptions) |
+| I. Reglas de negocio garantizadas | Parcial, con riesgo declarado | Las reglas 1-3 van en hooks en el ticket #3. Aquí solo se garantiza el aislamiento de herramientas (`tools` + hook `guards.py`). FR-007 (listas espera al registro y no corre sin comercio único) está redactado en la spec como **orientación**, no como garantía; la garantía es el hook del #3. El ticket #2 no se demuestra ante terceros hasta fusionar el #3 (spec, FR-007 y Assumptions) |
 | II. Datos solo ficticios | Sí | Las fuentes son las del ticket #1; los ejemplos de pruebas usan `CO-TV-0001` y datos `FICT-*` |
 | III. Hooks vs instrucciones | Sí | Aislamiento de herramientas: configuración (`tools`) + hook de respaldo; orientación del coordinador: prompt |
 | IV. Spec primero | Sí | spec → plan → tasks antes de código |
@@ -70,9 +70,9 @@ due_diligence/
 ├── options.py           # construye ClaudeAgentOptions: agents, mcp_servers, hooks, auth
 ├── guards.py            # hook PreToolUse: niega herramientas ajenas al subagente (por agent_type)
 ├── events.py            # traduce mensajes del SDK a eventos de dominio y a FrontResult
-├── coordinator.py       # run_due_diligence(request, query_fn=query): consume mensajes hasta ResultMessage
+├── coordinator.py       # DueDiligenceSession: cliente multi-turno; ask(text) consume mensajes hasta ResultMessage
 └── tests/
-    ├── fakes.py         # query falsa: secuencias de AssistantMessage / ResultMessage
+    ├── fakes.py         # cliente falso: query / receive_response con secuencias de AssistantMessage / ResultMessage
     ├── test_agents.py
     ├── test_guards.py
     ├── test_events.py

@@ -37,13 +37,13 @@ Fuente: documentación del Claude Agent SDK para Python consultada el 2026-10-14
 - **Alternativas**: `asyncio.gather` sobre `query()` independientes (el coordinador dejaría de ser un agente); `resume=session_id` encadenado (más complejo sin beneficio).
 
 ## D7. Ciclo agéntico y razón de parada
-- **Decisión**: el SDK corre el bucle; `coordinator.run_due_diligence` itera los mensajes hasta recibir `ResultMessage` y lee `subtype`, `stop_reason` y `terminal_reason`. No se configura `max_turns` ni se inspecciona el texto para decidir continuar o parar.
+- **Decisión**: el SDK corre el bucle; `DueDiligenceSession.ask` itera los mensajes del turno hasta recibir `ResultMessage` y lee `subtype`, `stop_reason` y `terminal_reason`. No se configura `max_turns` ni se inspecciona el texto para decidir continuar o parar.
 - **Razón**: Cumple FR-008. `max_turns` en el SDK es un tope de seguridad que dispara `error_max_turns`, no un criterio normal.
 - **Nota**: el valor `tool_use` de `stop_reason` no está confirmado en la documentación (sí `end_turn`, `max_tokens`, `refusal`); el código no depende de él y solo registra el valor.
 - **Verificación**: pruebas con `query` falsa: un `AssistantMessage` cuyo texto contiene "terminado" seguido de más mensajes no corta el ciclo; el ciclo termina solo en `ResultMessage`.
 
 ## D8. Pruebas sin modelo
-- **Decisión**: `run_due_diligence(request, query_fn=query)` recibe la función de consulta; las pruebas pasan una `query` falsa que emite `AssistantMessage` y `ResultMessage` (dataclasses importables). Los hooks se llaman directamente con diccionarios.
+- **Decisión**: `DueDiligenceSession(options, client_factory=ClaudeSDKClient)` recibe la fábrica del cliente; las pruebas pasan un cliente falso con `query` y `receive_response` que emite `AssistantMessage` y `ResultMessage` (dataclasses importables). Los hooks se llaman directamente con diccionarios.
 - **Razón**: Los mocks de `Transport` son API de bajo nivel que puede cambiar; una costura propia es estable y simple.
 - **Verificación con modelo real**: manual, en el quickstart.
 
@@ -51,6 +51,20 @@ Fuente: documentación del Claude Agent SDK para Python consultada el 2026-10-14
 - **Decisión**: cada subagente debe responder con un objeto JSON `{contenido, metadatos:{fuente, fecha}}` (el servidor MCP ya entrega esa separación). `events.py` intenta parsear la respuesta del subagente a `FrontResult`; si no es válida, marca el frente como `no_estructurado` en lugar de aceptarlo.
 - **Razón**: No se puede *forzar* el formato del texto de un subagente; sí se puede **verificar** y no dar por bueno un resultado mal formado. El tratamiento completo de frentes fallidos es el ticket #4.
 - **Alternativas**: dejar texto libre (no verificable, rompe SC-002 de procedencia más adelante).
+
+## D11. Conversación multi-turno (decisión del usuario)
+- **Decisión**: un `ClaudeSDKClient` por conversación, envuelto en `DueDiligenceSession`. `ask(texto)` hace `client.query(texto)` y recorre `client.receive_response()` hasta el `ResultMessage` del turno; el cliente conserva el contexto entre turnos.
+- **Razón**: Cubre las preguntas de seguimiento (spec US1-AS3, FR-013) y el cambio de comercio a mitad de la conversación (FR-012) sin reinvestigar. La interfaz de chat (ticket #7) mantiene una sesión por conversación.
+- **FR-012 con contexto compartido**: el coordinador sí ve los turnos anteriores; lo que no debe arrastrar son datos del comercio anterior hacia los *encargos*. Los subagentes siguen aislados por construcción (D3). Se verifica con el prompt y con la matriz manual (cambio de comercio).
+- **Alternativas descartadas**: sesión nueva por solicitud (no permite seguimientos); `resume=session_id` sobre `query()` (válido, pero reconstruye cliente en cada turno y complica el ciclo de vida).
+- **Por confirmar con el SDK instalado**: las firmas exactas de `ClaudeSDKClient.query` y `receive_response` y de `ClaudeAgentOptions` (`tools`, `cwd`, `setting_sources`, `hooks`); la primera tarea de implementación las inspecciona y deja el resultado aquí.
+
+## D12. Coordinador con herramientas restringidas
+- **Decisión**: `ClaudeAgentOptions(tools=["Agent"])` para restringir el conjunto del coordinador a la herramienta de delegación; `allowed_tools=["Agent"]` solo auto-aprueba. El hook `guards.py` niega además, dentro del coordinador, cualquier herramienta distinta de `Agent`/`Task`.
+- **Razón**: según la documentación, `allowed_tools` no restringe el conjunto de herramientas disponibles; sin `tools` el coordinador conservaría Bash, Write y demás.
+
+## D13. Arranque del servidor MCP
+- **Decisión**: la configuración del servidor MCP fija `cwd` en la raíz del repositorio (y `PYTHONPATH`) para que `python -m mcp_server` funcione sin importar desde dónde se lance el coordinador.
 
 ## D10. Eventos para la interfaz (ticket #7)
 - **Decisión**: `events.py` emite eventos de dominio: `SubagentStarted`, `SubagentFinished`, `CoordinatorText`, `RunFinished`. La atribución a subagentes usa `parent_tool_use_id` de `AssistantMessage`/`UserMessage` y los bloques `Agent`/`Task`; los hooks `SubagentStart`/`SubagentStop` entregan `agent_type`.

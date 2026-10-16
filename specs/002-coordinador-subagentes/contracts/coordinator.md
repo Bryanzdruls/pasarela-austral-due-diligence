@@ -3,17 +3,19 @@
 ## Interfaz pública del paquete `due_diligence`
 
 ```python
-async def run_due_diligence(
-    request: str,
-    query_fn=claude_agent_sdk.query,   # inyectable para pruebas
-    options: ClaudeAgentOptions | None = None,
-) -> AsyncIterator[DomainEvent]
+class DueDiligenceSession:
+    def __init__(self, options: ClaudeAgentOptions | None = None,
+                 client_factory=claude_agent_sdk.ClaudeSDKClient): ...
+    async def __aenter__(self) -> "DueDiligenceSession": ...   # abre el cliente
+    async def __aexit__(self, *exc) -> None: ...               # cierra el cliente
+    async def ask(self, text: str) -> AsyncIterator[DomainEvent]: ...
 ```
 
-- Entrada: el texto del analista.
-- Salida: flujo de eventos de dominio (ver [data-model.md](../data-model.md)); el último es siempre `RunFinished`.
-- Terminación: **solo** al recibir `ResultMessage` del SDK. No hay contador de iteraciones ni inspección de texto (FR-008).
+- Una sesión = una conversación multi-turno. `ask` envía el turno del analista y emite eventos de dominio; el último evento de cada turno es siempre `RunFinished`.
+- El cliente conserva el contexto entre llamadas a `ask`, así que un seguimiento no reinvestiga (FR-013).
+- Terminación de un turno: **solo** al recibir el `ResultMessage` del SDK. No hay contador de iteraciones ni inspección de texto (FR-008).
 - Efectos: ninguno propio; las escrituras (informes, escalamientos) las hacen las herramientas MCP.
+- `client_factory` es inyectable para las pruebas (cliente falso con `query` y `receive_response`).
 
 ## Definición de subagentes (`AgentDefinition`)
 
@@ -31,8 +33,9 @@ Todas con `description` que explica cuándo usarlas (el coordinador elige por la
 | Opción | Valor |
 |---|---|
 | `agents` | las 4 definiciones |
-| `allowed_tools` (coordinador) | `["Agent"]` |
-| `mcp_servers` | `{"pasarela-fuentes": {command: sys.executable, args: ["-m","mcp_server"], env: {...}}}` |
+| `tools` (coordinador) | `["Agent"]` — restringe el conjunto de herramientas disponibles |
+| `allowed_tools` (coordinador) | `["Agent"]` — solo auto-aprueba |
+| `mcp_servers` | `{"pasarela-fuentes": {command: sys.executable, args: ["-m","mcp_server"], cwd: <raíz del repo>, env: {PYTHONPATH, PASARELA_FAULTS?, PASARELA_RUNTIME_DIR?}}}` |
 | `setting_sources` | `[]` |
 | `hooks` | `PreToolUse` → `guards.tool_guard` (aislamiento por `agent_type`); los hooks de reglas de negocio se añaden en #3 |
 | `max_turns` | no se define |
@@ -40,12 +43,13 @@ Todas con `description` que explica cuándo usarlas (el coordinador elige por la
 
 ## Hook `guards.tool_guard`
 Entrada: `input_data` de `PreToolUse` con `tool_name` y, dentro de un subagente, `agent_type`.
-- Si `agent_type` es un frente conocido y `tool_name` no está en su lista: devuelve `permissionDecision: "deny"` con motivo.
-- Si no hay `agent_type` (coordinador): permite solo `Agent`/`Task`; cualquier otra herramienta de fuentes la niega (el coordinador no consulta fuentes directamente).
-- En cualquier otro caso: `{}`.
+- Dentro de un subagente conocido (`agent_type` ∈ frentes): permite solo su herramienta; cualquier otra → `permissionDecision: "deny"` con motivo.
+- En el coordinador (sin `agent_type`): permite solo `Agent`/`Task`; cualquier otra herramienta (fuentes o integradas) → `deny`.
+- `agent_type` desconocido: `deny` (falla cerrado).
 
 ## Formato de respuesta de un subagente
 Objeto JSON: `{"contenido": {...}, "metadatos": {"fuente": "...", "fecha": "..."}}`. Una respuesta que no cumple se marca `no_estructurado`.
 
-## Orden esperado de eventos (solicitud válida)
+## Orden esperado de eventos (solicitud válida, primer turno)
 `SubagentStarted(registro_mercantil)`, `SubagentStarted(noticias)`, `SubagentStarted(riesgo_categoria)` — los tres antes de cualquier `SubagentFinished` — luego, tras el resultado del registro, `SubagentStarted(listas_restrictivas)`, y al final `CoordinatorText(informe)` y `RunFinished`.
+Turno de seguimiento sobre un frente ya investigado: solo `CoordinatorText` y `RunFinished`.
