@@ -253,8 +253,9 @@ MUTATIONS += [
     (
         "declaración: escalar no exige declarar los frentes caídos",
         RULES,
-        """        return self._check_cobertura(data) or ALLOW""",
-        """        return ALLOW""",
+        """            or self._check_cobertura(data)
+""",
+        "",
     ),
     (
         "habilitar: no se exige la consulta de listas del comercio",
@@ -281,6 +282,138 @@ MUTATIONS += [
         HOOKS,
         """            book.observe_failure(input_data.get("tool_name"), input_data.get("tool_input"))""",
         """            pass""",
+    ),
+]
+
+# Procedencia, conflictos y ambigüedad (ticket #5).
+MUTATIONS += [
+    (
+        "procedencia: no se observan las fuentes que respondieron",
+        RULES,
+        """            self._observe_responded(SOURCE_TOOLS[tool], envelope)""",
+        """            pass""",
+    ),
+    (
+        "procedencia: se acepta una fuente que no respondió",
+        RULES,
+        """    if not all(any(source in text for source in responded) for text in texts):""",
+        """    if False:""",
+    ),
+    (
+        "procedencia: se acepta la fuente de otro frente",
+        RULES,
+        """            problem = _finding_problem(finding, self.responded.get(frente, {}))""",
+        """            problem = _finding_problem(
+                finding, {k: v for d in self.responded.values() for k, v in d.items()}
+            )""",
+    ),
+    (
+        "procedencia: no se exige la fecha de la consulta",
+        RULES,
+        """    if not any(_text(finding.get(key)) for key in _DATE_KEYS):""",
+        """    if False:""",
+    ),
+    (
+        "procedencia: no se exige una fuente legible",
+        RULES,
+        """    if not texts or not all(texts):""",
+        """    if False:""",
+    ),
+    (
+        "procedencia: no se exime el frente declarado sin cubrir",
+        RULES,
+        """            if frente is None or frente in uncovered:""",
+        """            if frente is None:""",
+    ),
+    (
+        "procedencia: se exime todo frente de la comprobación",
+        RULES,
+        """            if frente is None or frente in uncovered:""",
+        """            if True:""",
+    ),
+    (
+        "conflicto: no se registran las contradicciones",
+        RULES,
+        """        case.conflictos = _contradictions(match.get("conflicts"), match.get("fuentes_registro"))""",
+        """        case.conflictos = {}""",
+    ),
+    (
+        "conflicto: se ignora uno de los valores",
+        RULES,
+        """            for valor, fuente in pares
+""",
+        """            for valor, fuente in pares[:1]
+""",
+    ),
+    (
+        "conflicto: no se comprueba la fuente de cada valor",
+        RULES,
+        """            names_source = normalize(fuente) in normalize(item.get("fuente"))""",
+        """            names_source = True""",
+    ),
+    (
+        "conflicto: un informe sin conflictos se acepta",
+        RULES,
+        """        return _deny_conflicto(case, missing) if missing else None""",
+        """        return None""",
+    ),
+    (
+        "conflicto: el conflicto de un comercio se exige en otro",
+        RULES,
+        """        case = self.commerces.get((_text(data.get("comercio_id")) or "").strip())
+        if case is None:
+            return None
+        declared = data.get("conflictos")""",
+        """        case = next((c for c in self.commerces.values() if c.conflictos), None)
+        if case is None:
+            return None
+        declared = data.get("conflictos")""",
+    ),
+    (
+        "conflicto: el nombre del dato no se normaliza",
+        RULES,
+        """_norm_dato(entry.get("dato")) != _norm_dato(dato)""",
+        """entry.get("dato") != dato""",
+    ),
+    (
+        "ambigüedad: no se registran los candidatos",
+        RULES,
+        """                self.candidates.add(candidate)""",
+        """                pass""",
+    ),
+    (
+        "ambigüedad: un candidato identificado sigue siendo candidato",
+        RULES,
+        """        self.candidates.discard(commerce_id)""",
+        """        pass""",
+    ),
+    (
+        "ambigüedad: los candidatos no persisten entre solicitudes",
+        RULES,
+        _RESET,
+        _RESET
+        + """
+        self.candidates = set()""",
+    ),
+    (
+        "ambigüedad: solo se comprueba para habilitar",
+        RULES,
+        """        if (ambiguo := self._check_ambiguedad(data)) is not None:""",
+        """        if recomendacion == "habilitar" and (ambiguo := self._check_ambiguedad(data)):""",
+    ),
+    (
+        "ambigüedad: el escalamiento no la comprueba",
+        RULES,
+        """            self._check_ambiguedad(data)
+            or self._check_cobertura(data)""",
+        """            self._check_cobertura(data)""",
+    ),
+    (
+        "procedencia: el escalamiento no la comprueba",
+        RULES,
+        """            or self._check_procedencia(data)
+""",
+        "",
     ),
 ]
 
