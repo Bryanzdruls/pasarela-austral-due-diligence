@@ -21,13 +21,13 @@ description: "Tareas de los hooks del SDK para las reglas de negocio 1 a 3"
 
 ## Phase 1: Setup
 
-- [ ] T001 Ejecutar `python -m pytest -q due_diligence` en la rama y anotar la línea base (94 pruebas en verde) y que `ruff` está limpio, antes de tocar nada
+- [x] T001 Ejecutar `python -m pytest -q due_diligence` en la rama y anotar la línea base (94 pruebas en verde) y que `ruff` está limpio, antes de tocar nada
 
 ## Phase 2: Foundational (bloquea las historias)
 
-- [ ] T002 Escribir `due_diligence/tests/test_rules.py` con las pruebas de las piezas base (deben fallar antes de T004): `is_high_risk` para las cuatro categorías con mayúsculas, tildes y matices ("Venta en línea de Suplementos Dietarios", "criptoactivos", "casa de apuestas", "venta de medicamentos") y falso para riesgo bajo ("librería", "cafetería") y texto vacío; `RECOMMENDATIONS` tiene exactamente `habilitar`, `no_habilitar` y `escalar_a_cumplimiento`; `parse_envelope` acepta texto JSON, diccionario y lista de bloques `[{"type":"text","text":"{...}"}]` y devuelve `None` ante texto que no es JSON, un valor que no es objeto o un sobre sin `ok`
-- [ ] T003 Ejecutar `python -m pytest -q due_diligence/tests/test_rules.py` y comprobar que falla por la razón esperada (`rules.py` no existe)
-- [ ] T004 Crear `due_diligence/rules.py` con `HIGH_RISK_ROOTS = ("apuesta", "cripto", "suplemento", "medicament")`, `RECOMMENDATIONS`, el normalizador (minúsculas, sin tildes), `is_high_risk`, `Decision(allowed, rule, reason)` y `parse_envelope`; comprobar que T002 pasa
+- [x] T002 Escribir `due_diligence/tests/test_rules.py` con las pruebas de las piezas base (deben fallar antes de T004): `is_high_risk` para las cuatro categorías con mayúsculas, tildes y matices ("Venta en línea de Suplementos Dietarios", "criptoactivos", "casa de apuestas", "venta de medicamentos") y falso para riesgo bajo ("librería", "cafetería") y texto vacío; `RECOMMENDATIONS` tiene exactamente `habilitar`, `no_habilitar` y `escalar_a_cumplimiento`; `parse_envelope` acepta texto JSON, diccionario y lista de bloques `[{"type":"text","text":"{...}"}]` y devuelve `None` ante texto que no es JSON, un valor que no es objeto o un sobre sin `ok`
+- [x] T003 Ejecutar `python -m pytest -q due_diligence/tests/test_rules.py` y comprobar que falla por la razón esperada (`rules.py` no existe)
+- [x] T004 Crear `due_diligence/rules.py` con `HIGH_RISK_ROOTS = ("apuesta", "cripto", "suplemento", "medicament")`, `RECOMMENDATIONS`, el normalizador (minúsculas, sin tildes), `is_high_risk`, `Decision(allowed, rule, reason)` y `parse_envelope`; comprobar que T002 pasa
 
 ## Phase 3: User Story 1 - Regla 1: listas solo con el comercio identificado (Priority: P1) 🎯 MVP
 
@@ -35,14 +35,14 @@ description: "Tareas de los hooks del SDK para las reglas de negocio 1 a 3"
 
 **Independent Test**: sin registro, con registro ambiguo, vacío, con error o ininterpretable, y con otro identificador, la consulta se bloquea; tras un registro unívoco, se permite para el comercio y para su representante.
 
-- [ ] T005 [US1] Ampliar `test_rules.py` con las pruebas de `CaseBook` para la regla 1 (deben fallar antes de T007), con respuestas con la forma real: sin ningún registro → `check_listas` bloquea con regla 1; registro con `match_count: 2` y `ambiguous: true` → bloquea; `match_count: 0` → bloquea; `ok: false` → bloquea; respuesta ininterpretable → bloquea; una coincidencia con `existe: false` → bloquea; una coincidencia con `existe: true` → permite `tipo: comercio` con su id y `tipo: persona` con el id de su representante; con otro identificador de comercio o una persona ajena → bloquea; `tipo` desconocido o `referencia` ausente → bloquea (falla cerrado); dos comercios identificados no mezclan sus representantes
-- [ ] T006 [US1] Ejecutar `test_rules.py` y comprobar que las pruebas de T005 fallan por la razón esperada
-- [ ] T007 [US1] Implementar en `rules.py` el `CaseBook` y `CommerceCase` (campos de `data-model.md`), `observe` para `consultar_registro_mercantil` (identificación unívoca: `ok`, `match_count == 1`, `ambiguous == false`, `existe == true`; nunca lanza) y `check_listas` con los mensajes de `contracts/rules.md`
-- [ ] T008 [US1] Ejecutar `test_rules.py` y comprobar que T005 pasa
-- [ ] T009 [US1] Escribir `due_diligence/tests/test_rule_hooks.py` con las pruebas del hook `PreToolUse` y `PostToolUse` para la regla 1 (deben fallar antes de T011), invocando las funciones con entradas con la forma real (`tool_name` con el prefijo `mcp__pasarela-fuentes__`, `tool_input`, `tool_response` como texto JSON, `agent_type`): el caso del enunciado (consulta a listas sin registro previo) devuelve la denegación del SDK con regla 1 en el motivo; tras un registro unívoco procesado por `PostToolUse`, la consulta devuelve `{}`; una excepción interna produce una denegación; herramientas que no son de reglas devuelven `{}`
-- [ ] T010 [US1] Ejecutar `test_rule_hooks.py` y comprobar que falla por la razón esperada (`rule_hooks.py` no existe)
-- [ ] T011 [US1] Crear `due_diligence/rule_hooks.py` con `make_pre_tool_use`, `make_post_tool_use` y `make_user_prompt_submit` según `contracts/rules.md` (denegación con la forma del guard del #2, falla cerrado, nunca lanza desde `PostToolUse`)
-- [ ] T012 [US1] Ejecutar `test_rule_hooks.py` y `test_rules.py` y comprobar que pasan
+- [x] T005 [US1] Ampliar `test_rules.py` con las pruebas de `CaseBook` para la regla 1 (deben fallar antes de T007), con respuestas con la forma real: sin ningún registro → `check_listas` bloquea con regla 1; registro con `match_count: 2` y `ambiguous: true` → bloquea; `match_count: 0` → bloquea; `ok: false` → bloquea; respuesta ininterpretable → bloquea; una coincidencia con `existe: false` → bloquea; una coincidencia con `existe: true` → permite `tipo: comercio` con su id y `tipo: persona` con el id de su representante; con otro identificador de comercio o una persona ajena → bloquea; `tipo` desconocido o `referencia` ausente → bloquea (falla cerrado); dos comercios identificados no mezclan sus representantes
+- [x] T006 [US1] Ejecutar `test_rules.py` y comprobar que las pruebas de T005 fallan por la razón esperada
+- [x] T007 [US1] Implementar en `rules.py` el `CaseBook` y `CommerceCase` (campos de `data-model.md`), `observe` para `consultar_registro_mercantil` (identificación unívoca: `ok`, `match_count == 1`, `ambiguous == false`, `existe == true`; nunca lanza) y `check_listas` con los mensajes de `contracts/rules.md`
+- [x] T008 [US1] Ejecutar `test_rules.py` y comprobar que T005 pasa
+- [x] T009 [US1] Escribir `due_diligence/tests/test_rule_hooks.py` con las pruebas del hook `PreToolUse` y `PostToolUse` para la regla 1 (deben fallar antes de T011), invocando las funciones con entradas con la forma real (`tool_name` con el prefijo `mcp__pasarela-fuentes__`, `tool_input`, `tool_response` como texto JSON, `agent_type`): el caso del enunciado (consulta a listas sin registro previo) devuelve la denegación del SDK con regla 1 en el motivo; tras un registro unívoco procesado por `PostToolUse`, la consulta devuelve `{}`; una excepción interna produce una denegación; herramientas que no son de reglas devuelven `{}`
+- [x] T010 [US1] Ejecutar `test_rule_hooks.py` y comprobar que falla por la razón esperada (`rule_hooks.py` no existe)
+- [x] T011 [US1] Crear `due_diligence/rule_hooks.py` con `make_pre_tool_use`, `make_post_tool_use` y `make_user_prompt_submit` según `contracts/rules.md` (denegación con la forma del guard del #2, falla cerrado, nunca lanza desde `PostToolUse`)
+- [x] T012 [US1] Ejecutar `test_rule_hooks.py` y `test_rules.py` y comprobar que pasan
 
 ## Phase 4: User Story 2 - Regla 2: coincidencia en listas impide habilitar (Priority: P1)
 
