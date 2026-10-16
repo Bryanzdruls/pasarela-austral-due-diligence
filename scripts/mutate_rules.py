@@ -62,8 +62,8 @@ MUTATIONS = [
     (
         "regla 3: no limpiar la evidencia al cambiar de solicitud",
         RULES,
-        "        self.risk_observations = []\n        self.orphan_failures = {}",
-        "        self.orphan_failures = {}",
+        "        self.risk_observations = []\n        self.attempts = {}",
+        "        self.attempts = {}",
     ),
     (
         "regla 3: la evidencia de una solicitud se aplica a todos los comercios",
@@ -110,17 +110,35 @@ MUTATIONS = [
 ]
 
 # Cobertura de los frentes (ticket #4). Los fragmentos llevan saltos de línea reales.
-_RESET = """        self.orphan_failures = {}
+_RESET = """        self.risk_observations = []
         self.attempts = {}"""
 
 MUTATIONS += [
     (
         "reintentos: registro y noticias se cuentan por redacción de la consulta",
         RULES,
-        """        return "*"
-""",
-        """        return normalize(data.get("consulta"))
-""",
+        """    return (frente, _subject(frente, tool_input) if frente == "listas" else "*")""",
+        """    return (frente, _subject(frente, tool_input) if frente != "registro" else "*")""",
+    ),
+    (
+        "reintentos: la categoría de riesgo reescrita se cuenta como otra consulta",
+        RULES,
+        """    return (frente, _subject(frente, tool_input) if frente == "listas" else "*")""",
+        """    return (frente, _subject(frente, tool_input) if frente in ("listas", "riesgo") else "*")""",
+    ),
+    (
+        "cobertura: el éxito de un comercio borra el fallo de otro",
+        RULES,
+        """        for case in self._failure_targets(frente, tool_input):
+            case.fallos.pop(key, None)""",
+        """        for case in self.commerces.values():
+            case.fallos.pop(key, None)""",
+    ),
+    (
+        "cobertura: el identificador del informe no se recorta",
+        RULES,
+        """        key = commerce_id.strip() if isinstance(commerce_id, str) else None""",
+        """        key = commerce_id if isinstance(commerce_id, str) else None""",
     ),
     (
         "cobertura: no registrar los fallos de las fuentes",
@@ -133,7 +151,7 @@ MUTATIONS += [
     (
         "cobertura: un éxito no borra el fallo del sujeto",
         RULES,
-        """            self._clear_failure((frente, _subject(frente, tool_input)))
+        """            self._clear_failure(frente, tool_input)
             return""",
         """            return""",
     ),
@@ -185,6 +203,14 @@ MUTATIONS += [
             case.fallos.clear()""",
     ),
     (
+        "cobertura: los fallos huérfanos se pierden con la solicitud siguiente",
+        RULES,
+        _RESET,
+        _RESET
+        + """
+        self.orphan_failures = {}""",
+    ),
+    (
         "reintentos: no se limitan",
         RULES,
         """        if seguidos >= MAX_ATTEMPTS:""",
@@ -202,7 +228,7 @@ MUTATIONS += [
         "reintentos: los intentos no se reinician con la solicitud",
         RULES,
         _RESET,
-        """        self.orphan_failures = {}""",
+        """        self.risk_observations = []""",
     ),
     (
         "reintentos: las fuentes no pasan por el tope en el hook",

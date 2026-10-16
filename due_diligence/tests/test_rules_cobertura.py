@@ -205,14 +205,14 @@ def test_the_failure_of_a_commerce_persists_across_requests():
     assert set(book.failed_fronts("CO-XX-0001")) == {"noticias"}
 
 
-def test_a_failure_before_any_identification_is_an_orphan_of_the_request():
+def test_a_failure_before_any_identification_is_an_orphan_until_the_source_answers():
     book = CaseBook()
     book.start_request("Investiga Comercio de prueba SAS")
     fail(book, "registro")
     assert set(book.failed_fronts(None)) == {"registro"}
     assert set(book.failed_fronts("CO-XX-0099")) == {"registro"}  # cuenta para cualquier informe
     book.start_request("Otra solicitud")
-    assert book.failed_fronts(None) == {}
+    assert set(book.failed_fronts(None)) == {"registro"}  # no se pierde con la solicitud siguiente
 
 
 def test_news_and_risk_failures_before_the_registry_identifies_are_adopted_by_the_commerce():
@@ -293,11 +293,11 @@ def test_a_recovered_retry_clears_the_counter():
     assert book.check_fuente(NOTICIAS, INPUT_OF["noticias"]).allowed is True
 
 
-def test_another_subject_of_the_same_front_is_not_a_retry():
+def test_another_listas_subject_is_not_a_retry():
     book = identified(comercio())
-    fail(book, "riesgo", tool_input={"categoria": "librería"})
-    fail(book, "riesgo", tool_input={"categoria": "librería"})
-    assert book.check_fuente(RIESGO, {"categoria": "otra categoría"}).allowed is True
+    fail(book, "listas", tool_input=listas("comercio", "CO-XX-0001"))
+    fail(book, "listas", tool_input=listas("comercio", "CO-XX-0001"))
+    assert book.check_fuente(LISTAS, listas("persona", "PE-0001")).allowed is True
 
 
 def test_rewriting_the_same_subject_with_other_case_or_accents_does_not_escape_the_cap():
@@ -562,3 +562,71 @@ def test_habilitar_with_only_the_representative_consulted_is_rejected_naming_the
     decision = book.check_informe(informe("habilitar"))
     assert_blocked(decision, rule="cobertura_habilitar", hint="del comercio")
     assert "representante" not in decision.reason.lower()
+
+
+# --------------------------------------------------------------------------- revisión del #4
+
+
+def test_a_news_success_of_another_commerce_does_not_clear_the_failure_of_this_one():
+    book = identified(comercio("CO-XX-0001", "PE-0001"), comercio("CO-XX-0002", "PE-0002"))
+    book.start_request("Investiga CO-XX-0001")
+    fail(book, "noticias")
+    book.start_request("Ahora investiga CO-XX-0002")
+    succeed(book, "noticias")
+    assert set(book.failed_fronts("CO-XX-0001")) == {"noticias"}
+    assert book.failed_fronts("CO-XX-0002") == {}
+    declaration = informe_con("no_habilitar", {"riesgo": {"estado": "cubierto"}}, "CO-XX-0001")
+    assert_blocked(book.check_informe(declaration), rule="cobertura", hint="noticias")
+
+
+def test_a_registry_success_of_another_commerce_does_not_clear_this_one_either():
+    book = identified(comercio("CO-XX-0001", "PE-0001"))
+    book.start_request("Investiga CO-XX-0001")
+    fail(book, "registro", tool_input={"consulta": "CO-XX-0001"})
+    book.start_request("Ahora investiga CO-XX-0002")
+    book.observe(
+        REGISTRO, {"consulta": "CO-XX-0002"}, registro([comercio("CO-XX-0002", "PE-0002")])
+    )
+    assert set(book.failed_fronts("CO-XX-0001")) == {"registro"}
+
+
+def test_a_retry_in_a_later_request_that_does_not_name_the_commerce_clears_its_failure():
+    book = identified(comercio())
+    book.start_request("Investiga CO-XX-0001")
+    fail(book, "noticias")
+    book.start_request("Reintenta las noticias")  # el único comercio conocido es el de la solicitud
+    succeed(book, "noticias")
+    assert book.failed_fronts("CO-XX-0001") == {}
+
+
+def test_rewriting_the_risk_category_does_not_escape_the_retry_cap():
+    book = identified(comercio())
+    fail(book, "riesgo", tool_input={"categoria": "apuestas"})
+    fail(book, "riesgo", tool_input={"categoria": "apuestas en línea"})
+    assert_blocked(book.check_fuente(RIESGO, {"categoria": "casino virtual"}), rule="reintento")
+
+
+def test_a_risk_success_with_another_category_resets_the_front_attempts():
+    book = identified(comercio())
+    fail(book, "riesgo", tool_input={"categoria": "apuestas"})
+    succeed(book, "riesgo", {"categoria": "librería"})
+    fail(book, "riesgo", tool_input={"categoria": "apuestas"})
+    assert book.check_fuente(RIESGO, {"categoria": "apuestas"}).allowed is True
+
+
+def test_an_orphan_news_failure_survives_to_a_later_identification_and_must_be_declared():
+    book = CaseBook()
+    book.start_request("Investiga Comercio de prueba SAS")
+    fail(book, "noticias")
+    book.start_request("Reintenta el registro")
+    succeed(book, "registro")  # identifica a CO-XX-0001 y adopta la falla de noticias
+    declaration = informe_con("no_habilitar", {"registro": {"estado": "cubierto"}})
+    assert_blocked(book.check_informe(declaration), rule="cobertura", hint="noticias")
+
+
+def test_the_commerce_id_of_the_report_is_read_without_surrounding_spaces():
+    book = covered_listas(identified(comercio()))
+    book.start_request("Investiga CO-XX-0001")
+    fail(book, "noticias")
+    decision = book.check_informe(informe_con("no_habilitar", {}, comercio_id=" CO-XX-0001 "))
+    assert_blocked(decision, rule="cobertura", hint="noticias")

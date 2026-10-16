@@ -9,8 +9,10 @@ SOURCE = "registro_informes_ficticio"
 
 DESCRIPTION_INFORME = (
     "Registra el informe de due diligence con su recomendación. Cada frente de hallazgos debe "
-    "ser un objeto con su fuente; si hay frentes sin cubrir, decláralos en cobertura. Este "
-    "servidor solo guarda el informe: no valida ni decide la recomendación."
+    "ser un objeto con su fuente. `cobertura` lleva un objeto por frente (registro, listas, "
+    "noticias, riesgo) con `estado` (`cubierto` o `sin_cubrir`) y `motivo`; todo frente que no "
+    "respondió debe constar `sin_cubrir`. Este servidor solo guarda el informe: no valida ni "
+    "decide la recomendación."
 )
 
 DESCRIPTION_ESCALAR = (

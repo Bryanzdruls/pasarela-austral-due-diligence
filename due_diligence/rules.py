@@ -163,9 +163,9 @@ class CaseBook:
         # para decidir `habilitar`, pero solo durante la solicitud: sin marca permanente ni
         # exigencia de escalar (podría referirse a un comercio nuevo aún sin identificar).
         self._fallback_commerces: set[str] = set()
-        # Cobertura (ticket #4): fallos que no se pueden asociar a un comercio (solo valen en la
-        # solicitud en curso) e intentos de la solicitud por (frente, sujeto): (fallos seguidos,
-        # si el último fue reintentable).
+        # Cobertura (ticket #4): fallos que no se pueden asociar a un comercio (se conservan hasta
+        # que un comercio los adopta o la fuente responde) e intentos de la solicitud por clave de
+        # intento: (fallos seguidos, si el último fue reintentable).
         self.orphan_failures: dict[tuple[str, str], FrontFailure] = {}
         self.attempts: dict[tuple[str, str], tuple[int, bool]] = {}
 
@@ -179,7 +179,6 @@ class CaseBook:
             self._carry_text = (self._carry_text + " " + self.declared_text)[-2000:]
         self.declared_text = prompt if isinstance(prompt, str) else ""
         self.risk_observations = []
-        self.orphan_failures = {}
         self.attempts = {}
         self._request_commerces = {cid for cid in self.commerces if cid in self.declared_text}
         self._fallback_commerces = (
@@ -250,7 +249,7 @@ class CaseBook:
     ) -> None:
         """Lo que devolvió una fuente: un éxito borra el fallo del sujeto; lo demás es un fallo."""
         if envelope is not None and envelope.get("ok") is True:
-            self._clear_failure((frente, _subject(frente, tool_input)))
+            self._clear_failure(frente, tool_input)
             return
         if envelope is None:
             self._record_failure(frente, tool_input, "ilegible", False, {})
@@ -283,8 +282,9 @@ class CaseBook:
     ) -> None:
         key = (frente, _subject(frente, tool_input))
         failure = FrontFailure(frente, key[1], error_code, retryable, obtenido)
-        seguidos = self.attempts.get(key, (0, True))[0]
-        self.attempts[key] = (seguidos + 1, retryable)
+        akey = _attempt_key(frente, tool_input)
+        seguidos = self.attempts.get(akey, (0, True))[0]
+        self.attempts[akey] = (seguidos + 1, retryable)
         self.orphan_failures.pop(key, None)
         targets = self._failure_targets(frente, tool_input)
         if not targets:
@@ -305,12 +305,16 @@ class CaseBook:
         if frente == "registro":
             consulta = _text(data.get("consulta"))
             return [self.commerces[consulta]] if consulta in self.commerces else []
-        return [self.commerces[cid] for cid in self._request_commerces if cid in self.commerces]
+        scope = self._request_commerces | self._fallback_commerces
+        return [self.commerces[cid] for cid in scope if cid in self.commerces]
 
-    def _clear_failure(self, key: tuple[str, str]) -> None:
-        self.attempts.pop(key, None)
+    def _clear_failure(self, frente: str, tool_input: Any) -> None:
+        """Un éxito borra el fallo de su sujeto, pero solo en los comercios a los que pertenece:
+        el éxito de noticias de un comercio no cubre el de otro."""
+        key = (frente, _subject(frente, tool_input))
+        self.attempts.pop(_attempt_key(frente, tool_input), None)
         self.orphan_failures.pop(key, None)
-        for case in self.commerces.values():
+        for case in self._failure_targets(frente, tool_input):
             case.fallos.pop(key, None)
 
     def _adopt_orphans(self, case: CommerceCase) -> None:
@@ -325,7 +329,8 @@ class CaseBook:
 
     def failed_fronts(self, commerce_id: Any) -> dict[str, FrontFailure]:
         """Frentes con un fallo vigente del comercio, incluidos los huérfanos de la solicitud."""
-        case = self.commerces.get(commerce_id) if isinstance(commerce_id, str) else None
+        key = commerce_id.strip() if isinstance(commerce_id, str) else None
+        case = self.commerces.get(key) if key else None
         failures = [*(case.fallos.values() if case else ()), *self.orphan_failures.values()]
         result: dict[str, FrontFailure] = {}
         for failure in failures:
@@ -337,7 +342,7 @@ class CaseBook:
         frente = SOURCE_TOOLS.get(_short_name(tool))
         if frente is None:
             return ALLOW
-        state = self.attempts.get((frente, _subject(frente, tool_input)))
+        state = self.attempts.get(_attempt_key(frente, tool_input))
         if state is None:
             return ALLOW
         seguidos, retryable = state
@@ -507,6 +512,13 @@ def _subject(frente: str, tool_input: Any) -> str:
     if frente == "listas":
         return f"{normalize(data.get('tipo'))}:{normalize(data.get('referencia'))}"
     return normalize(data.get("categoria"))
+
+
+def _attempt_key(frente: str, tool_input: Any) -> tuple[str, str]:
+    """Qué se cuenta para el tope de reintentos: el frente entero, salvo en listas, donde el
+    comercio y su representante son consultas distintas. Con el modelo real, noticias se
+    reintentó con tres redacciones; la categoría de riesgo es texto libre y se esquiva igual."""
+    return (frente, _subject(frente, tool_input) if frente == "listas" else "*")
 
 
 def _declared_fronts(cobertura: Any) -> set[str]:
