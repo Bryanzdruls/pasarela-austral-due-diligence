@@ -70,9 +70,9 @@ description: "Tareas del ecosistema de Claude Code del equipo"
 
 **Independent Test**: editar un `.py` mal formateado lo deja formateado; un archivo que no es código no se toca.
 
-- [ ] T022 [US3] Tests de `format_after_edit.py` en `.claude/hooks/tests/test_format_after_edit.py` (deben fallar antes de T023): `.py` mal formateado → queda formateado (SC-005) y sale con 0; archivo `.md`, `.json` o `.txt` → no se modifica; sin formateador disponible (PATH vacío) → sale con 0 y avisa por stderr; el formateador falla → sale con 0 y avisa; ruta relativa y con barras invertidas; archivo inexistente → sale con 0
-- [ ] T023 [US3] Implementar `.claude/hooks/format_after_edit.py`: solo `.py`; `ruff format <archivo>` y, si no hay `ruff`, `python -m uv run ruff format <archivo>`; nunca bloquea
-- [ ] T024 [US3] Añadir a `scripts/tests/test_settings.py` la comprobación del hook `PostToolUse` (`Edit|Write` → `format_after_edit.py`, mismas propiedades que los demás) y registrarlo en `.claude/settings.json`
+- [x] T022 [US3] Tests de `format_after_edit.py` en `.claude/hooks/tests/test_format_after_edit.py` (deben fallar antes de T023): `.py` mal formateado → queda formateado (SC-005) y sale con 0; archivo `.md`, `.json` o `.txt` → no se modifica; sin formateador disponible (PATH vacío) → sale con 0 y avisa por stderr; el formateador falla → sale con 0 y avisa; ruta relativa y con barras invertidas; archivo inexistente → sale con 0
+- [x] T023 [US3] Implementar `.claude/hooks/format_after_edit.py`: solo `.py`; `ruff format <archivo>` y, si no hay `ruff`, `python -m uv run ruff format <archivo>`; nunca bloquea
+- [x] T024 [US3] Añadir a `scripts/tests/test_settings.py` la comprobación del hook `PostToolUse` (`Edit|Write` → `format_after_edit.py`, mismas propiedades que los demás) y registrarlo en `.claude/settings.json`
 
 ## Phase 6: User Story 4 — Revisiones independientes (P2)
 

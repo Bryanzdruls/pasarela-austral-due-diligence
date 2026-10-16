@@ -90,3 +90,14 @@ def test_the_settings_contain_no_credentials(settings):
         r"|BEGIN [A-Z ]*PRIVATE KEY"
     )
     assert re.search(pattern, text) is None
+
+
+def test_the_format_hook_is_registered_for_post_tool_use(settings):
+    assert scripts_by_matcher(settings, "PostToolUse") == {"Edit|Write": ["format_after_edit.py"]}
+
+
+def test_there_is_exactly_one_post_edit_hook_and_it_never_blocks_by_design(settings):
+    hooks = [h for g in groups(settings, "PostToolUse") for h in g["hooks"]]
+    assert len(hooks) == 1
+    source = (HOOKS_DIR / "format_after_edit.py").read_text(encoding="utf-8")
+    assert "common.block" not in source  # un hook posterior a la edición nunca bloquea
