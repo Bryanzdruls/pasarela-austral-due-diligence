@@ -15,7 +15,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["mcp_server"]
+testpaths = ["mcp_server", ".claude/hooks/tests", "scripts/tests"]
 pythonpath = ["."]
 
 [tool.ruff]
