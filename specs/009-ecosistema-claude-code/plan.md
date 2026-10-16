@@ -86,9 +86,9 @@ due_diligence/CLAUDE.md             # convenciones del coordinador (carga bajo d
 ├── commands/abrir-pr.md            # existente; se actualiza para lanzar ambas revisiones
 └── hooks/
     ├── common.py                   # lectura de stdin, bloqueo con mensaje, rutas, feature activa
-    ├── spec_gate.py                # PreToolUse Edit|Write: spec+plan+tasks antes del código
-    ├── real_data_guard.py          # PreToolUse Edit|Write: tarjeta, documento y NIT reales
-    ├── secrets_guard.py            # PreToolUse Read|Edit|Write|Bash: secretos y .env
+    ├── spec_gate.py                # PreToolUse Edit|Write|Bash|PowerShell: spec+plan+tasks antes del código
+    ├── real_data_guard.py          # PreToolUse Edit|Write|Bash|PowerShell: tarjeta, documento y NIT reales
+    ├── secrets_guard.py            # PreToolUse Read|Edit|Write|Bash|PowerShell|Grep|Glob: secretos y .env
     ├── format_after_edit.py        # PostToolUse Edit|Write: ruff format
     └── tests/                      # pruebas de los hooks (subproceso + unitarias)
 scripts/

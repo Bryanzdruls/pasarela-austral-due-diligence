@@ -18,7 +18,7 @@ def _targets(payload: dict[str, Any]) -> list[str]:
     if tool in ("Edit", "Write"):
         path = tool_input.get("file_path")
         return [path] if path else []
-    if tool == "Bash":
+    if tool in ("Bash", "PowerShell"):
         return common.bash_write_targets(tool_input.get("command") or "")
     return []
 

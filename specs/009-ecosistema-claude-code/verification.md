@@ -44,3 +44,13 @@ Las ramas temporales se borraron y el árbol volvió a `009-ecosistema-claude-co
 ### Sin verificar
 
 No se ejecutaron los comandos interactivos `/hooks` y `/memory` (no se pueden lanzar desde la propia sesión del agente): comprobar a mano que `/hooks` lista los cuatro hooks y que `/memory` muestra `CLAUDE.md` y las reglas. Además, el servidor MCP `pasarela-fuentes` no conectó en esta sesión (`CONNECTION_CLOSED`); su verificación real queda pendiente.
+
+## Correcciones tras la revisión independiente
+
+`code-reviewer` devolvió `corregir antes del PR`. Se corrigieron los hallazgos importantes, cada uno con prueba nueva (`.claude/hooks/tests/test_bypasses.py` y `test_secrets_guard.py`):
+
+- `ls && cat <secreto>` y similares: la orden se juzga por tramos y una sustitución de comandos nunca se trata como segura.
+- Mensajes de commit o PR con `$(...)` o comillas invertidas entre comillas dobles (o heredoc sin comillas): ya no se recortan.
+- Redirección pegada a la palabra (`echo x>ruta.py`): ahora la detecta `spec_gate`.
+- El hook de secretos también cubre `Grep`, `Glob` y `PowerShell`; los otros dos hooks cubren `PowerShell`.
+- `docs/TRAZABILIDAD.md`: se quitó la afirmación de un escaneo automático en cada commit (no hay hook de git) y se anotó que el arranque de `pasarela-fuentes` está sin verificar.

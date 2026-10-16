@@ -44,8 +44,8 @@ def test_the_settings_file_is_valid_json():
 
 def test_the_blocking_hooks_are_registered_for_pre_tool_use(settings):
     by_matcher = scripts_by_matcher(settings, "PreToolUse")
-    assert by_matcher["Edit|Write|Bash"] == ["spec_gate.py", "real_data_guard.py"]
-    assert by_matcher["Read|Edit|Write|Bash"] == ["secrets_guard.py"]
+    assert by_matcher["Edit|Write|Bash|PowerShell"] == ["spec_gate.py", "real_data_guard.py"]
+    assert by_matcher["Read|Edit|Write|Bash|PowerShell|Grep|Glob"] == ["secrets_guard.py"]
 
 
 def test_every_hook_is_a_python_command_with_a_timeout_and_an_existing_script(settings):

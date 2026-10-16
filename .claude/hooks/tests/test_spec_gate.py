@@ -112,7 +112,7 @@ def test_windows_paths_with_backslashes_are_recognized(tmp_path):
 
 
 def test_a_file_outside_the_repository_is_not_production_code(tmp_path):
-    repo = make_repo(tmp_path / "repo_dir" if False else tmp_path, "009-feature", ())
+    repo = make_repo(tmp_path, "009-feature", ())
     outside = tmp_path.parent / "otro_proyecto" / "app.py"
     data = payload("Write", repo, file_path=str(outside), content="x")
     assert run_hook(SCRIPT, data, repo)[0] == 0

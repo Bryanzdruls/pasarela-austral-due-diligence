@@ -26,7 +26,7 @@ La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el mo
 | G1 | Los tres entregables cargados a más tardar el domingo 18-oct-2026 | Falta | En curso; ver sección 7 |
 | G2 | MVP sólido; si falta tiempo, priorizar los comportamientos obligatorios | Parcial | Criterio recogido en la constitución (Restricciones adicionales) |
 | G3 | Usar Claude Code durante toda la construcción | Hecho | Todo el historial se construyó con Claude Code |
-| G4 | Todos los datos ficticios (ni en logs ni en configuración) | Hecho | `mcp_server/data/*.json` con `FICT-000N`; prueba `mcp_server/tests/test_datos_ficticios.py`; escaneo de secretos y patrones en cada commit. El hook que lo impone en la edición está en la rama `009` (N5) |
+| G4 | Todos los datos ficticios (ni en logs ni en configuración) | Hecho | `mcp_server/data/*.json` con `FICT-000N`; prueba `mcp_server/tests/test_datos_ficticios.py`; escaneo manual de secretos y patrones antes de cada commit (no hay un hook de git que lo automatice). El hook que lo impone en la edición está en la rama `009` (N5) |
 | G5 | Repositorio propio en GitHub con acceso para los evaluadores | Parcial | Repo privado `Bryanzdruls/pasarela-austral-due-diligence`. **Falta añadir a los evaluadores como colaboradores** (no se conocen sus usuarios) |
 | G5b | GitHub Project donde vive el backlog | Hecho | Project nº 4 "Pasarela Austral - Due diligence" |
 | G6 | Lenguaje Python o TypeScript | Hecho | Python 3.12 |
@@ -81,9 +81,9 @@ Los comandos que instala Spec Kit no cuentan. Cada pieza se justifica en `DECISI
 | E2 | 2 reglas en `.claude/rules/`, al menos 2 con `paths` | En rama | `.claude/rules/`: `datos-ficticios.md`, `specs.md`, `tests.md`, las tres con `paths` (rama `009`) |
 | E3 | 2 subagentes con herramientas restringidas a su rol | En rama | `code-reviewer` y `compliance-reviewer`, ambos solo con Read, Grep y Glob (rama `009`) |
 | E4 | 2 skills; entre todas usan `context: fork`, `allowed-tools` y `argument-hint` | En rama | `revisar-cumplimiento` (`context: fork`) y `verificar-ecosistema` (`allowed-tools`, `argument-hint`) (rama `009`) |
-| E5 | 2 hooks: uno que bloquea antes de ejecutar y uno posterior a una edición | En rama | 4 hooks en `.claude/settings.json`: 3 `PreToolUse` y 1 `PostToolUse`; 321 pruebas y mutaciones detectadas (`specs/009-*/verification.md`) |
+| E5 | 2 hooks: uno que bloquea antes de ejecutar y uno posterior a una edición | En rama | 4 hooks en `.claude/settings.json`: 3 `PreToolUse` y 1 `PostToolUse`; pruebas de los hooks y mutaciones detectadas (`specs/009-*/verification.md`) |
 | E6 | 1 comando propio compartido por control de versiones | Hecho | `.claude/commands/abrir-pr.md` (en `main`) |
-| E7 | 2 servidores MCP (GitHub y el propio), sin credenciales en el repo | En rama | `.mcp.json` (rama `009`); sin credenciales |
+| E7 | 2 servidores MCP (GitHub y el propio), sin credenciales en el repo | En rama | `.mcp.json` (rama `009`); sin credenciales. **Sin verificar** que `pasarela-fuentes` arranque: se lanza con `python -m uv run` y `uv` no está instalado en el equipo del autor |
 | E8 | 1 plugin con al menos 1 subagente, 1 skill y 1 hook reutilizables | **Falta** | Ticket #10 |
 
 Necesidades que el ecosistema debe resolver:
@@ -152,7 +152,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 | D2 | README: correr sistema y tests en menos de 5 minutos, enlace al Project y al video de funcionamiento | **Falta** | Ticket #11 |
 | D3 | `DECISIONES.md` de máximo dos páginas con mecanismo y motivo por necesidad | **Falta** | Ticket #11 |
 | D4 | Artefactos de Spec Kit versionados | Hecho / En rama | Ver S8 |
-| D5 | Zip con `.git`, sin dependencias instaladas, máximo 50 MB, **sin `.env` ni credenciales** | **Falta** | Se arma al final (#11); el escaneo de secretos se hace en cada commit |
+| D5 | Zip con `.git`, sin dependencias instaladas, máximo 50 MB, **sin `.env` ni credenciales** | **Falta** | Se arma al final (#11); el escaneo de secretos se hace a mano antes de cada commit; `scripts/tests/test_no_credentials.py` lo repite sobre la configuración |
 | D6 | Video de funcionamiento de máximo 5 minutos, con los casos obligatorios en la interfaz de chat, público y enlazado en el README | **Falta** | Tickets #7, #8 y #11; requiere `ANTHROPIC_API_KEY` |
 | D7 | Video de defensa de máximo 15 minutos: ecosistema, especificaciones y sistema | **Falta** | A cargo del autor; requiere que todo lo anterior exista |
 | D8 | Revisión de autoría: la explicación coincide con el código | Pendiente | Depende del autor (explicar *este* código) |
@@ -162,7 +162,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 | Falta grave | Estado hoy | Cómo se controla |
 |---|---|---|
 | Una regla de negocio que dependa solo del prompt | **ABIERTA** | Las reglas 1-3 no tienen hook todavía (ticket #3). Cerrar antes del cierre del proyecto |
-| Una credencial en el repositorio | Sin hallazgos | Escaneo de valores con forma de clave de Anthropic, de token de GitHub o de clave privada en cada commit, que detiene el commit si hay coincidencia; `.env` ignorado; `.mcp.json` solo referencia variables |
+| Una credencial en el repositorio | Sin hallazgos | Escaneo de valores con forma de clave de Anthropic, de token de GitHub o de clave privada a mano antes de cada commit (sin hook de git que lo automatice) y, sobre la configuración, `scripts/tests/test_no_credentials.py`; `.env` ignorado; `.mcp.json` solo referencia variables |
 | Un dato que parezca real | Sin hallazgos | `test_datos_ficticios.py`; hook de datos reales en la rama `009` (`real_data_guard.py`) |
 
 ## 9. Desviaciones del proceso reconocidas

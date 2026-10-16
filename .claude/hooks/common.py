@@ -78,6 +78,7 @@ def is_production_path(rel: str) -> bool:
 _SEPARATORS = {"|", ";", "&&", "||", "&"}
 _COPY_VERBS = {"cp", "mv", "copy", "move", "copy-item", "move-item", "xcopy"}
 _PS_WRITERS = {"set-content", "add-content", "out-file"}
+_GLUED_REDIRECT = re.compile(r"""(?<=\S)(?<![<>\-=])\d?>{1,2}(?![=&])\s*["']?([^\s&|;<>()"']+)""")
 _PY_OPEN_WRITE = re.compile(r"""open\(\s*['"]([^'"]+)['"]\s*,\s*['"][^'"]*[wax+][^'"]*['"]""")
 _PY_PATH_WRITE = re.compile(r"""Path\(\s*['"]([^'"]+)['"]\s*\)\.write_(?:text|bytes)""")
 
@@ -132,6 +133,7 @@ def bash_write_targets(command: str) -> list[str]:
             if len(positional) >= 2:
                 targets.append(_unquote(positional[-1]))
 
+    targets += _GLUED_REDIRECT.findall(command)  # `echo x>ruta.py`, `echo x>"ruta.py"`
     targets += _PY_OPEN_WRITE.findall(command)
     targets += _PY_PATH_WRITE.findall(command)
 

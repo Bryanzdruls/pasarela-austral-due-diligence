@@ -161,6 +161,82 @@ def test_a_message_does_not_hide_a_real_access_to_a_protected_file(repo, comando
     assert code == 2 and "secretos" in err
 
 
+@pytest.mark.parametrize(
+    "comando",
+    [
+        "ls && cat .env",
+        "dir; type .env",
+        "ls | foreach { gc .env }",
+        "stat x || cat .env",
+        "ls\ncat .env",
+        "ls $(cat .env)",
+        "ls `cat .env`",
+        "test-path a & type .env.local",
+    ],
+)
+def test_a_listing_command_does_not_hide_a_chained_access(repo, comando):
+    code, _, err = run_hook(SCRIPT, payload("Bash", repo, command=comando), repo)
+    assert code == 2 and "secretos" in err
+
+
+@pytest.mark.parametrize(
+    "comando",
+    [
+        'git commit -m "$(cat .env)"',
+        'git commit -m "`cat .env`"',
+        'gh pr create --body "$(cat secrets/clave.txt)"',
+        'gh pr create --title "x" --body "${cat .env}"',
+        "git commit -F - <<EOF\n$(cat .env)\nEOF",  # etiqueta sin comillas: el shell expande
+        'git commit -m "ok" && git commit -m "$(type .env)"',
+    ],
+)
+def test_a_message_with_command_substitution_is_still_inspected(repo, comando):
+    code, _, err = run_hook(SCRIPT, payload("Bash", repo, command=comando), repo)
+    assert code == 2 and "secretos" in err
+
+
+@pytest.mark.parametrize(
+    "comando",
+    [
+        "git commit -m 'el archivo $(cat .env) no se ejecuta entre comillas simples'",
+        "git commit -F - <<'EOF'\n$(cat .env) literal\nEOF",
+    ],
+)
+def test_quoted_literal_messages_stay_allowed(repo, comando):
+    code, _, err = run_hook(SCRIPT, payload("Bash", repo, command=comando), repo)
+    assert code == 0, err
+
+
+@pytest.mark.parametrize(
+    "entrada",
+    [
+        {"pattern": "X", "path": ".env"},
+        {"pattern": "X", "path": "secrets", "glob": "*.txt"},
+        {"pattern": "X", "glob": ".env*"},
+        {"pattern": "X", "glob": "**/*.pem"},
+        {"pattern": "X", "path": "certs/llave.key"},
+        {"pattern": "X", "path": "config/credentials.json"},
+    ],
+)
+def test_grep_cannot_read_a_protected_file(repo, entrada):
+    code, _, err = run_hook(SCRIPT, payload("Grep", repo, **entrada), repo)
+    assert code == 2 and "secretos" in err
+
+
+@pytest.mark.parametrize(
+    "entrada",
+    [
+        {"pattern": "X"},
+        {"pattern": "X", "path": "mcp_server"},
+        {"pattern": "X", "glob": "*.py"},
+        {"pattern": "X", "path": ".env.example"},
+    ],
+)
+def test_grep_on_ordinary_paths_is_allowed(repo, entrada):
+    code, _, err = run_hook(SCRIPT, payload("Grep", repo, **entrada), repo)
+    assert code == 0, err
+
+
 def test_the_message_reaches_the_user_as_valid_utf8_even_without_pythonioencoding(repo):
     import json
     import os
@@ -184,7 +260,7 @@ def test_the_message_reaches_the_user_as_valid_utf8_even_without_pythonioencodin
 # --------------------------------------------------------------------------- otras herramientas
 
 
-@pytest.mark.parametrize("tool", ["Grep", "Glob", "WebFetch"])
+@pytest.mark.parametrize("tool", ["Glob", "WebFetch"])
 def test_tools_without_a_file_path_are_ignored(repo, tool):
     assert run_hook(SCRIPT, payload(tool, repo, pattern="x"), repo)[0] == 0
 

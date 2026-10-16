@@ -1,7 +1,8 @@
-"""Hook PreToolUse (Read|Edit|Write|Bash): los secretos y las variables de entorno no se tocan.
+"""Hook PreToolUse: los secretos y las variables de entorno no se tocan.
 
-Bloquea leer o modificar archivos de secretos (`.env`, `.env.*`, `secrets/`, `*.pem`, `*.key`,
-`credentials*.json`, `id_rsa*`). La plantilla `.env.example` sí está permitida. Es una segunda capa
+Se aplica a Read, Edit, Write, Bash, PowerShell, Grep y Glob. Bloquea leer o modificar archivos de
+secretos (`.env`, `.env.*`, `secrets/`, `*.pem`, `*.key`, `credentials*.json`, `id_rsa*`). La
+plantilla `.env.example` sí está permitida. Es una segunda capa
 sobre `permissions.deny`: `deny` no cubre subprocesos que abren el archivo por su cuenta; aquí se
 revisa además el texto de las órdenes de terminal. Una orden que construya el nombre del archivo en
 tiempo de ejecución puede eludir la inspección del texto (límite conocido).
@@ -14,7 +15,7 @@ import common
 
 _TEMPLATE_NAMES = frozenset({".env.example"})
 _SAFE_COMMANDS = frozenset({"ls", "dir", "test-path", "stat"})  # solo nombran el archivo
-_SPLIT = re.compile(r"""[\s'"(),;|&<>=]+""")
+_SPLIT = re.compile(r"""[\s'"`$(){},;|&<>=]+""")
 
 # Órdenes cuyo texto es un mensaje, no código que se ejecute: el mensaje de un commit o el cuerpo de
 # un pull request puede mencionar `.env` sin tocarlo. No se aplica a `python`, `cat`, etc.: un
@@ -30,12 +31,30 @@ _MESSAGE_ARGUMENT = re.compile(
 )
 
 
+_SUBSTITUTION = re.compile(r"\$\(|`|\$\{")
+_COMMAND_SEGMENTS = re.compile(r"&&|\|\||[;|&\n]")
+
+
+def _drop_argument(match: re.Match[str]) -> str:
+    # Entre comillas dobles el shell ejecuta `$(...)` y las comillas invertidas: se conserva.
+    if '"' in match.group(0) and _SUBSTITUTION.search(match.group(0)):
+        return match.group(0)
+    return match.group("flag")
+
+
+def _drop_heredoc(match: re.Match[str]) -> str:
+    # Un heredoc sin comillas en la etiqueta también expande sustituciones.
+    if not match.group("q") and _SUBSTITUTION.search(match.group(0)):
+        return match.group(0)
+    return match.group("intro")
+
+
 def without_messages(command: str) -> str:
     """Quita de una orden de commit o de pull request el texto del mensaje (no se ejecuta)."""
     if not re.search(_MESSAGE_COMMAND, command):
         return command
-    command = _HEREDOC_BODY.sub(lambda match: match.group("intro"), command)
-    return _MESSAGE_ARGUMENT.sub(lambda match: match.group("flag"), command)
+    command = _HEREDOC_BODY.sub(_drop_heredoc, command)
+    return _MESSAGE_ARGUMENT.sub(_drop_argument, command)
 
 
 def is_protected(path: str) -> bool:
@@ -48,6 +67,8 @@ def is_protected(path: str) -> bool:
     if name in _TEMPLATE_NAMES:
         return False
     if name == ".env" or name == ".envrc" or name.startswith(".env."):
+        return True
+    if name.startswith(".env") and ("*" in name or "?" in name):  # patrón: `.env*`
         return True
     if "secrets" in parts[:-1]:
         return True
@@ -77,10 +98,25 @@ def handle(payload: dict[str, Any]) -> None:
         path = tool_input.get("file_path")
         if path and is_protected(path):
             offenders.append(path)
-    elif tool == "Bash":
+    elif tool in ("Bash", "PowerShell"):
         command = without_messages(tool_input.get("command") or "")
-        if _first_word(command) not in _SAFE_COMMANDS:
-            offenders = referenced_secrets(command)
+        for segment in _COMMAND_SEGMENTS.split(command):
+            # cada tramo se juzga por separado y una sustitución de comandos nunca es "segura"
+            if _first_word(segment) not in _SAFE_COMMANDS or _SUBSTITUTION.search(segment):
+                offenders += referenced_secrets(segment)
+    elif tool in ("Grep", "Glob"):
+        for key in ("path", "glob", "pattern"):
+            value = tool_input.get(key)
+            if (
+                isinstance(value, str)
+                and value
+                and (
+                    is_protected(value)
+                    or (key == "path" and is_protected(value.rstrip("/\\") + "/x"))
+                    or (key != "pattern" and referenced_secrets(value))
+                )
+            ):
+                offenders.append(value)
 
     if offenders:
         name = offenders[0].replace("\\", "/").split("/")[-1]

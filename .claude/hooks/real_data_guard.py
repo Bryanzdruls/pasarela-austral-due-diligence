@@ -85,7 +85,7 @@ def _text(payload: dict[str, Any]) -> str:
         return tool_input.get("content") or ""
     if tool == "Edit":
         return tool_input.get("new_string") or ""
-    if tool == "Bash":
+    if tool in ("Bash", "PowerShell"):
         return tool_input.get("command") or ""
     return ""
 
