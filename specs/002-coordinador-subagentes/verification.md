@@ -27,9 +27,9 @@ Las dos quedan en el código, con una prueba cada una (`test_agents.py` y `test_
 |---|---|---|---|---|
 | 1 | Due diligence de Tienda Verde SAS (CO-TV-0001), suplementos dietarios, volumen mensual estimado | Tres `SubagentStarted` (registro, noticias, riesgo) antes de cualquier `SubagentFinished`; listas solo tras terminar el registro; informe por frente con "Datos aportados por el analista" y recomendación; `RunFinished` `success` | Marcas de tiempo: `registro_mercantil` iniciado 20:30:11.2, `noticias` 20:30:12.1, `riesgo_categoria` 20:30:13.0; el primer `terminó` (registro) a las 20:30:14.9; `listas_restrictivas` iniciado a las 20:30:18.9, después de terminar el registro; informe con una sección por frente, datos del analista separados y recomendación de derivar a un oficial de cumplimiento; `RunFinished` `success`/`end_turn`/`completed` | **Aprobado** (SC-001, SC-004) |
 | 2 | "¿Y qué dijeron las noticias?" | Respuesta sin ningún `SubagentStarted` nuevo | Responde con lo que ya tenía (fuente y fecha) y dice que no repitió la búsqueda; 0 `SubagentStarted` | **Aprobado** (SC-007) |
-| 3 | Due diligence de Libros del Faro SAS (CO-LB-0002) | Investigación nueva; los `encargo` no contienen datos de Tienda Verde | Cuatro frentes nuevos; ningún `encargo` menciona a Tienda Verde ni su identificador; el informe habilita por riesgo bajo y declara que no hay categoría ni volumen del analista | **Aprobado** (SC-007, SC-003) |
+| 3 | Due diligence de Libros del Faro SAS (CO-LB-0002) | Investigación nueva; los `encargo` no contienen datos de Tienda Verde | Cuatro frentes nuevos; ningún `encargo` menciona a Tienda Verde ni su identificador; el informe habilita por riesgo bajo y declara que no hay categoría ni volumen del analista | **Aprobado** (SC-007, SC-003). Matiz: el paralelismo completo de los tres frentes solo se demostró en el caso 1; aquí `riesgo_categoria` esperó al registro (20:30:41) porque el analista no declaró categoría y el coordinador la tomó del registro |
 | 4 | (conversación nueva) "Necesito un due diligence" | Pide el comercio; ningún `SubagentStarted` | Pide comercio, categoría y volumen; 0 `SubagentStarted` | **Aprobado** (SC-006) |
-| 5 | (conversación nueva) "Due diligence de Cafetería Aurora" | No inventa un comercio; el manejo completo es el ticket #5 | El registro devolvió dos coincidencias: las presenta en una tabla, no consulta listas ni riesgo y pide el identificador | **Aprobado** (adelanta parte del #5) |
+| 5 | (conversación nueva) "Due diligence de Cafetería Aurora" | No inventa un comercio; el manejo completo es el ticket #5 | El registro devolvió dos coincidencias: las presenta en una tabla, no consulta listas ni riesgo y pide el identificador | **Aprobado** (adelanta parte del #5). Matiz: se consultaron el registro y las noticias con el nombre ambiguo (la regla 1 no se ve afectada: las listas no se consultaron) |
 
 Todos los turnos cerraron por `ResultMessage` (`success`, `end_turn`), no por texto ni por contador (SC-005).
 
@@ -39,7 +39,7 @@ Con `PASARELA_HOOK_TRACE` (`verification-hook-trace.jsonl`, ejecución correcta)
 
 - El SDK entrega `agent_type` con el **nombre del frente** (`registro_mercantil`, `listas_restrictivas`, `noticias`, `riesgo_categoria`) y un `agent_id` por subagente; el coordinador llega con `agent_type` nulo.
 - Cada subagente **pudo usar su herramienta MCP** (3 llamadas del registro, 5 de noticias, 4 de listas, 2 de riesgo, todas `allow`); el coordinador solo usó `Agent` (10 llamadas).
-- En la primera ejecución el coordinador intentó `registrar_informe` y `escalar_a_cumplimiento` y el hook las **denegó**: el aislamiento por hook funciona con el modelo real.
+- En la **primera** ejecución (`verification-run1-hook-trace.jsonl`, 2 líneas `deny`) el coordinador intentó `registrar_informe` y `escalar_a_cumplimiento` y el hook las **denegó**: el aislamiento por hook funciona con el modelo real. En la ejecución correcta (`verification-hook-trace.jsonl`) no hubo ninguna denegación.
 
 ## Sin verificar o con límites
 
@@ -48,3 +48,10 @@ Con `PASARELA_HOOK_TRACE` (`verification-hook-trace.jsonl`, ejecución correcta)
 - **Registro del informe y escalamiento:** el coordinador no tiene esas herramientas (ticket #6); lo declara en su respuesta.
 - **Variabilidad:** cada ejecución con modelo es distinta; la matriz se corrió completa una vez tras la corrección y los casos coinciden con lo esperado, pero no se repitió varias veces.
 - Los textos de los informes salen del modelo: se guardan como evidencia, no como prueba automática.
+
+## Revisiones independientes (T026)
+
+Una sola revisión de código, con el modelo de amenaza escrito, y una de cumplimiento.
+
+- **code-reviewer: `aprobar`.** Sin bloqueantes y 4 menores. Corregido el **1** (si `query` fallaba, el turno no emitía `RunFinished` y quedaba marcado como abierto; ahora `query` va dentro del `try`, con una prueba vista fallar primero). Declarados: el **2** (un `ResultError` posterior a un `RunFinished` deja la sesión "viva" aunque la CLI haya salido), el **3** (no hay prueba de integración sin modelo que detecte una regresión de la variable de segundo plano) y el **4** (el guard toma `agent_type` nulo como coordinador; falla cerrado si una versión futura del SDK dejara de enviarlo, y el rastro de hooks sirve para detectarlo).
+- **compliance-reviewer: `cumple parcialmente`.** Sin faltas graves: la spec remite expresamente al #3 las reglas 1 a 3 (FR-007) y ningún documento las da por cumplidas con el prompt. Las reglas 1 a 3 siguen abiertas hasta el #3, la 4 hasta el #5 y la 5 hasta el #4. Se tomaron sus matices sobre los casos 3 y 5 y la trazabilidad (B1 a B4) se actualizó.

@@ -51,9 +51,11 @@ class DueDiligenceSession:
 
         translator = Translator()
         finished = False
-        self._turn_open = True
-        await self._client.query(text)
         try:
+            await self._client.query(text)
+            # Solo tras enviar la consulta existe un turno que abandonar: si `query` falla, el
+            # turno nunca empezó y no se marca abierto (el siguiente no intentaría drenarlo).
+            self._turn_open = True
             async for message in self._client.receive_response():
                 for event in translator.translate(message):
                     if isinstance(event, RunFinished):

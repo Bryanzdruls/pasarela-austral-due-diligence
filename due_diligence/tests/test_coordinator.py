@@ -252,3 +252,42 @@ def test_the_session_code_never_passes_a_turn_limit():
         ]
         assert "max_turns" not in keywords, name
         assert "maxTurns" not in keywords, name
+
+
+class _QueryFails:
+    """Cliente cuyo transporte está caído: `query` lanza antes de empezar el turno."""
+
+    def __init__(self, options=None):
+        self.interrupted = 0
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def query(self, prompt, session_id="default"):
+        raise ConnectionError("transporte caído")
+
+    async def interrupt(self):
+        self.interrupted += 1
+
+    async def receive_response(self):
+        raise AssertionError("no hay turno que leer: query falló")
+        yield  # pragma: no cover
+
+
+async def test_a_failing_query_still_closes_the_turn_and_does_not_leave_it_open():
+    async with DueDiligenceSession(client_factory=_QueryFails) as session:
+        events = []
+        with pytest.raises(ConnectionError, match="transporte caído"):
+            async for event in session.ask("x"):
+                events.append(event)
+        # el turno nunca empezó: cierra con un evento terminal y no queda marcado como abierto
+        assert isinstance(events[-1], RunFinished) and events[-1].subtype == "error_exception"
+        assert events[-1].terminal_reason == "ConnectionError"
+        # el siguiente intento no intenta interrumpir ni drenar un turno que no existe
+        with pytest.raises(ConnectionError):
+            async for _ in session.ask("otra vez"):
+                pass
+        assert session._client.interrupted == 0

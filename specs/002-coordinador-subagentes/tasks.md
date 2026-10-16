@@ -78,7 +78,7 @@ description: "Tareas del coordinador y subagentes de due diligence"
 
 - [x] T024 Ejecutar `python -m uv run pytest due_diligence mcp_server -q` y `python -m uv run ruff check . && python -m uv run ruff format --check .`; todo en verde
 - [x] T025 Verificación con modelo real (requiere `ANTHROPIC_API_KEY`; incluye T035): ejecutar la matriz de 5 casos de `quickstart.md` y crear `specs/002-coordinador-subagentes/verification.md` con el resultado **de cada caso** (esperado, observado, aprobado/fallido) y las marcas de tiempo del caso 1; si algo difiere, ajustar `due_diligence/prompts.py` o `due_diligence/guards.py`, repetir y documentar en `research.md`
-- [ ] T026 Ejecutar `/abrir-pr 2`: revisión independiente con el subagente `code-reviewer` real, corregir hallazgos, abrir el PR que cierra #2 y mover el ticket a In review por el MCP de GitHub
+- [x] T026 Ejecutar `/abrir-pr 2`: revisión independiente con el subagente `code-reviewer` real, corregir hallazgos, abrir el PR que cierra #2 y mover el ticket a In review por el MCP de GitHub
 - [ ] T027 Comentar en el issue #2 lo especificado, lo decidido y lo pendiente (hooks de reglas de negocio → #3; fallas y cobertura parcial → #4; procedencia y ambigüedad → #5; escalamiento → #6); dejar anotado que FR-007 es orientación hasta fusionar el #3
 
 ## Phase 8: Correcciones de la revisión independiente (code-reviewer)
