@@ -90,3 +90,14 @@ Cada decisión registra *dónde vive la pieza, por qué ahí y qué alternativa 
 - `NotebookEdit` no se cubre (el proyecto no usa notebooks).
 - El aislamiento a nivel de sistema operativo requeriría el modo aislado de Claude Code (sandbox), fuera de alcance.
 - Los hooks de proyecto se leen al arrancar la sesión y requieren la confianza del proyecto; un hook defectuoso solo protege tras reiniciar.
+
+
+## Verificación de D5 (T014, 2026-10-16)
+Se ejecutaron los tres hooks de bloqueo con el comando `python` **literal** (no `sys.executable`) y JSON por stdin, en repositorios temporales, y los nueve escenarios del `quickstart.md` (1 a 7, 9 y 10) dieron el código esperado:
+- `python` resuelve a `python.exe` 3.12.10 en PowerShell y en Git Bash de esta máquina; el punto **[No confirmado]** de la documentación (`python` frente a `py -3`) queda resuelto para este entorno.
+
+## Hallazgos del uso real de los hooks (2026-10-16)
+El registro en `settings.json` activó los hooks **en la misma sesión**, sin reiniciar, y esto destapó dos defectos que las pruebas no habían visto:
+- **Falso positivo en mensajes**: el hook de secretos bloqueó un `git commit` solo porque el *mensaje* mencionaba el archivo de variables de entorno. Se corrigió (el texto de un mensaje de commit o de pull request no es un acceso a archivo; un heredoc de código sí se inspecciona) y se añadieron pruebas, incluidas las de "un mensaje no oculta un acceso real".
+- **Tildes rotas**: el motivo del bloqueo salía por stderr con la codificación por defecto de Windows (cp1252) y llegaba ilegible. Ahora se escribe en UTF-8, con una prueba que ejecuta el hook sin `PYTHONIOENCODING`.
+- **Confirmado en uso real**: el comando se ejecutó con `${CLAUDE_PROJECT_DIR}` expandido en la forma ejecutable (`command` + `args`), y el bloqueo con código 2 y mensaje por stderr llegó al desarrollador. Queda para T036 comprobar `/hooks` y `/memory`.

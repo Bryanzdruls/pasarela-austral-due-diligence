@@ -190,7 +190,14 @@ def missing_artifacts(feature_dir: Path) -> list[str]:
 
 def block(message: str) -> None:
     """Bloquea la acción: motivo por stderr y código de salida 2."""
-    sys.stderr.write(message.rstrip() + "\n")
+    data = (message.rstrip() + "\n").encode("utf-8")
+    try:
+        # Bytes UTF-8 explícitos: la codificación por defecto de stderr en Windows (cp1252)
+        # rompe las tildes en el mensaje que ve el desarrollador.
+        sys.stderr.buffer.write(data)
+        sys.stderr.buffer.flush()
+    except AttributeError:  # un stderr sin `buffer` (p. ej. capturado por una prueba)
+        sys.stderr.write(data.decode("utf-8"))
     raise SystemExit(2)
 
 
