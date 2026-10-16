@@ -84,7 +84,7 @@ Los comandos que instala Spec Kit no cuentan. Cada pieza se justifica en `DECISI
 | E5 | 2 hooks: uno que bloquea antes de ejecutar y uno posterior a una edición | Hecho | 4 hooks en `.claude/settings.json`: 3 `PreToolUse` y 1 `PostToolUse`; pruebas de los hooks y mutaciones detectadas (`specs/009-*/verification.md`) (en `main`, PR #13) |
 | E6 | 1 comando propio compartido por control de versiones | Hecho | `.claude/commands/abrir-pr.md` (en `main`) |
 | E7 | 2 servidores MCP (GitHub y el propio), sin credenciales en el repo | En rama | `.mcp.json` (rama `009`); sin credenciales. **Sin verificar** que `pasarela-fuentes` arranque: se lanza con `python -m uv run` y `uv` no está instalado en el equipo del autor |
-| E8 | 1 plugin con al menos 1 subagente, 1 skill y 1 hook reutilizables | En rama | `plugins/pasarela-revision/` con subagente `compliance-reviewer`, skill `revisar-cumplimiento` y hook `real_data_guard`; `claude plugin validate --strict` sin avisos (rama `010`). El hook **no** se vio disparar en una sesión real con modelo (sin crédito); lo cubren sus pruebas, la paridad con el hook del proyecto y 5 mutaciones detectadas |
+| E8 | 1 plugin con al menos 1 subagente, 1 skill y 1 hook reutilizables | En rama | `plugins/pasarela-revision/` con subagente `compliance-reviewer`, skill `revisar-cumplimiento` y hook `real_data_guard`; `claude plugin validate --strict` sin avisos (rama `010`). En una sesión real en un repositorio ajeno el hook bloqueó un valor con forma de tarjeta y la skill resolvió el subagente del plugin; además lo cubren sus pruebas, la paridad con el hook del proyecto y 5 mutaciones detectadas |
 
 Necesidades que el ecosistema debe resolver:
 
@@ -176,7 +176,7 @@ Cosas hechas de forma distinta a lo que pide el enunciado o a lo que se acordó,
 5. **La revisión independiente del #1 la hizo un agente genérico**, porque el `code-reviewer` no estaba cargado en esa sesión.
 6. **La rama del #2 solo existe en el equipo local.**
 7. **Ticket #9 (nota):** el ecosistema se construyó con el orden #9 → #10 → #2 (ecosistema, luego plugin y flujo de tickets, luego el coordinador). Las verificaciones con Claude Code real están en `specs/009-ecosistema-claude-code/verification.md`; quedan **sin verificar** `/hooks` y `/memory` (interactivos) y la conexión del servidor `pasarela-fuentes`, que falló en la sesión.
-8. **Ticket #10 (nota):** el flujo de tickets y el plugin quedan en la rama `010`. El #9 y el #10 se ejecutaron en ese orden, como fija la constitución (v1.1.1); ningún ticket de funcionalidad se fusiona antes de que el #10 esté fusionado. Quedan **sin verificar** el disparo real del hook del plugin en una sesión con modelo (`claude -p` devolvió `Credit balance is too low`) y el comportamiento de las skills con el servidor o el toolset no disponibles. Las evidencias están en `specs/010-automatizacion-project-plugin/verification.md`.
+8. **Ticket #10 (nota):** el flujo de tickets y el plugin quedan en la rama `010`. El #9 y el #10 se ejecutaron en ese orden, como fija la constitución (v1.1.1); ningún ticket de funcionalidad se fusiona antes de que el #10 esté fusionado. Queda **sin verificar** el comportamiento de las skills con el servidor o el toolset no disponibles; el hook del plugin y la skill se comprobaron en una sesión real (con el inicio de sesión de claude.ai: la variable `ANTHROPIC_API_KEY` actual devuelve `Invalid API key`). Las evidencias están en `specs/010-automatizacion-project-plugin/verification.md`.
 
 ## 10. Resumen
 

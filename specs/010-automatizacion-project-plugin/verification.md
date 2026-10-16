@@ -53,13 +53,13 @@ En una carpeta temporal vacía con `git init`, fuera del proyecto. Línea base a
 | Tiempo total de añadir, instalar y listar | **5 segundos** (SC-004: menos de 5 minutos) |
 | `claude plugin uninstall` y `claude plugin marketplace remove` | Hechos; sin plugins, el catálogo ya no figura y la configuración del repositorio temporal queda vacía |
 
-**No se pudo comprobar** el bloqueo del hook de extremo a extremo con una sesión real: `claude -p` devolvió `Credit balance is too low` y no hubo llamada al modelo. El hook sí está verificado por sus pruebas (subproceso real, paridad con el hook del proyecto y mutaciones), el manifiesto valida en modo estricto y el formato de registro es el mismo que el de los hooks del proyecto, que sí se comprobaron en una sesión real en el ticket #9. Queda pendiente verlo disparar en una sesión con crédito.
+**Primer intento (sin crédito): no se pudo comprobar** el bloqueo del hook de extremo a extremo con una sesión real; se repitió después, ver la sección siguiente: `claude -p` devolvió `Credit balance is too low` y no hubo llamada al modelo. El hook sí está verificado por sus pruebas (subproceso real, paridad con el hook del proyecto y mutaciones), el manifiesto valida en modo estricto y el formato de registro es el mismo que el de los hooks del proyecto, que sí se comprobaron en una sesión real en el ticket #9. Queda pendiente verlo disparar en una sesión con crédito.
 
 Observación: el catálogo se añadió por ruta local, y la CLI lo lee en el sitio (`Read from: …/plugins/pasarela-revision`); instalado desde GitHub se clonaría.
 
 ## T021: `agent:` en la skill del plugin
 
-La documentación oficial no aclara cómo resuelve `agent:` una skill de plugin (solo describe los agentes built-in y los de `.claude/agents/`). La skill usa el nombre completo `pasarela-revision:compliance-reviewer`, el documentado para agentes de plugin. **Sin verificar** con una sesión real: hay que comprobarlo con `/agents` y lanzando la skill cuando haya crédito. `claude plugin validate --strict` sigue pasando.
+La documentación oficial no aclara cómo resuelve `agent:` una skill de plugin (solo describe los agentes built-in y los de `.claude/agents/`). La skill usa el nombre completo `pasarela-revision:compliance-reviewer`, el documentado para agentes de plugin. Verificado después con una sesión real (ver la sección siguiente). `claude plugin validate --strict` sigue pasando.
 
 ## Revisión independiente (T031)
 
@@ -78,3 +78,16 @@ Una sola revisión de código, con el modelo de amenaza escrito, y una de cumpli
 - `/abrir-pr` paso 5.4 no repite todos los parámetros de la llamada y no comprueba el estado de origen; su paso 4 no dice qué hacer si la segunda ronda sigue devolviendo `corregir`.
 - `siguiente-ticket` invoca `sincronizar-tickets` sin `Skill` en `allowed-tools`; la autorización de los `Done` que escribiría queda bajo la de `siguiente-ticket`.
 - `check_flow` del verificador solo exige alguna herramienta `projects` (quitar solo `projects_write` no lo hace fallar), `check_catalog` acepta cualquier carpeta existente como fuente y `check_plugin` no comprueba que el subagente sea de solo lectura ni `context: fork`; una prueba del catálogo usa una comprobación débil.
+
+## Verificación con modelo real (repetida tras cambiar la clave del API)
+
+La variable `ANTHROPIC_API_KEY` que ve esta sesión devolvió `Invalid API key`; con el inicio de sesión de claude.ai (ignorando la variable solo para el proceso hijo) sí hay modelo. Con eso se repitió la prueba en un repositorio temporal ajeno, con el plugin instalado desde el catálogo:
+
+| Prueba | Resultado |
+|---|---|
+| `Write` con un valor con forma de tarjeta (generado en el momento) | **Bloqueado** por el hook del plugin: el modelo informó de que lo detuvo un hook de seguridad de `pasarela-revision` y `datos_tarjeta.txt` **no se creó** |
+| `Write` de control con un identificador ficticio (`CO-TV-0001`) | Permitido: el archivo se creó (la sesión terminó por límite de turnos, no por un bloqueo) |
+| `/pasarela-revision:revisar-cumplimiento 9` | La skill **resolvió su subagente**: se lanzó `pasarela-revision:compliance-reviewer` (cierra D11). El subagente declaró que el repositorio ajeno no usa Spec Kit y no inventó una especificación |
+| Desinstalar y limpiar | Sin plugins, catálogo eliminado y carpeta temporal borrada |
+
+Siguen **sin verificar**: el comportamiento de `siguiente-ticket` y `sincronizar-tickets` con el servidor o el toolset no disponibles (SC-005), y la clave `ANTHROPIC_API_KEY` válida para el Agent SDK (los tickets #2 y siguientes la necesitan).
