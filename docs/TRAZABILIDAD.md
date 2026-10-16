@@ -26,7 +26,7 @@ La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el mo
 | G1 | Los tres entregables cargados a más tardar el domingo 18-oct-2026 | Falta | En curso; ver sección 7 |
 | G2 | MVP sólido; si falta tiempo, priorizar los comportamientos obligatorios | Parcial | Criterio recogido en la constitución (Restricciones adicionales) |
 | G3 | Usar Claude Code durante toda la construcción | Hecho | Todo el historial se construyó con Claude Code |
-| G4 | Todos los datos ficticios (ni en logs ni en configuración) | Hecho | `mcp_server/data/*.json` con `FICT-000N`; prueba `mcp_server/tests/test_datos_ficticios.py`; escaneo de secretos y patrones en cada commit. El hook que lo impone en la edición **falta** (N5) |
+| G4 | Todos los datos ficticios (ni en logs ni en configuración) | Hecho | `mcp_server/data/*.json` con `FICT-000N`; prueba `mcp_server/tests/test_datos_ficticios.py`; escaneo de secretos y patrones en cada commit. El hook que lo impone en la edición está en la rama `009` (N5) |
 | G5 | Repositorio propio en GitHub con acceso para los evaluadores | Parcial | Repo privado `Bryanzdruls/pasarela-austral-due-diligence`. **Falta añadir a los evaluadores como colaboradores** (no se conocen sus usuarios) |
 | G5b | GitHub Project donde vive el backlog | Hecho | Project nº 4 "Pasarela Austral - Due diligence" |
 | G6 | Lenguaje Python o TypeScript | Hecho | Python 3.12 |
@@ -77,11 +77,11 @@ Los comandos que instala Spec Kit no cuentan. Cada pieza se justifica en `DECISI
 
 | ID | Mínimo | Estado | Evidencia / pendiente |
 |---|---|---|---|
-| E1 | `CLAUDE.md` con jerarquía correcta (`@import` o uno por subdirectorio, justificado) | **Falta** | Ticket #9 |
-| E2 | 2 reglas en `.claude/rules/`, al menos 2 con `paths` | **Falta** | Ticket #9 |
-| E3 | 2 subagentes con herramientas restringidas a su rol | Parcial | `.claude/agents/code-reviewer.md` (Read, Grep, Glob; en `main`). Falta el de revisión de cumplimiento |
-| E4 | 2 skills; entre todas usan `context: fork`, `allowed-tools` y `argument-hint` | **Falta** | Ticket #9 |
-| E5 | 2 hooks: uno que bloquea antes de ejecutar y uno posterior a una edición | **Falta** | Ticket #9 |
+| E1 | `CLAUDE.md` con jerarquía correcta (`@import` o uno por subdirectorio, justificado) | En rama | `CLAUDE.md` raíz con `@docs/convenciones.md` y `CLAUDE.md` en `mcp_server/` y `due_diligence/` (rama `009`) |
+| E2 | 2 reglas en `.claude/rules/`, al menos 2 con `paths` | En rama | `.claude/rules/`: `datos-ficticios.md`, `specs.md`, `tests.md`, las tres con `paths` (rama `009`) |
+| E3 | 2 subagentes con herramientas restringidas a su rol | En rama | `code-reviewer` y `compliance-reviewer`, ambos solo con Read, Grep y Glob (rama `009`) |
+| E4 | 2 skills; entre todas usan `context: fork`, `allowed-tools` y `argument-hint` | En rama | `revisar-cumplimiento` (`context: fork`) y `verificar-ecosistema` (`allowed-tools`, `argument-hint`) (rama `009`) |
+| E5 | 2 hooks: uno que bloquea antes de ejecutar y uno posterior a una edición | En rama | 4 hooks en `.claude/settings.json`: 3 `PreToolUse` y 1 `PostToolUse`; 321 pruebas y mutaciones detectadas (`specs/009-*/verification.md`) |
 | E6 | 1 comando propio compartido por control de versiones | Hecho | `.claude/commands/abrir-pr.md` (en `main`) |
 | E7 | 2 servidores MCP (GitHub y el propio), sin credenciales en el repo | En rama | `.mcp.json` (rama `009`); sin credenciales |
 | E8 | 1 plugin con al menos 1 subagente, 1 skill y 1 hook reutilizables | **Falta** | Ticket #10 |
@@ -90,15 +90,15 @@ Necesidades que el ecosistema debe resolver:
 
 | ID | Necesidad | Estado | Mecanismo previsto / evidencia |
 |---|---|---|---|
-| N1 | Convenciones del equipo al clonar el repositorio | **Falta** | `CLAUDE.md` de proyecto |
-| N2 | Preferencias personales no afectan a compañeros | Parcial | `.gitignore` ya ignora `CLAUDE.local.md` y `.claude/settings.local.json`; falta el `CLAUDE.md` al que sirve de contraste |
-| N3 | Tests junto al código, en muchas carpetas, con las mismas convenciones | Parcial | Tests junto al código en `mcp_server/` y `due_diligence/`; falta la regla `.claude/rules/` con `paths` que fija las convenciones |
-| N4 | No se escribe código de un ticket sin su especificación en `specs/` | **Falta** | Hook `PreToolUse` (#9) |
-| N5 | Ningún archivo con forma de documento, NIT o tarjeta reales | **Falta** | Hook `PreToolUse` (#9); hoy lo cubre solo una prueba de los datos |
-| N6 | Los archivos de secretos y variables de entorno no se leen ni modifican | **Falta** | `permissions.deny` y hook de respaldo (#9) |
-| N7 | El código queda formateado tras cada edición | **Falta** | Hook `PostToolUse` con `ruff format` (#9) |
-| N8 | Revisión independiente antes de abrir un PR | Parcial | `code-reviewer` y `/abrir-pr` existen. La revisión del #1 se hizo con un agente genérico; la del #2 con el `code-reviewer` real |
-| N9 | Revisión de cumplimiento de las reglas de negocio | **Falta** | Subagente de cumplimiento y skill (#9) |
+| N1 | Convenciones del equipo al clonar el repositorio | En rama | `CLAUDE.md` de proyecto y `docs/convenciones.md` |
+| N2 | Preferencias personales no afectan a compañeros | En rama | `.gitignore` ignora `CLAUDE.local.md` y `.claude/settings.local.json`; el `CLAUDE.md` compartido es el contraste |
+| N3 | Tests junto al código, en muchas carpetas, con las mismas convenciones | En rama | Regla `.claude/rules/tests.md` con `paths` |
+| N4 | No se escribe código de un ticket sin su especificación en `specs/` | En rama | Hook `spec_gate.py`; bloqueo comprobado en Claude Code real |
+| N5 | Ningún archivo con forma de documento, NIT o tarjeta reales | En rama | Hook `real_data_guard.py`; bloqueo comprobado en Claude Code real |
+| N6 | Los archivos de secretos y variables de entorno no se leen ni modifican | En rama | `permissions.deny` y hook `secrets_guard.py` (incluye `Bash`); bloqueos comprobados en Claude Code real |
+| N7 | El código queda formateado tras cada edición | En rama | Hook `format_after_edit.py` (`ruff format`); comprobado en Claude Code real |
+| N8 | Revisión independiente antes de abrir un PR | En rama | `/abrir-pr` lanza `code-reviewer` y `compliance-reviewer` en contexto aislado |
+| N9 | Revisión de cumplimiento de las reglas de negocio | En rama | Subagente `compliance-reviewer` y skill `revisar-cumplimiento` |
 | N10 | Estado de los tickets sincronizado sin intervención manual | **Falta** | Skill o comando de flujo de tickets (#10) |
 | N11 | Otro equipo puede instalar las piezas reutilizables | **Falta** | Plugin y marketplace (#10) |
 
@@ -163,7 +163,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 |---|---|---|
 | Una regla de negocio que dependa solo del prompt | **ABIERTA** | Las reglas 1-3 no tienen hook todavía (ticket #3). Cerrar antes del cierre del proyecto |
 | Una credencial en el repositorio | Sin hallazgos | Escaneo de valores con forma de clave de Anthropic, de token de GitHub o de clave privada en cada commit, que detiene el commit si hay coincidencia; `.env` ignorado; `.mcp.json` solo referencia variables |
-| Un dato que parezca real | Sin hallazgos | `test_datos_ficticios.py`; hook de datos reales pendiente (#9) |
+| Un dato que parezca real | Sin hallazgos | `test_datos_ficticios.py`; hook de datos reales en la rama `009` (`real_data_guard.py`) |
 
 ## 9. Desviaciones del proceso reconocidas
 
@@ -175,6 +175,7 @@ Cosas hechas de forma distinta a lo que pide el enunciado o a lo que se acordó,
 4. **En el ticket #1, las historias US3 y US4 se implementaron antes que sus pruebas**. En el #2 se respetó escribir las pruebas primero.
 5. **La revisión independiente del #1 la hizo un agente genérico**, porque el `code-reviewer` no estaba cargado en esa sesión.
 6. **La rama del #2 solo existe en el equipo local.**
+7. **Ticket #9 (nota):** el ecosistema se construyó con el orden #9 → #10 → #2 (ecosistema, luego plugin y flujo de tickets, luego el coordinador). Las verificaciones con Claude Code real están en `specs/009-ecosistema-claude-code/verification.md`; quedan **sin verificar** `/hooks` y `/memory` (interactivos) y la conexión del servidor `pasarela-fuentes`, que falló en la sesión.
 
 ## 10. Resumen
 
@@ -184,10 +185,10 @@ Requisitos trazados: **84** (reglas generales, reglas de negocio, Spec Kit, GitH
 |---|---|
 | Hecho | 24 |
 | Hecho (en main o en rama) | 3 |
-| En rama | 6 |
-| Parcial | 15 |
-| Falta | 33 |
+| En rama | 20 |
+| Parcial | 11 |
+| Falta | 23 |
 | Otro: En curso | 2 |
 | Otro: Pendiente | 1 |
 
-Última actualización: 2026-10-16, al abrir el ticket #9. Se actualiza al cerrar cada ticket.
+Última actualización: 2026-10-16, al terminar el ticket #9 (pendiente de fusión). Se actualiza al cerrar cada ticket.

@@ -161,3 +161,15 @@ def test_a_formatter_that_fails_reports_its_message(tmp_path):
 
     aviso = format_after_edit.format_file(str(archivo), str(tmp_path), lambda n: n, run)
     assert aviso and "no se pudo analizar" in aviso and "a.py" in aviso
+
+
+@pytest.mark.parametrize("nombre", ["nota.md", "datos.json", "texto.txt"])
+def test_the_formatter_is_never_invoked_for_files_that_are_not_python(
+    tmp_path, monkeypatch, nombre
+):
+    archivo = tmp_path / nombre
+    archivo.write_text(MAL_FORMATEADO, encoding="utf-8")
+    llamadas = []
+    monkeypatch.setattr(format_after_edit, "format_file", lambda *a, **k: llamadas.append(a))
+    format_after_edit.handle(payload("Edit", tmp_path, file_path=str(archivo)))
+    assert llamadas == []
