@@ -15,6 +15,7 @@ CaseBook:
   check_listas(tool_input: dict) -> Decision                    # regla 1
   check_informe(tool_input: dict) -> Decision                   # vocabulario, reglas 2 y 3, FR-010
   check_escalar(tool_input: dict) -> Decision                   # siempre permite
+  pending_escalations() -> list[str]                            # comercios con regla 2 o 3 sin escalar
 ```
 
 `tool` es el nombre corto de la herramienta (`consultar_registro_mercantil`, `consultar_listas_restrictivas`, `consultar_riesgo_categoria`). `response` puede ser texto, diccionario o lista de bloques; si no se puede interpretar, `observe` no registra nada.
@@ -26,6 +27,7 @@ CaseBook:
 | `make_pre_tool_use(book)` | `PreToolUse` | Para `consultar_listas_restrictivas`, `registrar_informe` y `escalar_a_cumplimiento` consulta el `CaseBook` y devuelve la denegación del SDK si no se permite; el resto lo decide el guard de aislamiento |
 | `make_post_tool_use(book)` | `PostToolUse` | Llama a `book.observe` con el nombre corto, la entrada y la respuesta; nunca lanza ni bloquea |
 | `make_user_prompt_submit(book)` | `UserPromptSubmit` | Llama a `book.start_request(prompt)` |
+| `make_stop(book)` | `Stop` | Si `book.pending_escalations()` no está vacío y `stop_hook_active` no es verdadero, devuelve `{"decision": "block", "reason": ...}` pidiendo escalar; si no, `{}` |
 
 Forma de la denegación (la misma del guard del #2):
 

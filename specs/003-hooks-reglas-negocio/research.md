@@ -57,3 +57,11 @@ Pruebas puras de `rules.py` (cada regla: bloqueo y caso permitido), pruebas de l
 - La categoría declarada se lee del texto de la solicitud con raíces de la lista; un analista que declare la categoría con otras palabras (un sinónimo) no se detectaría por esa vía, aunque sí por el registro o el catálogo.
 - Si el modelo no llama a `registrar_informe` y solo escribe una recomendación en texto, el hook no actúa sobre ese texto; el sistema depende de que el informe se registre (el prompt lo exige y el informe registrado es lo que queda como salida estructurada).
 - Las fallas de las fuentes y la cobertura parcial no se tratan aquí (#4).
+
+## D12. El escalamiento se exige con un hook de parada (A1 del análisis)
+
+- **Decisión**: un hook `Stop` revisa, al intentar terminar la respuesta, si algún comercio tiene coincidencia en listas (regla 2) o alto riesgo (regla 3) y no consta un `escalar_a_cumplimiento` con éxito para él. Si falta, devuelve un bloqueo con el motivo ("escala a un oficial de cumplimiento con `escalar_a_cumplimiento`") y la respuesta continúa. Si el SDK indica que la parada ya fue bloqueada una vez (`stop_hook_active`), deja terminar: una sola exigencia por cierre, sin bucles.
+- **Por qué**: la regla 2 del enunciado dice "impide recomendar la habilitación **y escala** el caso". Bloquear solo `habilitar` deja la mitad sin garantizar: el modelo podría limitarse a no recomendar nada y cerrar.
+- **Observación del escalamiento**: `PostToolUse` de `escalar_a_cumplimiento` con `ok: true` marca el comercio como escalado; un `invalid_input` del servidor no cuenta (el modelo debe corregir los campos; el contenido es del #6).
+- **Alternativas descartadas**: (a) orientarlo solo en el prompt: es la falta grave que se cierra; (b) bloquear sin límite: un fallo persistente del servidor dejaría la conversación sin poder terminar; (c) escalar automáticamente desde el hook: el hook no tiene los hallazgos ni el resumen que el oficial necesita (#6).
+- **Límite declarado**: si el modelo cierra tras la primera exigencia sin escalar, el sistema no vuelve a bloquear; queda el rastro y la respuesta del coordinador, y el #6 trabaja el criterio de escalamiento.

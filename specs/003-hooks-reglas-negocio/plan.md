@@ -9,7 +9,7 @@
 Las tres reglas se imponen con hooks del Agent SDK que deciden con lo que las fuentes **devolvieron**, no con lo que el modelo diga:
 
 - Un módulo de reglas puro, `due_diligence/rules.py`, sin dependencias del SDK: un `CaseBook` (estado por conversación) que observa los resultados de las herramientas y decide `check_listas` (regla 1), `check_informe` (reglas 2 y 3 y vocabulario cerrado) y `check_escalar`.
-- Hooks en `due_diligence/rule_hooks.py`: `PreToolUse` (aplica las decisiones), `PostToolUse` (observa registro, listas y riesgo) y `UserPromptSubmit` (lee la categoría declarada por el analista). Se componen con el guard de aislamiento del #2.
+- Hooks en `due_diligence/rule_hooks.py`: `PreToolUse` (aplica las decisiones), `PostToolUse` (observa registro, listas, riesgo y escalamientos), `UserPromptSubmit` (lee la categoría declarada por el analista) y `Stop` (exige escalar antes de cerrar, una sola vez; D12). Se componen con el guard de aislamiento del #2.
 - El coordinador pasa a poder usar `registrar_informe` y `escalar_a_cumplimiento`, solo bajo esas reglas.
 - `DueDiligenceSession` crea un `CaseBook` por conversación y lo comparte con los hooks.
 

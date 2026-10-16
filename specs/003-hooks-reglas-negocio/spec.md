@@ -28,7 +28,7 @@ Cuando el sistema intenta consultar las listas restrictivas, la consulta solo se
 
 ---
 
-### User Story 2 - Una coincidencia en listas impide recomendar la habilitación y obliga a escalar (Priority: P1)
+### User Story 2 - Una coincidencia en listas impide recomendar la habilitación y el caso se escala (Priority: P1)
 
 Si las listas restrictivas devolvieron una coincidencia para el comercio o para su representante legal, el sistema no puede registrar un informe que recomiende habilitar. La única salida permitida es escalar el caso a un oficial de cumplimiento (o no habilitar). El bloqueo se decide con lo que las listas devolvieron, no con lo que el modelo diga.
 
@@ -41,6 +41,7 @@ Si las listas restrictivas devolvieron una coincidencia para el comercio o para 
 1. **Given** una coincidencia en listas para el comercio, **When** se intenta registrar un informe que recomienda habilitar, **Then** se rechaza y el motivo indica que corresponde escalar.
 2. **Given** una coincidencia en listas solo para el representante legal, **When** se intenta registrar un informe que recomienda habilitar, **Then** se rechaza igual.
 3. **Given** una coincidencia, **When** se escala el caso a un oficial de cumplimiento, **Then** la acción se permite.
+3b. **Given** una coincidencia y un caso sin escalar, **When** el sistema intenta dar la respuesta por terminada, **Then** se le exige primero escalar el caso a un oficial de cumplimiento (se le pide una sola vez; si ya se pidió, no se vuelve a bloquear para no entrar en un bucle).
 4. **Given** ninguna coincidencia y ninguna otra regla aplicable, **When** se registra un informe que recomienda habilitar, **Then** esta regla no lo bloquea.
 
 ---
@@ -60,6 +61,7 @@ Si el comercio pertenece a una categoría de alto riesgo (apuestas, criptoactivo
 3. **Given** que el catálogo devolvió "sin clasificar" para una categoría de la lista de alto riesgo de la pasarela, **When** se intenta habilitar, **Then** se rechaza igual.
 4. **Given** un comercio de riesgo bajo, sin coincidencias en listas, **When** se recomienda habilitar, **Then** se permite.
 5. **Given** un comercio de alto riesgo, **When** se escala a un oficial de cumplimiento, **Then** se permite.
+6. **Given** un comercio de alto riesgo sin escalar, **When** el sistema intenta dar la respuesta por terminada, **Then** se le exige primero escalar el caso (una sola vez).
 
 ---
 
@@ -102,6 +104,7 @@ Las tres reglas se aplican siempre, también cuando el modelo o un subagente int
 - **FR-004**: El sistema MUST registrar lo que cada fuente devolvió (identificación, coincidencias en listas y riesgo de categoría) por comercio, y MUST NOT mezclar lo de un comercio con lo de otro.
 - **FR-005**: El sistema MUST rechazar el registro de un informe cuya recomendación sea habilitar si las listas devolvieron una coincidencia para el comercio o para su representante legal.
 - **FR-006**: El sistema MUST permitir escalar a un oficial de cumplimiento en cualquier caso en que la regla 2 o la 3 impidan habilitar.
+- **FR-015**: Cuando la regla 2 o la 3 aplica a un comercio y el caso no ha sido escalado, el sistema MUST exigir el escalamiento antes de dar la respuesta por terminada. La exigencia se hace una sola vez por respuesta: si ya se pidió y el modelo cierra igualmente, no se vuelve a bloquear, para no entrar en un bucle. El contenido y el criterio del resumen para el oficial son del ticket #6.
 - **FR-007**: El sistema MUST rechazar el registro de un informe que recomiende habilitar si el comercio es de alto riesgo, determinado por cualquiera de estas fuentes: la categoría en el registro, la categoría consultada en el catálogo de riesgo y la categoría declarada por el analista en su solicitud.
 - **FR-008**: La lista de categorías de alto riesgo (apuestas, criptoactivos, suplementos dietarios y venta de medicamentos) MUST ser propia de la pasarela y aplicarse aunque el catálogo no la clasifique; una categoría que contenga una de ellas con matices MUST contar como alto riesgo.
 - **FR-009**: La recomendación de un informe MUST expresarse con un vocabulario cerrado (habilitar, no habilitar, escalar a un oficial de cumplimiento); una recomendación fuera del vocabulario MUST rechazarse indicando los valores permitidos.
@@ -125,6 +128,7 @@ Las tres reglas se aplican siempre, también cuando el modelo o un subagente int
 - **SC-001**: El 100 % de los intentos de consultar las listas sin identificación unívoca previa (sin registro, registro ambiguo, vacío, con error, ininterpretable, o con un identificador distinto) se bloquea antes de ejecutarse.
 - **SC-002**: El 100 % de los informes que recomiendan habilitar tras una coincidencia en listas (del comercio o del representante legal) se rechaza.
 - **SC-003**: El 100 % de las recomendaciones de habilitar para cada una de las cuatro categorías de alto riesgo se rechaza, venga la categoría del registro, de la solicitud del analista o del catálogo, y también cuando el catálogo responde "sin clasificar".
+- **SC-008**: El 100 % de los comercios con coincidencia en listas o de alto riesgo cuya respuesta intenta cerrarse sin escalar reciben la exigencia de escalar, y la exigencia no se repite en el mismo cierre.
 - **SC-004**: Los flujos legítimos no se bloquean: un comercio identificado de forma unívoca, de riesgo bajo y sin coincidencias puede consultar las listas y recibir una recomendación de habilitar, y cualquier comercio puede escalarse.
 - **SC-005**: Para cada regla, romperla a propósito en el código hace fallar al menos una prueba (verificación por mutación).
 - **SC-006**: En una ejecución con el modelo real, un intento de consultar las listas sin identificación previa queda bloqueado y el modelo lo comunica; los casos de la verificación del ticket #2 (habilitación de un comercio de riesgo bajo y derivación de uno de alto riesgo) siguen funcionando.

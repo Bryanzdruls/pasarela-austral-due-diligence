@@ -23,6 +23,7 @@ Raíces normalizadas (minúsculas, sin tildes): `apuesta`, `cripto`, `suplemento
 | `categoria_registro` | resultado del registro | `matches[0].categoria` |
 | `listas_match` | resultados de listas | `true` si hubo coincidencia del comercio **o** del representante; conserva cuál |
 | `alto_riesgo` | determinado al decidir | una vez `true`, se conserva |
+| `escalado` | resultados de `escalar_a_cumplimiento` | `true` solo si el servidor respondió `ok: true` para ese comercio |
 
 Solo existe un `CommerceCase` cuando el comercio quedó identificado de forma unívoca.
 
@@ -56,3 +57,4 @@ El resultado del registro identifica al comercio solo si: `ok == true`, `content
 | `registrar_informe`, `no_habilitar` o `escalar_a_cumplimiento` | siempre |
 | `escalar_a_cumplimiento` | siempre |
 | `registrar_informe`, otro valor | nunca (vocabulario) |
+| Cierre de la respuesta (`Stop`) | ningún comercio con regla 2 o 3 sin `escalado`; si ya se exigió una vez en este cierre, se permite |
