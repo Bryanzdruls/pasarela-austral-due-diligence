@@ -16,6 +16,8 @@ from claude_agent_sdk import (
     UserMessage,
 )
 
+from mcp_server.tools import listas, noticias, registro, riesgo
+
 
 def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="microseconds")
@@ -32,6 +34,18 @@ class FrontStatus(StrEnum):
     COMPLETO = "completo"
     NO_ESTRUCTURADO = "no_estructurado"
     NO_COMPLETADO = "no_completado"
+
+
+# La fuente que cada frente debe declarar en `metadatos.fuente`: la misma constante que usa el
+# servidor MCP en su sobre de respuesta (una sola fuente de verdad).
+EXPECTED_SOURCES: dict[FrontName, str] = {
+    FrontName.REGISTRO_MERCANTIL: registro.SOURCE,
+    FrontName.LISTAS_RESTRICTIVAS: listas.SOURCE,
+    FrontName.NOTICIAS: noticias.SOURCE,
+    FrontName.RIESGO_CATEGORIA: riesgo.SOURCE,
+}
+
+_META_KEYS = ("fuente", "fecha")
 
 
 @dataclass(frozen=True)
@@ -75,41 +89,72 @@ class RunFinished:
 
 DomainEvent = SubagentStarted | SubagentFinished | CoordinatorText | RunFinished
 
-
-_FENCE = re.compile(r"^\s*```(?:json)?\s*(.*?)\s*```\s*$", re.DOTALL)
+_FENCED_ANYWHERE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 _DELEGATION_TOOLS = ("Agent", "Task")
 
 
-def _result_text(content: Any) -> str:
+def _result_texts(content: Any) -> list[str]:
+    """Textos del resultado de la herramienta: cada bloque por separado y todos unidos."""
     if isinstance(content, str):
-        return content
+        return [content]
     if isinstance(content, list):
-        return "".join(part.get("text", "") for part in content if isinstance(part, dict))
-    return ""
+        parts = [
+            p["text"] for p in content if isinstance(p, dict) and isinstance(p.get("text"), str)
+        ]
+        return [*parts, "".join(parts)] if len(parts) > 1 else parts
+    return [""]
+
+
+def _json_candidates(raw: str) -> list[str]:
+    """Posibles textos JSON dentro de la respuesta: completa, con valla de código o entre llaves."""
+    candidates = [raw.strip()]
+    fenced = _FENCED_ANYWHERE.search(raw)
+    if fenced:
+        candidates.append(fenced.group(1).strip())
+    first, last = raw.find("{"), raw.rfind("}")
+    if 0 <= first < last:
+        candidates.append(raw[first : last + 1])
+    return candidates
+
+
+def _is_iso_date(value: str) -> bool:
+    try:
+        datetime.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _validated(frente: FrontName, data: Any) -> FrontResult | None:
+    if not isinstance(data, dict):
+        return None
+    contenido, metadatos = data.get("contenido"), data.get("metadatos")
+    if not (isinstance(contenido, dict) and contenido and isinstance(metadatos, dict)):
+        return None
+    if not all(isinstance(metadatos.get(k), str) and metadatos[k].strip() for k in _META_KEYS):
+        return None
+    if metadatos["fuente"] != EXPECTED_SOURCES[frente] or not _is_iso_date(metadatos["fecha"]):
+        return None
+    return FrontResult(
+        frente, contenido, {k: metadatos[k] for k in _META_KEYS}, FrontStatus.COMPLETO
+    )
 
 
 def parse_front_result(frente: FrontName, raw: str) -> FrontResult:
-    """Convierte la respuesta de un subagente en FrontResult; nunca da por buena una mal formada."""
-    fenced = _FENCE.match(raw)
-    candidate = (fenced.group(1) if fenced else raw).strip()
-    try:
-        data = json.loads(candidate)
-    except (ValueError, TypeError):
-        data = None
-    if isinstance(data, dict):
-        contenido, metadatos = data.get("contenido"), data.get("metadatos")
-        if (
-            isinstance(contenido, dict)
-            and isinstance(metadatos, dict)
-            and all(isinstance(metadatos.get(k), str) and metadatos[k].strip() for k in _META_KEYS)
-        ):
-            return FrontResult(
-                frente, contenido, {k: metadatos[k] for k in _META_KEYS}, FrontStatus.COMPLETO
-            )
+    """Convierte la respuesta de un subagente en FrontResult.
+
+    Es tolerante con la forma (texto antes del JSON, valla de código) y estricta con el fondo:
+    contenido no vacío, fuente propia del frente y fecha ISO válida. Nunca da por buena una
+    respuesta mal formada.
+    """
+    for candidate in _json_candidates(raw):
+        try:
+            result = _validated(frente, json.loads(candidate))
+        except (ValueError, TypeError):
+            continue
+        if result is not None:
+            return result
     return FrontResult(frente, {"texto_sin_estructura": raw}, {}, FrontStatus.NO_ESTRUCTURADO)
-
-
-_META_KEYS = ("fuente", "fecha")
 
 
 class Translator:
@@ -155,11 +200,13 @@ class Translator:
             if not isinstance(block, ToolResultBlock) or block.tool_use_id not in self._pending:
                 continue
             frente = self._pending.pop(block.tool_use_id)
-            raw = _result_text(block.content)
+            texts = _result_texts(block.content)
             if block.is_error:
-                result = FrontResult(frente, {"error": raw}, {}, FrontStatus.NO_COMPLETADO)
+                result = FrontResult(frente, {"error": texts[-1]}, {}, FrontStatus.NO_COMPLETADO)
             else:
-                result = parse_front_result(frente, raw)
+                # Un bloque válido gana aunque el resultado traiga bloques extra (agentId, uso).
+                parsed = [parse_front_result(frente, text) for text in texts]
+                result = next((r for r in parsed if r.estado is FrontStatus.COMPLETO), parsed[-1])
             events.append(SubagentFinished(frente, result))
         return events
 
@@ -168,38 +215,45 @@ _INDEPENDENT_FRONTS = (FrontName.REGISTRO_MERCANTIL, FrontName.NOTICIAS, FrontNa
 
 
 def dependency_violations(events: list[DomainEvent]) -> list[str]:
-    """Hallazgos si `listas_restrictivas` empezó antes de que `registro_mercantil` terminara."""
-    registry_done = False
+    """Hallazgos si `listas_restrictivas` empezó sin un `registro_mercantil` completo terminado."""
+    registry: str | None = None  # None: no terminó · "completo" · "incompleto"
     violations: list[str] = []
     for event in events:
         if isinstance(event, SubagentFinished) and event.frente is FrontName.REGISTRO_MERCANTIL:
-            registry_done = True
+            complete = event.result is not None and event.result.estado is FrontStatus.COMPLETO
+            registry = "completo" if complete else "incompleto"
         elif (
             isinstance(event, SubagentStarted)
             and event.frente is FrontName.LISTAS_RESTRICTIVAS
-            and not registry_done
+            and registry != "completo"
         ):
+            reason = (
+                "antes de que registro_mercantil terminara"
+                if registry is None
+                else "sin que registro_mercantil terminara con resultado completo"
+            )
             violations.append(
-                "listas_restrictivas se inició antes de que registro_mercantil terminara "
-                f"(tool_use_id={event.tool_use_id})"
+                f"listas_restrictivas se inició {reason} (tool_use_id={event.tool_use_id})"
             )
     return violations
 
 
 def parallelism_violations(events: list[DomainEvent]) -> list[str]:
-    """Hallazgos si un frente independiente empezó después de que otro independiente terminó."""
+    """Hallazgos si un frente independiente se lanzó por primera vez cuando otro ya había terminado.
+
+    Un reintento (el frente ya se había lanzado antes) no cuenta como violación.
+    """
+    started: set[FrontName] = set()
     any_finished: str | None = None
     violations: list[str] = []
     for event in events:
         if isinstance(event, SubagentFinished) and event.frente in _INDEPENDENT_FRONTS:
             any_finished = any_finished or event.frente.value
-        elif (
-            isinstance(event, SubagentStarted)
-            and event.frente in _INDEPENDENT_FRONTS
-            and any_finished is not None
-        ):
-            violations.append(
-                f"{event.frente.value} se inició después de que {any_finished} terminara: "
-                "los frentes independientes deben lanzarse juntos"
-            )
+        elif isinstance(event, SubagentStarted) and event.frente in _INDEPENDENT_FRONTS:
+            if event.frente not in started and any_finished is not None:
+                violations.append(
+                    f"{event.frente.value} se inició después de que {any_finished} terminara: "
+                    "los frentes independientes deben lanzarse juntos"
+                )
+            started.add(event.frente)
     return violations

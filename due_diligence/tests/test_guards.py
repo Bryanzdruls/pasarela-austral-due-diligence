@@ -73,3 +73,33 @@ async def test_the_reason_is_human_readable():
     out = await call("Bash", agent_type="noticias")
     reason = out["hookSpecificOutput"]["permissionDecisionReason"]
     assert "noticias" in reason and len(reason) > 20
+
+
+async def test_background_delegation_is_denied():
+    # En segundo plano, el resultado sería un acuse y no el JSON del frente.
+    out = await call("Agent", tool_input={"subagent_type": "noticias", "run_in_background": True})
+    assert_denied(out, "Agent")
+    ok = await call("Agent", tool_input={"subagent_type": "noticias", "run_in_background": False})
+    assert ok == {}
+
+
+async def test_hook_trace_records_who_called_what(tmp_path, monkeypatch):
+    import json
+
+    trace = tmp_path / "trace.jsonl"
+    monkeypatch.setenv("PASARELA_HOOK_TRACE", str(trace))
+    await call(FRONT_TOOLS[FrontName.NOTICIAS], agent_type="noticias")
+    await call("Bash")
+    rows = [json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines()]
+    assert [(r["tool_name"], r["agent_type"]) for r in rows] == [
+        (FRONT_TOOLS[FrontName.NOTICIAS], "noticias"),
+        ("Bash", None),
+    ]
+    assert [r["decision"] for r in rows] == ["allow", "deny"]
+
+
+async def test_no_trace_file_is_written_by_default(tmp_path, monkeypatch):
+    monkeypatch.delenv("PASARELA_HOOK_TRACE", raising=False)
+    monkeypatch.chdir(tmp_path)
+    await call("Bash")
+    assert list(tmp_path.iterdir()) == []

@@ -62,7 +62,11 @@ def result(
 
 
 class FakeClient:
-    """Cliente falso: cada `query` consume el siguiente turno preparado."""
+    """Cliente falso: cada `query` consume el siguiente turno preparado.
+
+    El flujo del turno es un iterador persistente: si el consumidor lo abandona a medias, lo que
+    queda sin leer sigue ahí, como en el cliente real, hasta que se drene o se interrumpa.
+    """
 
     def __init__(self, turns: list[list[Any]], raise_after: Exception | None = None):
         self._turns = list(turns)
@@ -70,7 +74,9 @@ class FakeClient:
         self.queries: list[str] = []
         self.opened = False
         self.closed = False
-        self._current: list[Any] = []
+        self.interrupted = 0
+        self._stream: Any = iter(())
+        self._raise_pending = False
 
     async def __aenter__(self) -> "FakeClient":
         self.opened = True
@@ -82,13 +88,25 @@ class FakeClient:
 
     async def query(self, prompt: str, session_id: str = "default") -> None:
         self.queries.append(prompt)
-        self._current = self._turns.pop(0)
+        self._stream = iter(self._turns.pop(0))
+        self._raise_pending = self._raise_after is not None
+
+    async def interrupt(self) -> None:
+        self.interrupted += 1
 
     async def receive_response(self) -> AsyncIterator[Any]:
-        for message in self._current:
+        for message in self._stream:
             yield message
-        if self._raise_after is not None:
-            raise self._raise_after
+            if isinstance(message, ResultMessage):
+                break
+        else:
+            if self._raise_pending:
+                self._raise_pending = False
+                raise self._raise_after  # type: ignore[misc]
+            return
+        if self._raise_pending:
+            self._raise_pending = False
+            raise self._raise_after  # type: ignore[misc]
 
 
 class FakeClientFactory:

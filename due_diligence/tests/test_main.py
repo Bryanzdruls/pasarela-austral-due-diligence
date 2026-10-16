@@ -42,3 +42,14 @@ def test_events_are_rendered_readably_with_encargo_and_timestamp():
     assert started.timestamp in line
     assert "ok" in render_event(CoordinatorText("ok"))
     assert "success" in render_event(RunFinished("success", "end_turn", "completed"))
+
+
+async def test_an_sdk_failure_is_reported_without_a_traceback_and_the_exit_code_says_so():
+    factory = FakeClientFactory(
+        [[assistant(text("a medias"))]], raise_after=RuntimeError("se cayó")
+    )
+    read, write, printed = _io(["hola", "salir"])
+    code = await run_cli(read, write, factory, env={"ANTHROPIC_API_KEY": "x"})
+    assert code == 2
+    assert any("se cayó" in line for line in printed)
+    assert factory.created[0].closed

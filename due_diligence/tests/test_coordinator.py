@@ -73,7 +73,6 @@ async def test_ask_outside_a_session_is_an_error():
 # --- US3: orden de eventos de un turno completo y seguimiento (FR-013, SC-004) ---------
 
 import json  # noqa: E402
-import re  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 from due_diligence.events import (  # noqa: E402
@@ -177,32 +176,79 @@ async def test_turns_of_very_different_length_all_end_at_the_result_message():
     assert isinstance(first[-1], RunFinished) and isinstance(second[-1], RunFinished)
 
 
-async def test_max_turns_error_is_reflected_and_an_exception_after_it_is_contained():
-    turn = [
-        assistant(text("parcial")),
-        result(
-            subtype="error_max_turns", stop_reason=None, terminal_reason="max_turns", is_error=True
-        ),
-    ]
-    factory = FakeClientFactory([turn], raise_after=RuntimeError("max turns alcanzado"))
+async def test_a_stream_that_ends_without_a_result_still_closes_the_turn_with_run_finished():
+    factory = FakeClientFactory([[assistant(text("a medias"))]])
     async with DueDiligenceSession(client_factory=factory) as session:
-        events = await _collect(session, "x")  # no debe lanzar
-    finished = events[-1]
-    assert isinstance(finished, RunFinished)
-    assert finished.subtype == "error_max_turns" and finished.stop_reason is None
-    assert finished.terminal_reason == "max_turns"
+        events = await _collect(session, "x")
+    last = events[-1]
+    assert isinstance(last, RunFinished) and last.subtype == "error_stream_ended"
+    assert last.stop_reason is None and last.terminal_reason == "stream_ended"
 
 
-async def test_an_exception_before_any_result_message_is_not_hidden():
+async def test_an_exception_before_a_result_gives_a_terminal_event_and_is_not_hidden():
     factory = FakeClientFactory(
         [[assistant(text("a medias"))]], raise_after=RuntimeError("se cayó")
     )
+    events = []
     async with DueDiligenceSession(client_factory=factory) as session:
         with pytest.raises(RuntimeError, match="se cayó"):
+            async for event in session.ask("x"):
+                events.append(event)
+    last = events[-1]
+    assert isinstance(last, RunFinished) and last.subtype == "error_exception"
+    assert last.terminal_reason == "RuntimeError"
+
+
+async def test_only_the_sdk_result_error_is_contained_after_a_result():
+    from claude_agent_sdk import ResultError
+
+    turn = [assistant(text("parcial")), result(subtype="error_max_turns", is_error=True)]
+    contained = FakeClientFactory([turn], raise_after=ResultError("max turns"))
+    async with DueDiligenceSession(client_factory=contained) as session:
+        events = await _collect(session, "x")
+    assert events[-1].subtype == "error_max_turns"
+
+    other = FakeClientFactory(
+        [[assistant(text("ok")), result()]], raise_after=OSError("transporte")
+    )
+    async with DueDiligenceSession(client_factory=other) as session:
+        with pytest.raises(OSError, match="transporte"):
             await _collect(session, "x")
 
 
-def test_the_loop_code_never_sets_a_turn_limit():
+async def test_an_abandoned_turn_does_not_contaminate_the_next_one():
+    first = [assistant(text("uno")), assistant(text("dos")), assistant(text("tres")), result()]
+    second = [assistant(text("segundo turno")), result()]
+    factory = FakeClientFactory([first, second])
+    async with DueDiligenceSession(client_factory=factory) as session:
+        stream = session.ask("primero")
+        assert (await anext(stream)).text == "uno"
+        await stream.aclose()  # el consumidor abandona a medias
+        events = await _collect(session, "segundo")
+    client = factory.created[0]
+    assert client.interrupted == 1
+    assert [e.text for e in events if isinstance(e, CoordinatorText)] == ["segundo turno"]
+    assert isinstance(events[-1], RunFinished) and events[-1].subtype == "success"
+
+
+async def test_a_completed_turn_does_not_trigger_an_interrupt():
+    factory = FakeClientFactory(
+        [[assistant(text("a")), result()], [assistant(text("b")), result()]]
+    )
+    async with DueDiligenceSession(client_factory=factory) as session:
+        await _collect(session, "1")
+        await _collect(session, "2")
+    assert factory.created[0].interrupted == 0
+
+
+def test_the_session_code_never_passes_a_turn_limit():
+    import ast
+
     root = Path(__file__).resolve().parents[1]
     for name in ("coordinator.py", "options.py"):
-        assert not re.search(r"max_turns\s*=", (root / name).read_text(encoding="utf-8")), name
+        tree = ast.parse((root / name).read_text(encoding="utf-8"))
+        keywords = [
+            k.arg for node in ast.walk(tree) if isinstance(node, ast.Call) for k in node.keywords
+        ]
+        assert "max_turns" not in keywords, name
+        assert "maxTurns" not in keywords, name

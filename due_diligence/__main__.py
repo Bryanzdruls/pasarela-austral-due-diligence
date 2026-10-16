@@ -55,14 +55,18 @@ async def run_cli(
         while True:
             try:
                 line = read("Analista> ").strip()
-            except EOFError:
+            except (EOFError, KeyboardInterrupt):
                 break
             if not line:
                 continue
             if line.lower() == EXIT_WORD:
                 break
-            async for event in session.ask(line):
-                write(render_event(event))
+            try:
+                async for event in session.ask(line):
+                    write(render_event(event))
+            except Exception as exc:  # fallo del SDK: se informa sin traceback y se cierra
+                write(f"Error durante el turno ({type(exc).__name__}): {exc}")
+                return 2
     return 0
 
 

@@ -77,9 +77,20 @@ description: "Tareas del coordinador y subagentes de due diligence"
 ## Phase 7: Cierre y verificación
 
 - [x] T024 Ejecutar `python -m uv run pytest due_diligence mcp_server -q` y `python -m uv run ruff check . && python -m uv run ruff format --check .`; todo en verde
-- [ ] T025 Verificación con modelo real (requiere `ANTHROPIC_API_KEY`): ejecutar la matriz de 5 casos de `quickstart.md` y crear `specs/002-coordinador-subagentes/verification.md` con el resultado **de cada caso** (esperado, observado, aprobado/fallido) y las marcas de tiempo del caso 1; si algo difiere, ajustar `due_diligence/prompts.py` o `due_diligence/guards.py`, repetir y documentar en `research.md`
+- [ ] T025 Verificación con modelo real (requiere `ANTHROPIC_API_KEY`; incluye T035): ejecutar la matriz de 5 casos de `quickstart.md` y crear `specs/002-coordinador-subagentes/verification.md` con el resultado **de cada caso** (esperado, observado, aprobado/fallido) y las marcas de tiempo del caso 1; si algo difiere, ajustar `due_diligence/prompts.py` o `due_diligence/guards.py`, repetir y documentar en `research.md`
 - [ ] T026 Ejecutar `/abrir-pr 2`: revisión independiente con el subagente `code-reviewer` real, corregir hallazgos, abrir el PR que cierra #2 y mover el ticket a In review por el MCP de GitHub
 - [ ] T027 Comentar en el issue #2 lo especificado, lo decidido y lo pendiente (hooks de reglas de negocio → #3; fallas y cobertura parcial → #4; procedencia y ambigüedad → #5; escalamiento → #6); dejar anotado que FR-007 es orientación hasta fusionar el #3
+
+## Phase 8: Correcciones de la revisión independiente (code-reviewer)
+
+- [x] T028 [Bloqueante] Pasar `COORDINATOR_PROMPT` como `system_prompt` en `due_diligence/options.py`; prueba `test_the_coordinator_prompt_is_actually_used`
+- [x] T029 Pre-aprobar las cuatro herramientas de frente en `allowed_tools` (`due_diligence/options.py`), con prueba de que no se pre-aprueba nada más; su efecto real se verifica en T025
+- [x] T030 Cerrar todo turno con `RunFinished` (`error_stream_ended`, `error_exception`), contener solo `ResultError` tras un resultado, e interrumpir y drenar un turno abandonado (`due_diligence/coordinator.py`, `due_diligence/tests/fakes.py`)
+- [x] T031 Validación estricta de resultados de frente y tolerancia a texto previo y bloques extra (`due_diligence/events.py`)
+- [x] T032 Hook: denegar delegación en segundo plano y traza opcional `PASARELA_HOOK_TRACE` (`due_diligence/guards.py`)
+- [x] T033 Verificadores de secuencia: dependencia exige registro completo; un reintento no viola el paralelismo (`due_diligence/events.py`)
+- [x] T034 CLI: informar fallos del SDK sin traceback con código de salida 2 (`due_diligence/__main__.py`)
+- [ ] T035 En T025, ejecutar con `PASARELA_HOOK_TRACE` y anotar en `verification.md` el `agent_type` real que entrega el SDK y si los subagentes pudieron usar sus herramientas MCP
 
 ## Dependencies & Execution Order
 

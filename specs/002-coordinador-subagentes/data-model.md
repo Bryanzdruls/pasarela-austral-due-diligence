@@ -31,14 +31,14 @@ Texto que el coordinador pasa al subagente (el `prompt` de la llamada a la herra
 | `metadatos` | `{fuente, fecha}`; obligatorios |
 | `estado` | `completo` \| `no_estructurado` \| `no_completado` |
 
-`no_estructurado`: la respuesta del subagente no se pudo parsear a este formato. `no_completado`: no hubo resultado (se desarrolla en #4).
+`completo` exige: `contenido` objeto no vacío; `metadatos.fuente` igual a la fuente propia del frente (`registro_mercantil_ficticio`, `listas_restrictivas_ficticias`, `noticias_ficticias`, `catalogo_riesgo_ficticio`); `metadatos.fecha` fecha ISO válida. `no_estructurado`: la respuesta del subagente no cumple eso (el texto original se conserva en `contenido.texto_sin_estructura`). `no_completado`: no hubo resultado (se desarrolla en #4).
 
 ## Eventos de dominio
 Cada evento lleva `timestamp` (UTC, ISO 8601) para poder verificar el orden (SC-004).
 - `SubagentStarted(frente, tool_use_id, encargo)`
 - `SubagentFinished(frente, result: FrontResult | None)`
 - `CoordinatorText(text)` — texto del coordinador (no decide el ciclo)
-- `RunFinished(subtype, stop_reason, terminal_reason)` — último evento de cada turno; proviene de `ResultMessage`
+- `RunFinished(subtype, stop_reason, terminal_reason)` — último evento de cada turno; proviene de `ResultMessage`, o es de error (`subtype` = `error_stream_ended` o `error_exception`) si el SDK no entregó resultado
 
 ## Informe de due diligence (salida del coordinador)
 Texto con una sección por frente, una sección de "Datos aportados por el analista" (categoría declarada y volumen, FR-011) y una recomendación. El registro estructurado del informe y su procedencia completa son los tickets #5 y #6.

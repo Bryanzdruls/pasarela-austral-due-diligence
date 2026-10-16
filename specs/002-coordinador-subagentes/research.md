@@ -73,6 +73,18 @@ Fuente: documentación del Claude Agent SDK para Python consultada el 2026-10-14
 - **Decisión**: la configuración del servidor MCP pone `PYTHONPATH` = raíz del repositorio en su `env`, y `ClaudeAgentOptions.cwd` = raíz del repositorio, para que `python -m mcp_server` funcione sin importar desde dónde se lance el coordinador.
 - **Corrección tras T004**: la primera versión de esta decisión ponía `cwd` dentro de la configuración del servidor, pero `McpStdioServerConfig` no admite `cwd`. El servidor no depende del directorio actual (sus datos y su directorio de ejecución por defecto se resuelven desde la ubicación del archivo), así que `PYTHONPATH` basta para que el módulo sea importable.
 
+## D14. Revisión independiente del ticket (hallazgos y decisiones)
+Revisión hecha por el subagente `code-reviewer` real (solo lectura). Resultado: 1 bloqueante, 7 importantes, 6 menores. Decisiones:
+- **Bloqueante** — `COORDINATOR_PROMPT` no se pasaba al SDK: ahora `system_prompt=COORDINATOR_PROMPT` en `build_options()`, con prueba.
+- **Permisos de herramientas MCP de subagentes**: se pre-aprueban las 4 herramientas de frente en `allowed_tools`; el coordinador sigue sin poder usarlas por el hook. **No verificable offline**: se comprueba en T025 con el modelo real (si fallara, la alternativa es que el hook devuelva `allow` explícito para la herramienta propia del subagente).
+- **Cierre de turno**: todo turno termina con `RunFinished`; los casos sin resultado generan `RunFinished` de error. Solo se contiene `ResultError` (no `Exception`) y solo tras un resultado.
+- **Turno abandonado**: el siguiente `ask` interrumpe y drena antes de continuar.
+- **Resultados de frente**: validación estricta (contenido no vacío, fuente propia del frente, fecha ISO) y tolerante con la forma (texto previo, valla, bloques extra).
+- **Hook**: deniega delegación en segundo plano; traza opcional para fijar con el SDK real el contrato de `agent_type`.
+- **Verificadores de secuencia**: la dependencia exige un registro `completo`; un reintento de un frente no es violación de paralelismo. Siguen siendo verificaciones sobre eventos (no un freno en ejecución): la garantía de FR-007 es el hook del ticket #3.
+- **Descartado**: duplicar frentes lanzados dos veces no se bloquea (un reintento es legítimo); `ANTHROPIC_API_KEY` sigue siendo requisito de la CLI (es el único método de autenticación documentado del SDK).
+- **Sobre las pruebas de ciclo**: la revisión señaló que algunas pasarían con cualquier implementación que consuma todo el flujo. La verificación por mutación demuestra lo contrario: cortar el turno por una palabra de cierre o por un número de mensajes hace fallar esas pruebas.
+
 ## D10. Eventos para la interfaz (ticket #7)
 - **Decisión**: `events.py` emite eventos de dominio: `SubagentStarted`, `SubagentFinished`, `CoordinatorText`, `RunFinished`. La atribución a subagentes usa `parent_tool_use_id` de `AssistantMessage`/`UserMessage` y los bloques `Agent`/`Task`; los hooks `SubagentStart`/`SubagentStop` entregan `agent_type`.
 - **Razón**: `ToolUseBlock` no trae el subagente; la atribución viene en el mensaje.

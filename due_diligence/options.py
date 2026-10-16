@@ -6,8 +6,9 @@ from pathlib import Path
 
 from claude_agent_sdk import ClaudeAgentOptions, HookMatcher
 
-from due_diligence.agents import build_agents
+from due_diligence.agents import FRONT_TOOLS, build_agents
 from due_diligence.guards import tool_guard
+from due_diligence.prompts import COORDINATOR_PROMPT
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SERVER_NAME = "pasarela-fuentes"
@@ -30,9 +31,13 @@ def _mcp_server_config() -> dict:
 
 def build_options() -> ClaudeAgentOptions:
     return ClaudeAgentOptions(
+        system_prompt=COORDINATOR_PROMPT,
         agents=build_agents(),
-        tools=["Agent"],  # restringe el conjunto: el coordinador solo delega
-        allowed_tools=["Agent"],  # solo auto-aprueba; no restringe por sí solo
+        tools=["Agent"],  # restringe el conjunto de herramientas integradas: solo delegar
+        # allowed_tools solo auto-aprueba (no restringe). Las herramientas de frente se
+        # pre-aprueban para que los subagentes puedan usarlas; el hook PreToolUse (deny gana
+        # a allow) impide que el coordinador o un subagente ajeno las use.
+        allowed_tools=["Agent", *FRONT_TOOLS.values()],
         mcp_servers={SERVER_NAME: _mcp_server_config()},
         setting_sources=[],  # no heredar la configuración del proyecto de desarrollo
         hooks={"PreToolUse": [HookMatcher(matcher=None, hooks=[tool_guard])]},

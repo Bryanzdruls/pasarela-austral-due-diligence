@@ -215,3 +215,72 @@ def test_independent_fronts_serialized_is_a_parallelism_violation():
         assistant(agent_call("t3", "riesgo_categoria", "e")),
     )
     assert len(parallelism_violations(events)) >= 1
+
+
+# --- Validación estricta del resultado de frente (hallazgos de la revisión) -------------------
+
+
+def test_an_empty_content_is_not_a_complete_result():
+    f = finished_for(json.dumps({"contenido": {}, "metadatos": VALID["metadatos"]}))
+    assert f.result.estado is FrontStatus.NO_ESTRUCTURADO
+
+
+def test_the_declared_source_must_be_the_source_of_that_front():
+    wrong_meta = {**VALID["metadatos"], "fuente": "registro_mercantil_ficticio"}
+    wrong = {"contenido": {"x": 1}, "metadatos": wrong_meta}
+    f = finished_for(json.dumps(wrong))  # el frente es noticias
+    assert f.result.estado is FrontStatus.NO_ESTRUCTURADO
+
+
+def test_the_date_must_be_a_real_iso_date():
+    for fecha in ("ayer", "2026-13-45", "16/10/2026", ""):
+        bad = {"contenido": {"x": 1}, "metadatos": {"fuente": "noticias_ficticias", "fecha": fecha}}
+        assert finished_for(json.dumps(bad)).result.estado is FrontStatus.NO_ESTRUCTURADO, fecha
+
+
+def test_prose_before_the_json_object_is_tolerated_but_still_validated():
+    f = finished_for("Aquí está el resultado:\n" + json.dumps(VALID))
+    assert f.result.estado is FrontStatus.COMPLETO
+    f = finished_for("Aquí está el resultado:\n" + json.dumps({"contenido": {}, "metadatos": {}}))
+    assert f.result.estado is FrontStatus.NO_ESTRUCTURADO
+
+
+def test_extra_blocks_in_the_tool_result_do_not_hide_a_valid_json_block():
+    events = run(
+        assistant(agent_call("t1", "noticias", "e")),
+        UserMessage(
+            content=[
+                ToolResultBlock(
+                    tool_use_id="t1",
+                    content=[
+                        {"type": "text", "text": json.dumps(VALID)},
+                        {"type": "text", "text": "agentId: abc123 (usage: 1234 tokens)"},
+                    ],
+                )
+            ]
+        ),
+    )
+    assert events[-1].result.estado is FrontStatus.COMPLETO
+    assert events[-1].result.contenido == VALID["contenido"]
+
+
+def test_dependency_requires_a_complete_registry_result():
+    events = run(
+        assistant(agent_call("t1", "registro_mercantil", "e")),
+        tool_result("t1", "no pude estructurar esto"),  # el registro terminó mal formado
+        assistant(agent_call("t4", "listas_restrictivas", "e")),
+    )
+    violations = dependency_violations(events)
+    assert len(violations) == 1 and "completo" in violations[0]
+
+
+def test_retrying_a_front_is_not_a_parallelism_violation():
+    events = run(
+        _three_independent_calls(),
+        tool_result("t1", "mal formado"),
+        assistant(agent_call("t5", "registro_mercantil", "reintento")),  # reintento legítimo
+        tool_result("t2", _valid("noticias")),
+        tool_result("t3", _valid("riesgo_categoria")),
+        tool_result("t5", _valid("registro_mercantil")),
+    )
+    assert parallelism_violations(events) == []

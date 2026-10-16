@@ -1,17 +1,26 @@
+import os
 import subprocess
 import sys
 from pathlib import Path
 
-from due_diligence.agents import build_agents
+from due_diligence.agents import FRONT_TOOLS, build_agents
 from due_diligence.options import REPO_ROOT, build_options
 
 SERVER = "pasarela-fuentes"
 
 
-def test_coordinator_is_restricted_to_the_agent_tool():
+def test_coordinator_toolset_is_only_agent_and_nothing_extra_is_pre_approved():
     o = build_options()
     assert o.tools == ["Agent"]
-    assert o.allowed_tools == ["Agent"]
+    # allowed_tools solo auto-aprueba: Agent y las 4 herramientas de frente (que los subagentes
+    # necesitan para no caer en el flujo de permisos). Nada más: ni integradas ni de salida.
+    assert o.allowed_tools == ["Agent", *FRONT_TOOLS.values()]
+
+
+def test_the_coordinator_prompt_is_actually_used():
+    from due_diligence.prompts import COORDINATOR_PROMPT
+
+    assert build_options().system_prompt == COORDINATOR_PROMPT
 
 
 def test_no_max_turns_and_no_inherited_project_settings():
@@ -65,7 +74,7 @@ def test_server_module_is_importable_from_another_directory(tmp_path):
     proc = subprocess.run(
         [cfg["command"], "-c", "import mcp_server.server"],
         cwd=tmp_path,  # directorio distinto de la raíz del repo
-        env={**cfg["env"], "SYSTEMROOT": __import__("os").environ.get("SYSTEMROOT", "")},
+        env={**os.environ, **cfg["env"]},  # el entorno completo, como lo heredaría el servidor
         capture_output=True,
         text=True,
     )
