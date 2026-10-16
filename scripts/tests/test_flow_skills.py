@@ -111,6 +111,7 @@ def test_the_sync_skill_uses_the_exact_state_names(state):
         "no modifiques nada",  # servidor o toolset no disponibles
         "autorización",  # invocar la skill es la autorización de los cambios
         "todo está al día",  # informe cuando no hay cambios
+        "refs #",  # un PR que solo referencia no cierra el ticket
     ],
 )
 def test_the_sync_skill_describes_its_rules(fragment):

@@ -69,6 +69,7 @@ def test_the_skill_forks_and_declares_its_tools_and_argument():
     meta = frontmatter(read("skills/revisar-cumplimiento/SKILL.md"))
     assert meta["name"] == "revisar-cumplimiento"
     assert meta["context"] == "fork"
+    assert meta["agent"] == "pasarela-revision:compliance-reviewer"  # nombre completo
     assert meta["allowed-tools"].split() == ["Read", "Grep", "Glob"]
     assert meta["argument-hint"]
 

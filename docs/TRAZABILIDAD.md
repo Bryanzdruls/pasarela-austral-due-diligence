@@ -63,12 +63,12 @@ La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el mo
 |---|---|---|---|
 | P1 | Repo y Project con campo de estado (Todo, In progress, In review, Done) | Hecho | Project nº 4 con las cuatro opciones |
 | P2 | Backlog propio: un issue por funcionalidad, añadidos al Project | Hecho | Issues #1 a #11, todos en el Project |
-| P3 | Servidor MCP de GitHub en Claude Code con el toolset `projects` habilitado | En rama | `.mcp.json` en rama `009` (commit `66ec80b`), con la cabecera `X-MCP-Toolsets: default,projects` y el token por variable de entorno. Comprobado en uso: se movieron tickets con `projects_write` |
-| P4 | Claude Code toma el siguiente ticket del Project y lo usa como insumo de `/speckit.specify` | **Falta** | Hoy lo hago a mano; automatización en el ticket #10 |
-| P5 | Al iniciar un ticket lo mueve a In progress; al abrir el PR, a In review; al fusionar, a Done | Parcial | Se movieron #1 (In review, Done) y #2 (In progress) con el MCP, a petición; `/abrir-pr` describe el paso a In review. Sin automatismo completo (#10) |
+| P3 | Servidor MCP de GitHub en Claude Code con el toolset `projects` habilitado | Hecho | `.mcp.json` en rama `009` (commit `66ec80b`), con la cabecera `X-MCP-Toolsets: default,projects` y el token por variable de entorno. Comprobado en uso: se movieron tickets con `projects_write` (en `main`, PR #13) |
+| P4 | Claude Code toma el siguiente ticket del Project y lo usa como insumo de `/speckit.specify` | En rama | Skill `/siguiente-ticket` (rama `010`): elige el ticket por el orden del proyecto, lo pasa a `In Progress` por el MCP y entrega su contenido como insumo de `/speckit-specify`. Probada contra el Project real: con #2 y #10 en progreso se detiene y pide confirmación |
+| P5 | Al iniciar un ticket lo mueve a In progress; al abrir el PR, a In review; al fusionar, a Done | En rama | `/siguiente-ticket` (a `In Progress`), `/abrir-pr` ampliado (a `In review` y comentario Especificado/Decidido/Pendiente por el MCP) y `/sincronizar-tickets` (a `Done` al fusionar, idempotente; ejecutada sobre el estado real sin cambios). Done se registra al sincronizar, no en el instante de la fusión; el ciclo completo del #10 se cierra tras su fusión (T033) |
 | P6 | Cada PR referencia y cierra su issue | Hecho | PR #12 cierra #1 |
 | P7 | El issue recibe comentarios de avance (qué se especificó, decidió y quedó pendiente) | Hecho | Comentarios en #1 y #2; el cierre del #2 está pendiente |
-| P8 | Automatización por comando, skill, subagente, hook o combinación | Parcial | `/abrir-pr` (en `main`); falta el flujo de siguiente ticket y los hooks (#10) |
+| P8 | Automatización por comando, skill, subagente, hook o combinación | En rama | Combinación de skills (`siguiente-ticket`, `sincronizar-tickets`) y comando (`/abrir-pr`) con `allowed-tools` limitadas al MCP de GitHub; verificadas por `scripts/tests/test_flow_skills.py` y el verificador del ecosistema |
 | P9 | Un evaluador puede reconstruir el avance solo mirando GitHub | En curso | Se valida al final |
 
 ## 5. Ecosistema de Claude Code (mínimos)
@@ -77,30 +77,30 @@ Los comandos que instala Spec Kit no cuentan. Cada pieza se justifica en `DECISI
 
 | ID | Mínimo | Estado | Evidencia / pendiente |
 |---|---|---|---|
-| E1 | `CLAUDE.md` con jerarquía correcta (`@import` o uno por subdirectorio, justificado) | En rama | `CLAUDE.md` raíz con `@docs/convenciones.md` y `CLAUDE.md` en `mcp_server/` y `due_diligence/` (rama `009`) |
-| E2 | 2 reglas en `.claude/rules/`, al menos 2 con `paths` | En rama | `.claude/rules/`: `datos-ficticios.md`, `specs.md`, `tests.md`, las tres con `paths` (rama `009`) |
-| E3 | 2 subagentes con herramientas restringidas a su rol | En rama | `code-reviewer` y `compliance-reviewer`, ambos solo con Read, Grep y Glob (rama `009`) |
-| E4 | 2 skills; entre todas usan `context: fork`, `allowed-tools` y `argument-hint` | En rama | `revisar-cumplimiento` (`context: fork`) y `verificar-ecosistema` (`allowed-tools`, `argument-hint`) (rama `009`) |
-| E5 | 2 hooks: uno que bloquea antes de ejecutar y uno posterior a una edición | En rama | 4 hooks en `.claude/settings.json`: 3 `PreToolUse` y 1 `PostToolUse`; pruebas de los hooks y mutaciones detectadas (`specs/009-*/verification.md`) |
+| E1 | `CLAUDE.md` con jerarquía correcta (`@import` o uno por subdirectorio, justificado) | Hecho | `CLAUDE.md` raíz con `@docs/convenciones.md` y `CLAUDE.md` en `mcp_server/` y `due_diligence/` (rama `009`) (en `main`, PR #13) |
+| E2 | 2 reglas en `.claude/rules/`, al menos 2 con `paths` | Hecho | `.claude/rules/`: `datos-ficticios.md`, `specs.md`, `tests.md`, las tres con `paths` (rama `009`) (en `main`, PR #13) |
+| E3 | 2 subagentes con herramientas restringidas a su rol | Hecho | `code-reviewer` y `compliance-reviewer`, ambos solo con Read, Grep y Glob (rama `009`) (en `main`, PR #13) |
+| E4 | 2 skills; entre todas usan `context: fork`, `allowed-tools` y `argument-hint` | Hecho | `revisar-cumplimiento` (`context: fork`) y `verificar-ecosistema` (`allowed-tools`, `argument-hint`) (rama `009`) (en `main`, PR #13) |
+| E5 | 2 hooks: uno que bloquea antes de ejecutar y uno posterior a una edición | Hecho | 4 hooks en `.claude/settings.json`: 3 `PreToolUse` y 1 `PostToolUse`; pruebas de los hooks y mutaciones detectadas (`specs/009-*/verification.md`) (en `main`, PR #13) |
 | E6 | 1 comando propio compartido por control de versiones | Hecho | `.claude/commands/abrir-pr.md` (en `main`) |
 | E7 | 2 servidores MCP (GitHub y el propio), sin credenciales en el repo | En rama | `.mcp.json` (rama `009`); sin credenciales. **Sin verificar** que `pasarela-fuentes` arranque: se lanza con `python -m uv run` y `uv` no está instalado en el equipo del autor |
-| E8 | 1 plugin con al menos 1 subagente, 1 skill y 1 hook reutilizables | **Falta** | Ticket #10 |
+| E8 | 1 plugin con al menos 1 subagente, 1 skill y 1 hook reutilizables | En rama | `plugins/pasarela-revision/` con subagente `compliance-reviewer`, skill `revisar-cumplimiento` y hook `real_data_guard`; `claude plugin validate --strict` sin avisos (rama `010`). El hook **no** se vio disparar en una sesión real con modelo (sin crédito); lo cubren sus pruebas, la paridad con el hook del proyecto y 5 mutaciones detectadas |
 
 Necesidades que el ecosistema debe resolver:
 
 | ID | Necesidad | Estado | Mecanismo previsto / evidencia |
 |---|---|---|---|
-| N1 | Convenciones del equipo al clonar el repositorio | En rama | `CLAUDE.md` de proyecto y `docs/convenciones.md` |
-| N2 | Preferencias personales no afectan a compañeros | En rama | `.gitignore` ignora `CLAUDE.local.md` y `.claude/settings.local.json`; el `CLAUDE.md` compartido es el contraste |
-| N3 | Tests junto al código, en muchas carpetas, con las mismas convenciones | En rama | Regla `.claude/rules/tests.md` con `paths` |
-| N4 | No se escribe código de un ticket sin su especificación en `specs/` | En rama | Hook `spec_gate.py`; bloqueo comprobado en Claude Code real |
-| N5 | Ningún archivo con forma de documento, NIT o tarjeta reales | En rama | Hook `real_data_guard.py`; bloqueo comprobado en Claude Code real |
-| N6 | Los archivos de secretos y variables de entorno no se leen ni modifican | En rama | `permissions.deny` y hook `secrets_guard.py` (incluye `Bash`); bloqueos comprobados en Claude Code real |
-| N7 | El código queda formateado tras cada edición | En rama | Hook `format_after_edit.py` (`ruff format`); comprobado en Claude Code real |
-| N8 | Revisión independiente antes de abrir un PR | En rama | `/abrir-pr` lanza `code-reviewer` y `compliance-reviewer` en contexto aislado |
-| N9 | Revisión de cumplimiento de las reglas de negocio | En rama | Subagente `compliance-reviewer` y skill `revisar-cumplimiento` |
-| N10 | Estado de los tickets sincronizado sin intervención manual | **Falta** | Skill o comando de flujo de tickets (#10) |
-| N11 | Otro equipo puede instalar las piezas reutilizables | **Falta** | Plugin y marketplace (#10) |
+| N1 | Convenciones del equipo al clonar el repositorio | Hecho | `CLAUDE.md` de proyecto y `docs/convenciones.md` (en `main`, PR #13) |
+| N2 | Preferencias personales no afectan a compañeros | Hecho | `.gitignore` ignora `CLAUDE.local.md` y `.claude/settings.local.json`; el `CLAUDE.md` compartido es el contraste (en `main`, PR #13) |
+| N3 | Tests junto al código, en muchas carpetas, con las mismas convenciones | Hecho | Regla `.claude/rules/tests.md` con `paths` (en `main`, PR #13) |
+| N4 | No se escribe código de un ticket sin su especificación en `specs/` | Hecho | Hook `spec_gate.py`; bloqueo comprobado en Claude Code real (en `main`, PR #13) |
+| N5 | Ningún archivo con forma de documento, NIT o tarjeta reales | Hecho | Hook `real_data_guard.py`; bloqueo comprobado en Claude Code real (en `main`, PR #13) |
+| N6 | Los archivos de secretos y variables de entorno no se leen ni modifican | Hecho | `permissions.deny` y hook `secrets_guard.py` (incluye `Bash`); bloqueos comprobados en Claude Code real (en `main`, PR #13) |
+| N7 | El código queda formateado tras cada edición | Hecho | Hook `format_after_edit.py` (`ruff format`); comprobado en Claude Code real (en `main`, PR #13) |
+| N8 | Revisión independiente antes de abrir un PR | Hecho | `/abrir-pr` lanza `code-reviewer` y `compliance-reviewer` en contexto aislado (en `main`, PR #13) |
+| N9 | Revisión de cumplimiento de las reglas de negocio | Hecho | Subagente `compliance-reviewer` y skill `revisar-cumplimiento` (en `main`, PR #13) |
+| N10 | Estado de los tickets sincronizado sin intervención manual | En rama | Skills `siguiente-ticket` y `sincronizar-tickets` y `/abrir-pr` ampliado (rama `010`). Sin intervención manual para mover tarjetas; Done al sincronizar. El caso 'servidor o toolset no disponibles' solo está verificado en el texto de la skill |
+| N11 | Otro equipo puede instalar las piezas reutilizables | En rama | Catálogo `.claude-plugin/marketplace.json` (`pasarela-austral`) y plugin `pasarela-revision`: instalado en un repositorio ajeno y desinstalado sin residuos en 5 s (rama `010`) |
 
 ## 6. Sistema multi-agente y servidor MCP
 
@@ -176,6 +176,7 @@ Cosas hechas de forma distinta a lo que pide el enunciado o a lo que se acordó,
 5. **La revisión independiente del #1 la hizo un agente genérico**, porque el `code-reviewer` no estaba cargado en esa sesión.
 6. **La rama del #2 solo existe en el equipo local.**
 7. **Ticket #9 (nota):** el ecosistema se construyó con el orden #9 → #10 → #2 (ecosistema, luego plugin y flujo de tickets, luego el coordinador). Las verificaciones con Claude Code real están en `specs/009-ecosistema-claude-code/verification.md`; quedan **sin verificar** `/hooks` y `/memory` (interactivos) y la conexión del servidor `pasarela-fuentes`, que falló en la sesión.
+8. **Ticket #10 (nota):** el flujo de tickets y el plugin quedan en la rama `010`. El #9 y el #10 se ejecutaron en ese orden, como fija la constitución (v1.1.1); ningún ticket de funcionalidad se fusiona antes de que el #10 esté fusionado. Quedan **sin verificar** el disparo real del hook del plugin en una sesión con modelo (`claude -p` devolvió `Credit balance is too low`) y el comportamiento de las skills con el servidor o el toolset no disponibles. Las evidencias están en `specs/010-automatizacion-project-plugin/verification.md`.
 
 ## 10. Resumen
 
@@ -183,12 +184,12 @@ Requisitos trazados: **84** (reglas generales, reglas de negocio, Spec Kit, GitH
 
 | Estado | Cantidad |
 |---|---|
-| Hecho | 24 |
+| Hecho | 39 |
 | Hecho (en main o en rama) | 3 |
-| En rama | 20 |
-| Parcial | 11 |
-| Falta | 23 |
+| En rama | 11 |
+| Parcial | 9 |
+| Falta | 19 |
 | Otro: En curso | 2 |
 | Otro: Pendiente | 1 |
 
-Última actualización: 2026-10-16, al terminar el ticket #9 (pendiente de fusión). Se actualiza al cerrar cada ticket.
+Última actualización: 2026-10-16, al preparar el PR del ticket #10 (pendiente de fusión; E7 lo actualiza el PR #14). Se actualiza al cerrar cada ticket.

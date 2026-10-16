@@ -2,7 +2,7 @@
 name: revisar-cumplimiento
 description: Lanza la revisión independiente de cumplimiento de las reglas de negocio de la pasarela sobre el código y la especificación de un cambio, en un contexto aislado. Úsala antes de abrir un pull request o para saber si una regla depende solo de un prompt.
 context: fork
-agent: compliance-reviewer
+agent: pasarela-revision:compliance-reviewer
 allowed-tools: Read Grep Glob
 argument-hint: <ticket>
 ---
