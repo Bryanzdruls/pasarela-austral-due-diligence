@@ -1,0 +1,14 @@
+{
+  "name": "pasarela-austral",
+  "description": "Plugins reutilizables del equipo de riesgo de Pasarela Austral",
+  "owner": {
+    "name": "Equipo de riesgo - Pasarela Austral"
+  },
+  "plugins": [
+    {
+      "name": "pasarela-revision",
+      "source": "./plugins/pasarela-revision",
+      "description": "Revisión de cumplimiento de las reglas de la pasarela y protección contra datos con forma de reales"
+    }
+  ]
+}
