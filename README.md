@@ -52,7 +52,7 @@ python -m uv run python -m mcp_server       # el servidor MCP de fuentes por std
 python -m uv run pytest -q
 ```
 
-Son más de 1.500 pruebas, sin modelo y sin clave: usan un cliente falso, los datos ficticios reales y los hooks de producción. Con `python -m uv run ruff check .` se comprueba el estilo.
+Son más de 1.500 pruebas, sin modelo y sin clave: usan un cliente falso, los datos ficticios reales y los hooks de producción. Tardan unos tres minutos; para una comprobación rápida, `python -m uv run pytest due_diligence/tests/test_casos_obligatorios.py -q` corre los siete casos en segundos. Con `python -m uv run ruff check .` se comprueba el estilo.
 
 ## Los siete casos
 

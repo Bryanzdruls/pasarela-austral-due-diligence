@@ -44,3 +44,24 @@ Los casos 1 a 5 y 7 sumaron 301,6 s en serie; con el 6 y el reinicio de la inter
 
 ## Verificación final única (T023 a T026, hallazgo I1 del análisis)
 `python scripts/verify_delivery.py --build --final` ejecuta ahora, además del enlace del video, las comprobaciones de `verify_docs.py` **sobre el contenido del zip** (no sobre el árbol de trabajo): una sola orden dice si se puede entregar. Pruebas primero: 4 fallaron por la razón esperada (`CHECK_DOCS` no existía) y la que comprueba que sin `--final` no existe ya pasaba. Tras implementarlo, 126 pruebas en verde entre `test_verify_delivery.py` y `test_docs.py`.
+
+## SC-001: los pasos del README en una copia limpia (T027)
+Se siguieron los pasos del README tal cual en una copia limpia (`git clone` de la rama a un directorio temporal, que se borró después), en esta máquina de desarrollo:
+
+| Paso | Tiempo |
+|---|---|
+| `git clone` | 2 s |
+| `python -m uv sync` | 2 s |
+| `python -m uv run pytest -q` | 185 s (1.654 pruebas en verde, sin clave) |
+| Arrancar la interfaz y comprobar que responde (`/api/estado` y la página, HTTP 200) | 3 s |
+| **Total** | **≈ 192 s (3 min 12 s)** |
+
+**Cumple** el límite de cinco minutos con 1 min 48 s de margen. **Límites de la medida:** la caché de `uv` estaba caliente (en un equipo sin caché, la instalación tarda más: no se midió); un equipo más lento que este alargaría las pruebas, que son el 96 % del tiempo. Por eso el README ofrece una comprobación rápida (los siete casos sin modelo, en segundos). La interfaz arranca sin clave y solo avisa de que faltará para conversar. No se probó en Linux ni macOS.
+
+## Verificación por mutación de los comprobadores (T028)
+24 mutaciones (14 de `verify_delivery.py` y 9 de `verify_docs.py`, más un control): historial sin comprobar, entornos virtuales y cachés aceptados, tamaño que nunca falla y límite subido a 60 MB, archivo de entorno local y plantilla con valor aceptados, contenido sin escanear, historial sin escanear, nombres y contenido sin comparar con el último commit, enlace con `PENDIENTE` contado como publicado, `--final` sin documentos, detalle que repite el valor, `--build` que empaqueta lo no versionado, fila repetida de `DECISIONES.md`, código contado como palabras, rutas sin comprobar, tiempos sumados a cero, límite de palabras subido, secciones del README no exigidas, enlace al Project no exigido, guion que puede pasarse de cinco minutos y caso sin su identificador. **Todas detectadas; el control sin mutación pasa.**
+
+Una sobrevivió la primera vez (**D1**, no detectar la falta de `.git/HEAD` y `.git/objects/`): sin esos archivos otra ruta del código también falla (la lectura del historial), pero con un mensaje peor. El efecto era el mismo y el mensaje no. Se endureció la prueba para exigir que el detalle diga qué falta (`falta … HEAD … .git/objects/`) y la mutación pasó a detectarse.
+
+## Trazabilidad (T029)
+`docs/TRAZABILIDAD.md`: D2 y D3 a Hecho, D5 (zip) y D6 (video) a Parcial con lo que queda en manos de la persona, la nota del ticket #11 y el resumen recalculado (Hecho 70, Parcial 5, Falta 2).

@@ -149,11 +149,11 @@ Casos de prueba que el repositorio debe incluir y pasar:
 | ID | Requisito | Estado | Evidencia / pendiente |
 |---|---|---|---|
 | D1 | Repositorio y Project con el historial real, sin reescribirlo | En curso | Historial intacto hasta hoy |
-| D2 | README: correr sistema y tests en menos de 5 minutos, enlace al Project y al video de funcionamiento | **Falta** | Ticket #11 |
-| D3 | `DECISIONES.md` de máximo dos páginas con mecanismo y motivo por necesidad | **Falta** | Ticket #11 |
+| D2 | README: correr sistema y tests en menos de 5 minutos, enlace al Project y al video de funcionamiento | Hecho | `README.md`, comprobado por `scripts/verify_docs.py` y vigilado por `pytest`; los pasos se midieron en una copia limpia: ≈ 3 min 12 s (`specs/011-readme-decisiones-videos/verification.md`). El enlace al video consta como `PENDIENTE` hasta que la persona lo publique |
+| D3 | `DECISIONES.md` de máximo dos páginas con mecanismo y motivo por necesidad | Hecho | `DECISIONES.md`: las once necesidades con mecanismo, porqué y alternativa descartada, 571 palabras de 1.000 (la medida de «dos páginas», declarada como sustituto); sus rutas se comprueban por máquina |
 | D4 | Artefactos de Spec Kit versionados | Hecho / En rama | Ver S8 |
-| D5 | Zip con `.git`, sin dependencias instaladas, máximo 50 MB, **sin `.env` ni credenciales** | **Falta** | Se arma al final (#11); el escaneo de secretos se hace a mano antes de cada commit; `scripts/tests/test_no_credentials.py` lo repite sobre la configuración |
-| D6 | Video de funcionamiento de máximo 5 minutos, con los casos obligatorios en la interfaz de chat, público y enlazado en el README | **Falta** | Interfaz y casos listos (#7 en rama, #8 en `main`); falta grabar el video (#11); requiere `ANTHROPIC_API_KEY` |
+| D5 | Zip con `.git`, sin dependencias instaladas, máximo 50 MB, **sin `.env` ni credenciales** | Parcial | `python scripts/verify_delivery.py --build --final` arma el zip desde lo versionado más `.git` y lo verifica (historial, dependencias, 50.000.000 bytes, archivos de entorno, credenciales en archivos y en el historial, coincidencia con el último commit y documentos). Sobre el repositorio real: ≈ 3,4 MB. **Falta que la persona genere el zip final, lo verifique con `--final` y lo suba** |
+| D6 | Video de funcionamiento de máximo 5 minutos, con los casos obligatorios en la interfaz de chat, público y enlazado en el README | Parcial | Interfaz (#7) y casos (#8) listos; `docs/VIDEO.md` es el guion (4:35 de 5:00), ensayado con el modelo real y comprobado por máquina. **Falta que la persona lo grabe, lo publique y pegue el enlace en el README** |
 | D7 | Video de defensa de máximo 15 minutos: ecosistema, especificaciones y sistema | **Falta** | A cargo del autor; requiere que todo lo anterior exista |
 | D8 | Revisión de autoría: la explicación coincide con el código | Pendiente | Depende del autor (explicar *este* código) |
 
@@ -179,18 +179,20 @@ Cosas hechas de forma distinta a lo que pide el enunciado o a lo que se acordó,
 8. **Ticket #10 (nota):** el flujo de tickets y el plugin quedan en la rama `010`. El #9 y el #10 se ejecutaron en ese orden, como fija la constitución (v1.1.1); ningún ticket de funcionalidad se fusiona antes de que el #10 esté fusionado. Queda **sin verificar** el comportamiento de las skills con el servidor o el toolset no disponibles; el hook del plugin y la skill se comprobaron en una sesión real (con el inicio de sesión de claude.ai: la variable `ANTHROPIC_API_KEY` actual devuelve `Invalid API key`). Las evidencias están en `specs/010-automatizacion-project-plugin/verification.md`.
 9. **Ticket #3 (nota):** los hooks de las reglas 1 a 3 quedan en la rama `003`. La verificación con modelo real mostró que el modelo respeta su prompt en el flujo normal, así que las denegaciones se ejercieron con un prompt de sistema de prueba que le ordena violar cada regla (los hooks son los de producción). Queda **sin verificar** con una `ANTHROPIC_API_KEY` válida (se usó el inicio de sesión de claude.ai) y la regla 3 por la categoría declarada se detecta con raíces de la lista, no con sinónimos.
 
+10. **Ticket #11 (nota):** el README, `DECISIONES.md`, el guion del video y los dos comprobadores (`scripts/verify_docs.py` y `scripts/verify_delivery.py`) están listos. Lo que el ticket no puede hacer y queda **en manos de la persona**: grabar y publicar el video de funcionamiento y pegar su enlace en el README, generar y subir el zip final (verificándolo con `python scripts/verify_delivery.py --build --final`), invitar a los evaluadores al repositorio y al Project, y grabar el video de defensa. Ensayo con el modelo real: los casos tardan entre 38 y 60 segundos cada uno, así que el video necesita acelerar las esperas al editar.
+
 ## 10. Resumen
 
 Requisitos trazados: **84** (reglas generales, reglas de negocio, Spec Kit, GitHub, ecosistema, sistema, casos de prueba y entregables).
 
 | Estado | Cantidad |
 |---|---|
-| Hecho | 68 |
+| Hecho | 70 |
 | Hecho (en main o en rama) | 3 |
 | En rama | 1 |
-| Parcial | 3 |
-| Falta | 6 |
+| Parcial | 5 |
+| Falta | 2 |
 | Otro: En curso | 2 |
 | Otro: Pendiente | 1 |
 
-Última actualización: 2026-10-17, al preparar el PR del ticket #7 (pendiente de fusión); los casos C1 a C7 pasan a Hecho porque el #8 ya está fusionado (PR #21). Se actualiza al cerrar cada ticket.
+Última actualización: 2026-10-17, al preparar el PR del ticket #11 (pendiente de fusión); D2 y D3 pasan a Hecho y D5 y D6 a Parcial. Se actualiza al cerrar cada ticket.

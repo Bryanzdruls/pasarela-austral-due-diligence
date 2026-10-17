@@ -108,7 +108,9 @@ def test_a_complete_archive_passes_every_check(zip_ok):
 def test_an_archive_without_history_fails(zip_ok, tmp_path):
     sin = editar(zip_ok, tmp_path / "sin.zip", quitar=(".git/",))
     problemas = fallos(d.check_zip(sin))
-    assert d.CHECK_HISTORY in problemas and ".git" in problemas[d.CHECK_HISTORY]
+    detalle = problemas[d.CHECK_HISTORY]
+    assert ".git" in detalle and detalle.startswith("falta") and "HEAD" in detalle
+    assert ".git/objects/" in detalle  # dice qué falta, no solo que no se puede leer
 
 
 def test_a_corrupt_history_fails_even_if_the_files_are_there(zip_ok, tmp_path):
