@@ -804,3 +804,68 @@ async def test_an_unreadable_state_denies_the_escalation_fail_closed():
     output = await run(book, ESCALAR, resumen_oficial(), agent_type=None)
     assert decision_of(output) == "deny"
     assert "no pudo evaluarse" in reason_of(output)
+
+
+# --------------------------------------------------------------------------- on_decision (#7)
+
+
+async def test_on_decision_is_called_only_for_denials_with_the_real_rule_and_reason():
+    seen = []
+    hook = make_pre_tool_use(CaseBook(), on_decision=lambda data, d: seen.append((data, d)))
+    denied = await hook(
+        pre_input(
+            "consultar_listas_restrictivas", {"tipo": "comercio", "referencia": "CO-XX-0001"}
+        ),
+        "tu_1",
+        None,
+    )
+    assert decision_of(denied) == "deny"
+    assert len(seen) == 1
+    data, decision = seen[0]
+    assert data["agent_type"] == "listas_restrictivas"
+    assert decision.rule == "1" and "Regla 1" in decision.reason
+    assert decision.reason == reason_of(denied)
+
+    # una llamada ajena a las reglas o permitida no dispara nada
+    assert await hook(pre_input("Agent", {"subagent_type": "noticias"}), "tu_1", None) == {}
+    assert len(seen) == 1
+
+
+async def test_on_decision_failing_does_not_change_the_denial():
+    def boom(data, decision):
+        raise RuntimeError("la interfaz falló")
+
+    hook = make_pre_tool_use(CaseBook(), on_decision=boom)
+    out = await hook(
+        pre_input(
+            "consultar_listas_restrictivas", {"tipo": "comercio", "referencia": "CO-XX-0001"}
+        ),
+        "tu_1",
+        None,
+    )
+    assert decision_of(out) == "deny" and "Regla 1" in reason_of(out)
+
+
+async def test_without_on_decision_the_behavior_is_the_same():
+    args = pre_input("consultar_listas_restrictivas", {"tipo": "comercio", "referencia": "CO-1"})
+    plain = await make_pre_tool_use(CaseBook())(args, "tu_1", None)
+    observed = await make_pre_tool_use(CaseBook(), on_decision=lambda *_: None)(args, "tu_1", None)
+    assert plain == observed
+
+
+async def test_on_decision_also_hears_the_fail_closed_denial_with_the_evaluation_rule():
+    book = CaseBook()
+
+    def explota(tool_input):
+        raise ValueError("fallo interno")
+
+    book.check_listas = explota
+    seen = []
+    hook = make_pre_tool_use(book, on_decision=lambda data, d: seen.append(d))
+    out = await hook(
+        pre_input("consultar_listas_restrictivas", {"tipo": "comercio", "referencia": "CO-1"}),
+        "tu_1",
+        None,
+    )
+    assert decision_of(out) == "deny"
+    assert [d.rule for d in seen] == ["evaluacion"] and "fallo interno" in seen[0].reason

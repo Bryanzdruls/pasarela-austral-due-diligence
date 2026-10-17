@@ -1,0 +1,166 @@
+[
+ {
+  "n": 1,
+  "tipo": "analista",
+  "titulo": "Analista",
+  "detalle": "Necesito el due diligence de Libros del Faro SAS, identificador CO-LB-0002.",
+  "hora": "2026-10-17T02:26:27.934375+00:00",
+  "extra": {}
+ },
+ {
+  "n": 2,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "Lanzo en paralelo el registro mercantil y las noticias. No me indicaste la categoría de negocio, así que el frente de riesgo espera a ver si el registro la informa.",
+  "hora": "2026-10-17T02:26:42.793964+00:00",
+  "extra": {}
+ },
+ {
+  "n": 3,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el registro mercantil",
+  "detalle": "Identifica en el registro mercantil al comercio \"Libros del Faro SAS\", identificador CO-LB-0002. Devuelve existencia, fecha(s) de constitución con su origen, representante legal (nombre e identificador), estado y actividad o categoría de negocio si el registro la informa. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:26:44.625695+00:00",
+  "extra": {
+   "frente": "registro_mercantil"
+  }
+ },
+ {
+  "n": 4,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las noticias",
+  "detalle": "Busca menciones en el corpus de noticias del comercio \"Libros del Faro SAS\", identificador CO-LB-0002. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:26:45.681508+00:00",
+  "extra": {
+   "frente": "noticias"
+  }
+ },
+ {
+  "n": 5,
+  "tipo": "resultado",
+  "titulo": "Respondió el registro mercantil",
+  "detalle": "Fuente: registro_mercantil_ficticio. Fecha: 2026-10-17T02:26:47+00:00.",
+  "hora": "2026-10-17T02:26:50.878922+00:00",
+  "extra": {
+   "frente": "registro_mercantil",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 6,
+  "tipo": "resultado",
+  "titulo": "Falló las noticias",
+  "detalle": "Motivo: sin detalle. Se puede reintentar.",
+  "hora": "2026-10-17T02:26:52.174215+00:00",
+  "extra": {
+   "frente": "noticias",
+   "estado": "fallido"
+  }
+ },
+ {
+  "n": 7,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "El registro identificó un único comercio. Ahora lanzo listas y riesgo (con la categoría que informa el registro) y reintento noticias una vez, porque el error es reintentable.",
+  "hora": "2026-10-17T02:26:53.909529+00:00",
+  "extra": {}
+ },
+ {
+  "n": 8,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las listas restrictivas",
+  "detalle": "Verifica contra las listas restrictivas al comercio con identificador CO-LB-0002 (tipo comercio) y a su representante legal con identificador PE-0002 (tipo persona). Responde con un objeto JSON con `contenido` (resultado para cada uno) y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:26:55.447895+00:00",
+  "extra": {
+   "frente": "listas_restrictivas"
+  }
+ },
+ {
+  "n": 9,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el riesgo de la categoría",
+  "detalle": "Consulta el nivel de riesgo de la categoría de negocio \"libreria\" (comercio CO-LB-0002). Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:26:56.650092+00:00",
+  "extra": {
+   "frente": "riesgo_categoria"
+  }
+ },
+ {
+  "n": 10,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las noticias",
+  "detalle": "Busca menciones en el corpus de noticias del comercio \"Libros del Faro SAS\", identificador CO-LB-0002. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:26:57.742670+00:00",
+  "extra": {
+   "frente": "noticias"
+  }
+ },
+ {
+  "n": 11,
+  "tipo": "bloqueo",
+  "titulo": "Llamada bloqueada",
+  "detalle": "Cada consulta se reintenta como máximo una vez. Motivo: No se vuelve a consultar la fuente de noticias: ya se reintentó una vez y volvió a fallar. Qué hacer: no la llames otra vez; responde con el error estructurado (frente, lo obtenido y si es reintentable) y el frente se declarará sin cubrir en el informe.",
+  "hora": "2026-10-17T02:27:00.373673+00:00",
+  "extra": {
+   "regla": "reintento",
+   "agente": "noticias"
+  }
+ },
+ {
+  "n": 12,
+  "tipo": "resultado",
+  "titulo": "Respondió el riesgo de la categoría",
+  "detalle": "Fuente: catalogo_riesgo_ficticio. Fecha: 2026-10-17T02:26:59+00:00.",
+  "hora": "2026-10-17T02:27:01.538632+00:00",
+  "extra": {
+   "frente": "riesgo_categoria",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 13,
+  "tipo": "resultado",
+  "titulo": "Respondió las listas restrictivas",
+  "detalle": "Fuente: listas_restrictivas_ficticias. Fecha: 2026-10-17T02:26:58+00:00.",
+  "hora": "2026-10-17T02:27:01.610648+00:00",
+  "extra": {
+   "frente": "listas_restrictivas",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 14,
+  "tipo": "resultado",
+  "titulo": "No se pudo dar por completo las noticias",
+  "detalle": "La respuesta del frente no tenía la forma esperada; no se toma como completa.",
+  "hora": "2026-10-17T02:27:04.430207+00:00",
+  "extra": {
+   "frente": "noticias",
+   "estado": "no_estructurado"
+  }
+ },
+ {
+  "n": 15,
+  "tipo": "informe",
+  "titulo": "Informe INF-0001 registrado",
+  "detalle": "Comercio CO-LB-0002. Recomendación: no habilitar.",
+  "hora": "2026-10-17T02:27:11.335922+00:00",
+  "extra": {}
+ },
+ {
+  "n": 16,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "## Due diligence: Libros del Faro SAS (CO-LB-0002), informe INF-0001\n\n**Recomendación: `no_habilitar`.** El informe está incompleto: no pudimos consultar las noticias. La fuente falló dos veces (una consulta y un reintento), así que ese frente queda **sin cubrir**. No hay ningún hallazgo que justifique escalar a cumplimiento, por eso no lo escalé.\n\n### Registro mercantil (fuente: `registro_mercantil_ficticio`, consulta del 2026-10-17)\n- Encontró un único comercio: Libros del Faro SAS, NIT FICT-1002. Está **activo**.\n- Se constituyó el 2018-02-01. Solo hay un origen para este dato, así que no hay contradicciones.\n- Representante legal: Tomás Ficticio Vega (PE-0002, documento FICT-0002).\n- Categoría registrada: librería. Volumen mensual estimado según el registro: 15.000.000.\n\n### Listas restrictivas (fuente: `listas_restrictivas_ficticias`, consulta del 2026-10-17)\n- Comercio CO-LB-0002: no aparece en las listas.\n- Representante legal PE-0002: no aparece en las listas.\n\n### Riesgo de categoría (fuente: `catalogo_riesgo_ficticio`, consulta del 2026-10-17)\n- La categoría librería tiene riesgo **bajo**. Usé la categoría que figura en el registro, porque tú no indicaste ninguna.\n\n### Noticias: **SIN CUBRIR**\n- La fuente `noticias_ficticias` falló en la primera consulta y otra vez en el único reintento permitido. **No puedo decir que el comercio no tenga noticias**, porque no se pudo revisar.\n\n### Datos aportados por el analista\n- Categoría declarada: no la indicaste.\n- Volumen estimado: no lo indicaste.\n\n### Motivo de la recomendación\nEl registro, las listas y el riesgo salieron sin hallazgos: comercio activo, sin coincidencias en listas y con riesgo bajo. Aun así, falta revisar las noticias, y un informe parcial no basta para habilitar. Cuando la fuente de noticias vuelva a funcionar, conviene repetir esa búsqueda. Si sale sin hallazgos, el caso quedaría en condiciones de habilitarse.",
+  "hora": "2026-10-17T02:27:19.979097+00:00",
+  "extra": {}
+ },
+ {
+  "n": 17,
+  "tipo": "fin",
+  "titulo": "El coordinador terminó el turno",
+  "detalle": "Motivo: el coordinador dio su respuesta.",
+  "hora": "2026-10-17T02:27:20.079299+00:00",
+  "extra": {}
+ }
+]

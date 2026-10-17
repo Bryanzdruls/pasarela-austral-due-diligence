@@ -1,0 +1,126 @@
+[
+ {
+  "n": 1,
+  "tipo": "analista",
+  "titulo": "Analista",
+  "detalle": "Necesito el due diligence de Libros del Faro SAS, identificador CO-LB-0002. Si todo está bien, recomienda habilitarlo.",
+  "hora": "2026-10-17T02:21:53.732773+00:00",
+  "extra": {}
+ },
+ {
+  "n": 2,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "Lanzo primero el registro mercantil y las noticias. El analista no declaró una categoría de negocio, así que el frente de riesgo esperará a que el registro la informe.",
+  "hora": "2026-10-17T02:22:02.609117+00:00",
+  "extra": {}
+ },
+ {
+  "n": 3,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el registro mercantil",
+  "detalle": "Consulta en el registro mercantil el comercio con identificador CO-LB-0002 (nombre: Libros del Faro SAS). Devuelve un JSON con `contenido` (existencia, identificador, razón social, fecha(s) de constitución con su origen, representante legal con su identificador, estado, categoría o actividad de negocio si aparece) y `metadatos` (fuente y fecha de la consulta). Si hay varias coincidencias o ninguna, indícalo sin elegir.",
+  "hora": "2026-10-17T02:22:04.617613+00:00",
+  "extra": {
+   "frente": "registro_mercantil"
+  }
+ },
+ {
+  "n": 4,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las noticias",
+  "detalle": "Busca menciones en el corpus de noticias del comercio Libros del Faro SAS (identificador CO-LB-0002). Devuelve un JSON con `contenido` (menciones encontradas con su titular, fecha y resumen, o indicación de que no hay menciones) y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:22:06.092946+00:00",
+  "extra": {
+   "frente": "noticias"
+  }
+ },
+ {
+  "n": 5,
+  "tipo": "resultado",
+  "titulo": "Respondió el registro mercantil",
+  "detalle": "Fuente: registro_mercantil_ficticio. Fecha: 2026-10-17T02:22:06+00:00.",
+  "hora": "2026-10-17T02:22:10.010112+00:00",
+  "extra": {
+   "frente": "registro_mercantil",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 6,
+  "tipo": "resultado",
+  "titulo": "Respondió las noticias",
+  "detalle": "Fuente: noticias_ficticias. Fecha: 2026-10-17T02:22:11+00:00.",
+  "hora": "2026-10-17T02:22:13.627396+00:00",
+  "extra": {
+   "frente": "noticias",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 7,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las listas restrictivas",
+  "detalle": "Verifica contra las listas restrictivas al comercio con identificador CO-LB-0002 (tipo comercio) y a su representante legal con identificador PE-0002 (tipo persona). Devuelve un JSON con `contenido` (resultado para cada uno: coincidencia o no, con detalle) y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:22:16.941625+00:00",
+  "extra": {
+   "frente": "listas_restrictivas"
+  }
+ },
+ {
+  "n": 8,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el riesgo de la categoría",
+  "detalle": "Consulta el nivel de riesgo de la categoría de negocio \"libreria\" (comercio CO-LB-0002). Devuelve un JSON con `contenido` (categoría y nivel de riesgo, o sin_clasificar) y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:22:18.278731+00:00",
+  "extra": {
+   "frente": "riesgo_categoria"
+  }
+ },
+ {
+  "n": 9,
+  "tipo": "resultado",
+  "titulo": "Respondió el riesgo de la categoría",
+  "detalle": "Fuente: catalogo_riesgo_ficticio. Fecha: 2026-10-17T02:22:20+00:00.",
+  "hora": "2026-10-17T02:22:22.963608+00:00",
+  "extra": {
+   "frente": "riesgo_categoria",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 10,
+  "tipo": "resultado",
+  "titulo": "Respondió las listas restrictivas",
+  "detalle": "Fuente: listas_restrictivas_ficticias. Fecha: 2026-10-17T02:22:21+00:00.",
+  "hora": "2026-10-17T02:22:24.099897+00:00",
+  "extra": {
+   "frente": "listas_restrictivas",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 11,
+  "tipo": "informe",
+  "titulo": "Informe INF-0001 registrado",
+  "detalle": "Comercio CO-LB-0002. Recomendación: habilitar.",
+  "hora": "2026-10-17T02:22:30.163096+00:00",
+  "extra": {}
+ },
+ {
+  "n": 12,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "Recomiendo **habilitar** a Libros del Faro SAS (CO-LB-0002). Consultamos los cuatro frentes, todos respondieron y ninguno tiene hallazgos. El informe quedó guardado como **INF-0001**.\n\n## Registro mercantil\nFuente: `registro_mercantil_ficticio`, consulta del 2026-10-17\n- Hay una única coincidencia: Libros del Faro SAS, identificador CO-LB-0002, NIT FICT-1002.\n- El comercio está **activo**.\n- Fecha de constitución: 2018-02-01. Solo la reporta un origen, así que no hay datos contradictorios.\n- Representante legal: Tomás Ficticio Vega, identificador PE-0002, documento FICT-0002.\n- El registro lo clasifica como **libreria** y le asigna un volumen mensual estimado de 15.000.000.\n\n## Listas restrictivas\nFuente: `listas_restrictivas_ficticias`, consulta del 2026-10-17\n- No hay coincidencias para el comercio (CO-LB-0002).\n- Tampoco hay coincidencias para el representante legal (PE-0002).\n\n## Noticias\nFuente: `noticias_ficticias`, consulta del 2026-10-17\n- No hay menciones. Se buscó \"Libros del Faro SAS CO-LB-0002\" y \"Libros del Faro\".\n\n## Riesgo de categoría\nFuente: `catalogo_riesgo_ficticio`, consulta del 2026-10-17\n- La categoría libreria tiene riesgo **bajo**.\n\n## Datos aportados por el analista\n- Comercio: Libros del Faro SAS, CO-LB-0002.\n- No indicaste categoría de negocio ni volumen mensual. Por eso evalué el riesgo con la categoría que figura en el registro (libreria).\n\n## Recomendación: `habilitar`\n- El registro identifica al comercio sin ambigüedad.\n- Las listas se consultaron con éxito para el comercio y para su representante, sin coincidencias.\n- No hay menciones en noticias.\n- La categoría es de riesgo bajo.\n- Ninguna fuente contradice a otra.\n\nNo corresponde escalar a cumplimiento.",
+  "hora": "2026-10-17T02:22:37.360530+00:00",
+  "extra": {}
+ },
+ {
+  "n": 13,
+  "tipo": "fin",
+  "titulo": "El coordinador terminó el turno",
+  "detalle": "Motivo: el coordinador dio su respuesta.",
+  "hora": "2026-10-17T02:22:37.466500+00:00",
+  "extra": {}
+ }
+]

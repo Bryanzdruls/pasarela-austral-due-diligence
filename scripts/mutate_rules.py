@@ -107,8 +107,8 @@ MUTATIONS = [
     (
         "falla cerrado: una excepción del hook PreToolUse permite",
         HOOKS,
-        '            return _deny(\n                f"Una regla de negocio no pudo evaluarse',
-        '            return {}\n            return _deny(\n                f"Una regla de negocio no pudo evaluarse',
+        '"evaluacion", reason))\n            return _deny(reason)',
+        '"evaluacion", reason))\n            return {}',
     ),
 ]
 
@@ -610,8 +610,8 @@ CASE_MUTATIONS = [
     (
         "sistema: el hook de reglas (PreToolUse) no está conectado",
         OPTIONS,
-        """        "PreToolUse": everywhere(tool_guard, make_pre_tool_use(book)),""",
-        """        "PreToolUse": everywhere(tool_guard),""",
+        """            _observed_guard(on_decision), make_pre_tool_use(book, on_decision)""",
+        """            _observed_guard(on_decision)""",
     ),
     (
         "sistema: el hook de parada no está conectado",
@@ -622,8 +622,8 @@ CASE_MUTATIONS = [
     (
         "sistema: no se observan los resultados (PostToolUse)",
         OPTIONS,
-        """        "PostToolUse": everywhere(make_post_tool_use(book)),""",
-        """        "PostToolUse": everywhere(),""",
+        """            make_post_tool_use(book), *([extra_post] if extra_post is not None else [])""",
+        """            *([extra_post] if extra_post is not None else [])""",
     ),
     (
         "sistema: el servidor ignora la inyección de fallas",
@@ -638,12 +638,16 @@ CASE_MUTATIONS = [
 
 def run_tests(objetivo: str = "due_diligence") -> bool:
     """True si las pruebas pasan."""
-    result = subprocess.run(
-        [sys.executable, "-m", "pytest", "-q", "-x", objetivo],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", "-q", "-x", objetivo],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=600,  # una mutación que cuelga las pruebas cuenta como detectada
+        )
+    except subprocess.TimeoutExpired:
+        return False
     return result.returncode == 0
 
 

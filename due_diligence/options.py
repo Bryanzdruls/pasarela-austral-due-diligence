@@ -3,6 +3,7 @@
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 from claude_agent_sdk import ClaudeAgentOptions, HookMatcher
 
@@ -10,13 +11,16 @@ from due_diligence.agents import FRONT_TOOLS, OUTPUT_TOOLS, build_agents
 from due_diligence.guards import tool_guard
 from due_diligence.prompts import COORDINATOR_PROMPT
 from due_diligence.rule_hooks import (
+    Hook,
+    OnDecision,
+    _notify,
     make_post_tool_use,
     make_post_tool_use_failure,
     make_pre_tool_use,
     make_stop,
     make_user_prompt_submit,
 )
-from due_diligence.rules import CaseBook
+from due_diligence.rules import CaseBook, Decision
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SERVER_NAME = "pasarela-fuentes"
@@ -37,22 +41,47 @@ def _mcp_server_config() -> dict:
     }
 
 
-def _hooks(book: CaseBook) -> dict:
+def _observed_guard(on_decision: OnDecision | None) -> Hook:
+    """El guard de aislamiento, avisando de sus rechazos a quien observa (el chat)."""
+    if on_decision is None:
+        return tool_guard
+
+    async def guard(input_data: dict, tool_use_id: str | None, context: Any) -> dict:
+        output = await tool_guard(input_data, tool_use_id, context)
+        specific = output.get("hookSpecificOutput", {}) if isinstance(output, dict) else {}
+        if specific.get("permissionDecision") == "deny":
+            reason = specific.get("permissionDecisionReason", "")
+            _notify(on_decision, input_data, Decision(False, "aislamiento", reason))
+        return output
+
+    return guard
+
+
+def _hooks(book: CaseBook, on_decision: OnDecision | None = None, extra_post: Hook | None = None):
     """Aislamiento por rol, reglas 1 a 3 y cobertura de los frentes, sobre el mismo `CaseBook`."""
 
     def everywhere(*hooks):  # sin filtro: aplica a todas las herramientas
         return [HookMatcher(matcher=None, hooks=list(hooks))]
 
     return {
-        "PreToolUse": everywhere(tool_guard, make_pre_tool_use(book)),
-        "PostToolUse": everywhere(make_post_tool_use(book)),
+        "PreToolUse": everywhere(
+            _observed_guard(on_decision), make_pre_tool_use(book, on_decision)
+        ),
+        "PostToolUse": everywhere(
+            make_post_tool_use(book), *([extra_post] if extra_post is not None else [])
+        ),
         "PostToolUseFailure": everywhere(make_post_tool_use_failure(book)),
         "UserPromptSubmit": everywhere(make_user_prompt_submit(book)),
         "Stop": everywhere(make_stop(book)),
     }
 
 
-def build_options(book: CaseBook | None = None) -> ClaudeAgentOptions:
+def build_options(
+    book: CaseBook | None = None,
+    on_decision: OnDecision | None = None,
+    extra_post: Hook | None = None,
+) -> ClaudeAgentOptions:
+    """`on_decision` y `extra_post` son opcionales: solo observan (el chat); sin ellos, igual."""
     book = book if book is not None else CaseBook()
     return ClaudeAgentOptions(
         system_prompt=COORDINATOR_PROMPT,
@@ -64,7 +93,7 @@ def build_options(book: CaseBook | None = None) -> ClaudeAgentOptions:
         allowed_tools=["Agent", *FRONT_TOOLS.values(), *OUTPUT_TOOLS],
         mcp_servers={SERVER_NAME: _mcp_server_config()},
         setting_sources=[],  # no heredar la configuración del proyecto de desarrollo
-        hooks=_hooks(book),
+        hooks=_hooks(book, on_decision, extra_post),
         cwd=str(REPO_ROOT),
         # Sin esto la CLI lanza los subagentes en segundo plano y el coordinador recibe un acuse.
         env={"CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1"},

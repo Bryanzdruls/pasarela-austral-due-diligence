@@ -139,3 +139,39 @@ async def test_every_hook_of_build_options_shares_the_same_case_book():
 def test_two_builds_without_a_book_never_share_state():
     a, b = build_options(), build_options()
     assert a.hooks["Stop"][0].hooks[0] is not b.hooks["Stop"][0].hooks[0]
+
+
+async def test_on_decision_reaches_the_rule_hook_and_the_isolation_guard():
+    seen = []
+    hooks = build_options(on_decision=lambda data, decision: seen.append(decision.rule)).hooks
+    run_all = hooks["PreToolUse"][0].hooks
+    # regla 1: listas sin identificar
+    for hook in run_all:
+        await hook(
+            {
+                "tool_name": "mcp__pasarela-fuentes__consultar_listas_restrictivas",
+                "tool_input": {"tipo": "comercio", "referencia": "CO-XX-0001"},
+                "agent_type": "listas_restrictivas",
+            },
+            None,
+            None,
+        )
+    # aislamiento: el coordinador no puede usar una herramienta de frente
+    for hook in run_all:
+        await hook(
+            {
+                "tool_name": "mcp__pasarela-fuentes__buscar_noticias",
+                "tool_input": {},
+            },
+            None,
+            None,
+        )
+    assert "1" in seen and "aislamiento" in seen
+
+
+def test_extra_post_hook_is_appended_to_post_tool_use():
+    async def extra(input_data, tool_use_id, context):
+        return {}
+
+    hooks = build_options(extra_post=extra).hooks
+    assert hooks["PostToolUse"][0].hooks[-1] is extra

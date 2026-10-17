@@ -130,19 +130,19 @@ Comportamientos obligatorios:
 | B9 | Varios comercios parecidos: el coordinador pide el identificador | Hecho | Con el modelo real el coordinador mostró los candidatos y pidió el identificador, y siguió solo con el elegido; un hook rechaza el informe o el escalamiento a nombre de un candidato sin identificar (`ambiguedad`, probado sin el modelo, no ejercido con él) (en `main`, PR #19) |
 | B10 | Escalar con criterio (listas y alto riesgo; no escalar bajo riesgo sin hallazgos) | Hecho | `CaseBook.escalation_grounds` (coincidencia en listas, alto riesgo, contradicción, menciones en noticias) y `PreToolUse` rechaza escalar, o recomendar escalar, un comercio sin motivo (`escalamiento`); una cobertura incompleta sola no es motivo (lectura literal del enunciado, decisión D2); `due_diligence/rules.py` (en `main`, PR #20), 85 mutaciones detectadas. Con el modelo real: C1 y C3 se escalaron, C2 se habilitó y, con una fuente caída, `CO-LB-0002` recibió `no_habilitar` y no se escaló; una orden de escalar `CO-LB-0002` fue rechazada una vez (`specs/006-*/verification.md`) |
 | B11 | Handoff útil al oficial de cumplimiento | Hecho | `escalar_a_cumplimiento` acepta `conflictos`; el hook exige el hallazgo, con fuente y fecha, del frente que motiva (`handoff_hallazgos`), una causa que nombra cada motivo (`handoff_causa`, por palabras clave) y las contradicciones declaradas (en `main`, PR #20). Con el modelo real los resúmenes de C1 y C3 salieron completos; el rechazo de una causa vaga no se ejerció con el modelo (rechazó escribirla) |
-| B12 | Interfaz de chat que muestre mensajes, delegaciones, informe y escalamiento | **Falta** | Ticket #7. La consola interactiva de la rama `002` no cumple este requisito |
+| B12 | Interfaz de chat que muestre mensajes, delegaciones, informe y escalamiento | En rama | `due_diligence/web/` (rama `007`): aplicación Starlette con SSE, página `static/index.html` y eventos visibles en lenguaje llano (delegación, resultado, bloqueo con su regla, informe, escalamiento, fin y error); los bloqueos salen de la decisión de los hooks y el informe y el escalamiento del sobre que confirma el servidor, no del texto del modelo. Pruebas sin modelo en `due_diligence/web/tests/`; arranque con `python -m due_diligence.web` (solo `127.0.0.1`); ver `docs/INTERFAZ.md` y `specs/007-chat-eventos-visibles/verification.md`. Desviación declarada: Starlette en lugar de FastAPI (D1) |
 
 Casos de prueba que el repositorio debe incluir y pasar:
 
 | ID | Caso | Estado | Evidencia / pendiente |
 |---|---|---|---|
-| C1 | Mensaje del escenario: comercio de alto riesgo que va a un oficial | En rama | Prueba de extremo a extremo (`test_case_1_*`, `due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real (`python scripts/run_casos.py`, `specs/008-*/verification.md`): PASA, sin que ningún hook llegara a denegar (rama `008`) |
-| C2 | Comercio de bajo riesgo sin hallazgos, con habilitación | En rama | `test_case_2_*` (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA, sin que ningún hook llegara a denegar (rama `008`) |
-| C3 | Representante legal con coincidencia en listas | En rama | `test_case_3_*` (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA, sin que ningún hook llegara a denegar (rama `008`) |
-| C4 | Dos comercios con nombres casi idénticos | En rama | `test_case_4_*` (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA, sin que ningún hook llegara a denegar (rama `008`) |
-| C5 | Consulta a listas sin identificación unívoca, bloqueada | Hecho | Prueba del caso del enunciado en `due_diligence/tests/test_rule_hooks.py` (listas sin identificación unívoca, denegada con la regla 1) y bloqueo real con el modelo (`specs/003-*/verification-forzado.txt`). La automatización de extremo a extremo con el modelo: ticket #8 Automatizado de extremo a extremo en `test_case_5_*` (tres formas, `due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos); con el modelo real el caso PASA porque se negó a saltarse el registro, sin ejercer el hook (rama `008`) |
-| C6 | Falla del servicio de noticias con cobertura incompleta declarada | En rama | `test_case_6_*` con falla reintentable y no reintentable (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA, sin que ningún hook llegara a denegar (rama `008`) |
-| C7 | Dos fuentes con fechas de constitución distintas | En rama | `test_case_7_*` (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA por la vía del escalamiento (rama `008`) |
+| C1 | Mensaje del escenario: comercio de alto riesgo que va a un oficial | Hecho | Prueba de extremo a extremo (`test_case_1_*`, `due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real (`python scripts/run_casos.py`, `specs/008-*/verification.md`): PASA, sin que ningún hook llegara a denegar (en `main`, PR #21) |
+| C2 | Comercio de bajo riesgo sin hallazgos, con habilitación | Hecho | `test_case_2_*` (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA, sin que ningún hook llegara a denegar (en `main`, PR #21) |
+| C3 | Representante legal con coincidencia en listas | Hecho | `test_case_3_*` (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA, sin que ningún hook llegara a denegar (en `main`, PR #21) |
+| C4 | Dos comercios con nombres casi idénticos | Hecho | `test_case_4_*` (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA, sin que ningún hook llegara a denegar (en `main`, PR #21) |
+| C5 | Consulta a listas sin identificación unívoca, bloqueada | Hecho | Prueba del caso del enunciado en `due_diligence/tests/test_rule_hooks.py` (listas sin identificación unívoca, denegada con la regla 1) y bloqueo real con el modelo (`specs/003-*/verification-forzado.txt`). La automatización de extremo a extremo con el modelo: ticket #8 Automatizado de extremo a extremo en `test_case_5_*` (tres formas, `due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos); con el modelo real el caso PASA porque se negó a saltarse el registro, sin ejercer el hook (en `main`, PR #21) |
+| C6 | Falla del servicio de noticias con cobertura incompleta declarada | Hecho | `test_case_6_*` con falla reintentable y no reintentable (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA, sin que ningún hook llegara a denegar (en `main`, PR #21) |
+| C7 | Dos fuentes con fechas de constitución distintas | Hecho | `test_case_7_*` (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA por la vía del escalamiento (en `main`, PR #21) |
 
 ## 7. Entregables y sustentación
 
@@ -153,7 +153,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 | D3 | `DECISIONES.md` de máximo dos páginas con mecanismo y motivo por necesidad | **Falta** | Ticket #11 |
 | D4 | Artefactos de Spec Kit versionados | Hecho / En rama | Ver S8 |
 | D5 | Zip con `.git`, sin dependencias instaladas, máximo 50 MB, **sin `.env` ni credenciales** | **Falta** | Se arma al final (#11); el escaneo de secretos se hace a mano antes de cada commit; `scripts/tests/test_no_credentials.py` lo repite sobre la configuración |
-| D6 | Video de funcionamiento de máximo 5 minutos, con los casos obligatorios en la interfaz de chat, público y enlazado en el README | **Falta** | Tickets #7, #8 y #11; requiere `ANTHROPIC_API_KEY` |
+| D6 | Video de funcionamiento de máximo 5 minutos, con los casos obligatorios en la interfaz de chat, público y enlazado en el README | **Falta** | Interfaz y casos listos (#7 en rama, #8 en `main`); falta grabar el video (#11); requiere `ANTHROPIC_API_KEY` |
 | D7 | Video de defensa de máximo 15 minutos: ecosistema, especificaciones y sistema | **Falta** | A cargo del autor; requiere que todo lo anterior exista |
 | D8 | Revisión de autoría: la explicación coincide con el código | Pendiente | Depende del autor (explicar *este* código) |
 
@@ -185,12 +185,12 @@ Requisitos trazados: **84** (reglas generales, reglas de negocio, Spec Kit, GitH
 
 | Estado | Cantidad |
 |---|---|
-| Hecho | 62 |
+| Hecho | 68 |
 | Hecho (en main o en rama) | 3 |
-| En rama | 6 |
+| En rama | 1 |
 | Parcial | 3 |
-| Falta | 7 |
+| Falta | 6 |
 | Otro: En curso | 2 |
 | Otro: Pendiente | 1 |
 
-Última actualización: 2026-10-17, al preparar el PR del ticket #8 (pendiente de fusión). Se actualiza al cerrar cada ticket.
+Última actualización: 2026-10-17, al preparar el PR del ticket #7 (pendiente de fusión); los casos C1 a C7 pasan a Hecho porque el #8 ya está fusionado (PR #21). Se actualiza al cerrar cada ticket.

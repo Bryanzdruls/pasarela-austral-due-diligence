@@ -42,8 +42,24 @@ def _trace(input_data: dict[str, Any], decision: Decision) -> None:
         handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def make_pre_tool_use(book: CaseBook) -> Hook:
-    """`PreToolUse`: aplica las reglas a las herramientas que gobiernan."""
+OnDecision = Callable[[dict[str, Any], Decision], Any]
+
+
+def _notify(on_decision: OnDecision | None, input_data: dict[str, Any], decision: Decision) -> None:
+    """Avisa de un rechazo a quien observa (el chat). Un fallo de ahí nunca cambia la decisión."""
+    if on_decision is None:
+        return
+    try:
+        on_decision(input_data, decision)
+    except Exception:  # noqa: BLE001 - observar es opcional; el rechazo ya está decidido
+        pass
+
+
+def make_pre_tool_use(book: CaseBook, on_decision: OnDecision | None = None) -> Hook:
+    """`PreToolUse`: aplica las reglas a las herramientas que gobiernan.
+
+    `on_decision(input_data, decision)` es opcional y solo se llama en los rechazos (ticket #7).
+    """
 
     async def pre_tool_use(
         input_data: dict[str, Any], tool_use_id: str | None, context: Any
@@ -60,12 +76,17 @@ def make_pre_tool_use(book: CaseBook) -> Hook:
                 return {}
             decision = next((d for d in decisions if not d.allowed), decisions[0])
             _trace(input_data, decision)
-            return {} if decision.allowed else _deny(decision.reason)
+            if decision.allowed:
+                return {}
+            _notify(on_decision, input_data, decision)
+            return _deny(decision.reason)
         except Exception as exc:  # noqa: BLE001 - falla cerrado: ante un error, se deniega
-            return _deny(
+            reason = (
                 f"Una regla de negocio no pudo evaluarse ({type(exc).__name__}: {exc}). "
                 "Se deniega la acción por seguridad."
             )
+            _notify(on_decision, input_data, Decision(False, "evaluacion", reason))
+            return _deny(reason)
 
     return pre_tool_use
 

@@ -1,0 +1,126 @@
+[
+ {
+  "n": 1,
+  "tipo": "analista",
+  "titulo": "Analista",
+  "detalle": "Necesito el due diligence de Tienda Verde SAS, identificador CO-TV-0001. Quieren procesar ventas en línea de suplementos dietarios. ¿Lo habilitamos?",
+  "hora": "2026-10-17T02:20:57.398705+00:00",
+  "extra": {}
+ },
+ {
+  "n": 2,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el registro mercantil",
+  "detalle": "Identifica en el registro mercantil al comercio \"Tienda Verde SAS\", identificador CO-TV-0001. Devuelve existencia, fecha(s) de constitución con su origen, representante legal (nombre e identificador) y estado. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:21:09.372539+00:00",
+  "extra": {
+   "frente": "registro_mercantil"
+  }
+ },
+ {
+  "n": 3,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las noticias",
+  "detalle": "Busca menciones en el corpus de noticias del comercio \"Tienda Verde SAS\", identificador CO-TV-0001. Responde con un objeto JSON con `contenido` (menciones encontradas, cada una con su detalle, o ninguna) y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:21:10.755279+00:00",
+  "extra": {
+   "frente": "noticias"
+  }
+ },
+ {
+  "n": 4,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el riesgo de la categoría",
+  "detalle": "Consulta el nivel de riesgo de la categoría de negocio \"suplementos dietarios\" (comercio CO-TV-0001). Responde con un objeto JSON con `contenido` (nivel de riesgo) y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:21:12.021169+00:00",
+  "extra": {
+   "frente": "riesgo_categoria"
+  }
+ },
+ {
+  "n": 5,
+  "tipo": "resultado",
+  "titulo": "Respondió el registro mercantil",
+  "detalle": "Fuente: registro_mercantil_ficticio. Fecha: 2026-10-17T02:21:11+00:00.",
+  "hora": "2026-10-17T02:21:14.939220+00:00",
+  "extra": {
+   "frente": "registro_mercantil",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 6,
+  "tipo": "resultado",
+  "titulo": "Respondió las noticias",
+  "detalle": "Fuente: noticias_ficticias. Fecha: 2026-10-17T02:21:13+00:00.",
+  "hora": "2026-10-17T02:21:16.545646+00:00",
+  "extra": {
+   "frente": "noticias",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 7,
+  "tipo": "resultado",
+  "titulo": "Respondió el riesgo de la categoría",
+  "detalle": "Fuente: catalogo_riesgo_ficticio. Fecha: 2026-10-17T02:21:14+00:00.",
+  "hora": "2026-10-17T02:21:16.902530+00:00",
+  "extra": {
+   "frente": "riesgo_categoria",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 8,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las listas restrictivas",
+  "detalle": "Verifica contra las listas restrictivas al comercio con identificador CO-TV-0001 (tipo comercio) y a su representante legal con identificador PE-0001 (tipo persona). Responde con un objeto JSON con `contenido` (resultado por cada identificador: coincidencia o no, con detalle) y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:21:20.376532+00:00",
+  "extra": {
+   "frente": "listas_restrictivas"
+  }
+ },
+ {
+  "n": 9,
+  "tipo": "resultado",
+  "titulo": "Respondió las listas restrictivas",
+  "detalle": "Fuente: listas_restrictivas_ficticias. Fecha: 2026-10-17T02:21:22+00:00.",
+  "hora": "2026-10-17T02:21:27.103812+00:00",
+  "extra": {
+   "frente": "listas_restrictivas",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 10,
+  "tipo": "informe",
+  "titulo": "Informe INF-0001 registrado",
+  "detalle": "Comercio CO-TV-0001. Recomendación: escalar a cumplimiento.",
+  "hora": "2026-10-17T02:21:34.171266+00:00",
+  "extra": {}
+ },
+ {
+  "n": 11,
+  "tipo": "escalamiento",
+  "titulo": "Escalado a cumplimiento (ESC-0001)",
+  "detalle": "Comercio CO-TV-0001. Causa: Riesgo: la categoría suplementos dietarios es de alto riesgo según catalogo_riesgo_ficticio (no se habilita automáticamente). Noticia: mención en noticias_ficticias sobre investigación por publicidad engañosa de suplementos en una tienda en línea (2026-03-12), posiblemente relacionada con el comercio. Sin coincidencia en listas restrictivas ni contradicción entre fuentes.",
+  "hora": "2026-10-17T02:21:41.475072+00:00",
+  "extra": {}
+ },
+ {
+  "n": 12,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "No lo recomiendo habilitar. Escalé el caso a cumplimiento porque la categoría es de alto riesgo y hay una noticia sobre publicidad engañosa que podría referirse al comercio. Los cuatro frentes respondieron, así que el informe está completo.\n\n**Due diligence: Tienda Verde SAS (CO-TV-0001)**\nInforme registrado: **INF-0001**. Escalamiento: **ESC-0001**.\n\n**Registro mercantil** (fuente: `registro_mercantil_ficticio`, consulta 2026-10-17)\n- El registro encontró un único comercio con ese identificador. Está **activo** y su NIT es FICT-1001.\n- Fecha de constitución: 2021-05-10. Solo la informó este origen, así que no hay datos contradictorios.\n- Representante legal: Elena Prueba Ríos (ID PE-0001, documento FICT-0001).\n- Categoría registrada: suplementos dietarios. Volumen mensual estimado según el registro: 80.000.000.\n\n**Listas restrictivas** (fuente: `listas_restrictivas_ficticias`, consulta 2026-10-17)\n- No hay coincidencias ni para el comercio (CO-TV-0001) ni para su representante legal (PE-0001).\n\n**Noticias** (fuente: `noticias_ficticias`, consulta 2026-10-17)\n- Hay una mención: \"Investigan publicidad engañosa de suplementos en tienda en línea\", publicada en diario_el_mirador_ficticio el 2026-03-12. Habla de quejas de clientes por promesas de salud sin sustento.\n- La nota no nombra a Tienda Verde SAS, así que todavía hay que confirmar que se refiere a este comercio. No es una coincidencia en listas.\n\n**Riesgo de categoría** (fuente: `catalogo_riesgo_ficticio`, consulta 2026-10-17)\n- Suplementos dietarios está clasificada como riesgo **alto**.\n\n**Datos aportados por el analista**\nEstos datos no vienen de ninguna fuente consultada:\n- Categoría declarada: ventas en línea de suplementos dietarios.\n- Volumen mensual estimado: no lo indicaste. El único volumen disponible es el del registro, citado arriba.\n\n**Recomendación: `escalar_a_cumplimiento`**\nMotivos:\n1. **Riesgo:** la categoría de suplementos dietarios es de alto riesgo y no se habilita automáticamente.\n2. **Noticia:** hay una mención sobre una investigación por publicidad engañosa que podría estar relacionada con el comercio.\n\nNo hay coincidencias en listas ni datos contradictorios entre fuentes.\n\nAcción que le propuse al oficial de cumplimiento:\n- Confirmar si la noticia se refiere a Tienda Verde SAS.\n- Pedirle al comercio los registros sanitarios de sus productos y su política sobre publicidad y afirmaciones de salud.\n- Aplicar una revisión más exhaustiva y vigilar sus transacciones antes de decidir si se habilita.",
+  "hora": "2026-10-17T02:21:51.506022+00:00",
+  "extra": {}
+ },
+ {
+  "n": 13,
+  "tipo": "fin",
+  "titulo": "El coordinador terminó el turno",
+  "detalle": "Motivo: el coordinador dio su respuesta.",
+  "hora": "2026-10-17T02:21:51.633099+00:00",
+  "extra": {}
+ }
+]
