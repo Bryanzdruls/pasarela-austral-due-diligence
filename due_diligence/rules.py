@@ -484,6 +484,8 @@ class CaseBook:
         """El oficial no tiene la conversación: el resumen trae el hallazgo del frente que motiva
         cada escalamiento y una causa que nombra cada motivo."""
         grounds = self.escalation_grounds(_text(data.get("comercio_id")))
+        # Las menciones permiten escalar (D3): solo obligan si son el único motivo.
+        grounds = {k: g for k, g in grounds.items() if k != "noticias"} or grounds
         hallazgos = data.get("hallazgos")
         present = (
             {front_of_alias(k) for k, v in hallazgos.items() if isinstance(v, dict)}
@@ -515,7 +517,9 @@ class CaseBook:
         problems: list[str] = []
         for key, finding in hallazgos.items():
             frente = front_of_alias(key)
-            if frente is None or frente in uncovered:
+            # Un frente declarado sin cubrir solo se exime si nunca respondió: si respondió, sus
+            # hallazgos se comprueban igual (revisión del #6: una fuente inventada pasaba).
+            if frente is None or (frente in uncovered and not self.responded.get(frente)):
                 continue
             problem = _finding_problem(finding, self.responded.get(frente, {}))
             if problem:

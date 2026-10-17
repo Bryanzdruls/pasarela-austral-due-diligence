@@ -549,3 +549,41 @@ def test_the_tool_allows_a_complete_summary_for_each_ground(montar, campos):
     frente = next(k for k in campos if k != "causa")
     data = resumen(hallazgos={frente: hallazgo(campos[frente])}, causa=campos["causa"])
     assert montar().check_escalar(data).allowed is True
+
+
+# --------------------------------------------------------- revisión del #6 (compliance-reviewer)
+
+
+def test_a_front_declared_uncovered_that_did_respond_still_needs_a_real_source_and_date():
+    """Entrada del compliance-reviewer: una fuente inventada pasaba si el frente se declaraba."""
+    book = coincidencia(con_registro())
+    cobertura = {
+        "listas": {"estado": "sin_cubrir", "motivo": "falló la consulta del representante"}
+    }
+    falso = {"contenido": "x", "fuente": "inventada", "fecha": ""}
+    data = resumen(hallazgos={"listas": falso}, causa="Coincidencia en lista", cobertura=cobertura)
+    assert_blocked(book.check_escalar(data), rule="procedencia", hint="listas")
+
+
+def test_a_front_that_never_responded_and_is_declared_uncovered_is_still_exempt_from_provenance():
+    from due_diligence.tests.test_rules_cobertura import declared, fail
+
+    book = limpio(con_registro())
+    book.start_request("Investiga CO-XX-0001")
+    fail(book, "noticias")  # noticias nunca respondió
+    data = informe_escalar(
+        hallazgos={"noticias": hallazgo("diario_ficticio")}, cobertura=declared("noticias")
+    )
+    assert book.check_informe({**data, "recomendacion": "no_habilitar"}).allowed is True
+
+
+def test_mentions_do_not_add_obligations_when_another_ground_already_motivates_the_escalation():
+    """D3: las menciones permiten escalar; solo se exigen si son el único motivo."""
+    book = menciones(coincidencia(con_registro()))
+    assert motivos(book) == {"listas", "noticias"}
+    assert book.check_escalar(resumen_listas()).allowed is True
+
+
+def test_mentions_are_required_in_the_summary_when_they_are_the_only_ground():
+    book = menciones(con_registro())
+    assert_blocked(book.check_escalar(resumen(causa="revisar")), rule="handoff_hallazgos")

@@ -576,10 +576,11 @@ def test_keys_that_are_not_a_front_are_not_checked_against_the_sources():
     assert con_fuentes().check_informe(data).allowed is True
 
 
-def test_a_front_declared_uncovered_is_exempt_even_with_a_finding():
+def test_a_front_that_never_responded_and_is_declared_uncovered_is_exempt_even_with_a_finding():
+    """Si el frente llegó a responder, sus hallazgos se comprueban igual (revisión del #6)."""
     from due_diligence.tests.test_rules_cobertura import declared, fail
 
-    book = con_fuentes()
+    book = observe_registro(CaseBook(), comercio("CO-XX-0001", "PE-0001"))
     book.start_request("Investiga CO-XX-0001")
     fail(book, "noticias")
     data = informe_con(

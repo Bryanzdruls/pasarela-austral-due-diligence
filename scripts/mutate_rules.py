@@ -322,13 +322,13 @@ MUTATIONS += [
     (
         "procedencia: no se exime el frente declarado sin cubrir",
         RULES,
-        """            if frente is None or frente in uncovered:""",
+        """            if frente is None or (frente in uncovered and not self.responded.get(frente)):""",
         """            if frente is None:""",
     ),
     (
         "procedencia: se exime todo frente de la comprobación",
         RULES,
-        """            if frente is None or frente in uncovered:""",
+        """            if frente is None or (frente in uncovered and not self.responded.get(frente)):""",
         """            if True:""",
     ),
     (
@@ -554,6 +554,18 @@ MUTATIONS += [
             case.escalado = True""",
         """        if commerce_id in self.commerces:
             self.commerces[commerce_id].escalado = True""",
+    ),
+    (
+        "procedencia: un frente declarado sin cubrir que sí respondió se exime",
+        RULES,
+        """if frente is None or (frente in uncovered and not self.responded.get(frente)):""",
+        """if frente is None or frente in uncovered:""",
+    ),
+    (
+        "handoff: las menciones obligan aunque haya otro motivo",
+        RULES,
+        """        grounds = {k: g for k, g in grounds.items() if k != "noticias"} or grounds""",
+        """        grounds = grounds""",
     ),
     (
         "handoff: el alto riesgo exige solo el frente de riesgo y no el del registro",
