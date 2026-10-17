@@ -16,7 +16,19 @@
 {"n": 3, "tipo": "bloqueo", "titulo": "Llamada bloqueada", "detalle": "...", "hora": "2026-10-17T12:00:00+00:00", "extra": {"regla": "1"}}
 ```
 
-Tipos: `analista`, `coordinador`, `delegacion`, `resultado`, `bloqueo`, `informe`, `escalamiento`, `fin`, `error`. `n` es el número de orden en la conversación.
+Tipos: `analista`, `coordinador`, `delegacion`, `resultado`, `hallazgo`, `bloqueo`, `informe`, `escalamiento`, `fin`, `error`. `n` es el número de orden en la conversación.
+
+`hallazgo` (FR-014): lo que el servidor devolvió en una consulta que salió bien, en una frase y con la fuente y la fecha que selló el servidor (`extra.frente` lo identifica). Una consulta fallida no genera hallazgo.
+
+`coordinador` lleva además `extra.bloques` (FR-013): el texto con su formato como datos, nunca HTML. `detalle` conserva el texto original. Cada bloque es uno de:
+
+```json
+{"t": "parrafo", "inline": [{"t": "texto|negrita|codigo", "v": "..."}]}
+{"t": "titulo", "nivel": 2, "inline": [...]}
+{"t": "lista", "ordenada": false, "items": [[...inline], [...inline]]}
+{"t": "tabla", "cabecera": [[...inline]], "filas": [[[...inline]]]}
+{"t": "separador"}
+```
 
 ## Eventos del dominio nuevos (`due_diligence/events.py`)
 

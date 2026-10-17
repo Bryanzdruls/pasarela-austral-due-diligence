@@ -9,24 +9,26 @@
     --fondo: #f5f6f8; --panel: #ffffff; --texto: #1c2430; --suave: #5b6676; --borde: #d9dee6;
     --analista: #1f4fd8; --coordinador: #1c2430; --delegacion: #6a4fd8; --resultado: #0b7a5a;
     --bloqueo: #b42318; --informe: #0b6bcb; --escalamiento: #b54708; --fin: #5b6676;
-    --error: #b42318;
+    --error: #b42318; --hallazgo: #1b6a8c;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --fondo: #12161c; --panel: #1b222c; --texto: #e6e9ee; --suave: #9aa5b5; --borde: #2c3644;
       --analista: #7da2ff; --coordinador: #e6e9ee; --delegacion: #b3a2ff; --resultado: #4fd1a5;
       --bloqueo: #ff8a80; --informe: #7cc0ff; --escalamiento: #ffb35c; --fin: #9aa5b5;
-      --error: #ff8a80;
+      --error: #ff8a80; --hallazgo: #7fc8e8;
     }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--fondo); color: var(--texto);
-         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+         min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
   header { padding: 14px 16px; border-bottom: 1px solid var(--borde); background: var(--panel); }
   header h1 { margin: 0; font-size: 17px; }
   header p { margin: 2px 0 0; color: var(--suave); font-size: 13px; }
-  main { max-width: 860px; margin: 0 auto; padding: 16px; }
-  #conversacion { display: flex; flex-direction: column; gap: 10px; min-height: 40vh; }
+  main { flex: 1; width: 100%; max-width: 860px; margin: 0 auto; padding: 16px;
+         display: flex; flex-direction: column; }
+  #conversacion { flex: 1; display: flex; flex-direction: column; gap: 10px; }
   .vacio { color: var(--suave); text-align: center; padding: 40px 0; }
   .tarjeta { background: var(--panel); border: 1px solid var(--borde); border-left: 4px solid var(--c);
              border-radius: 8px; padding: 10px 12px; max-width: 92%; }
@@ -38,7 +40,22 @@
   .hora { margin-left: auto; font-size: 12px; color: var(--suave); }
   .detalle { margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
   .detalle:empty { display: none; }
+  .formato { white-space: normal; }
+  .formato > * { margin: 0 0 8px; } .formato > *:last-child { margin-bottom: 0; }
+  .formato p { white-space: pre-wrap; }
+  .formato h1, .formato h2, .formato h3, .formato h4, .formato h5, .formato h6 {
+    font-size: 1em; font-weight: 700; margin-top: 10px; }
+  .formato h1 { font-size: 1.2em; } .formato h2 { font-size: 1.1em; }
+  .formato ul, .formato ol { padding-left: 22px; }
+  .formato code { font: 0.9em ui-monospace, Consolas, monospace; background: var(--fondo);
+                  border: 1px solid var(--borde); border-radius: 4px; padding: 0 4px; }
+  .formato hr { border: 0; border-top: 1px solid var(--borde); }
+  .formato .tabla { overflow-x: auto; }
+  .formato table { border-collapse: collapse; font-size: 0.95em; }
+  .formato th, .formato td { border: 1px solid var(--borde); padding: 4px 8px; text-align: left; }
+  .formato th { background: var(--fondo); }
   .analista { --c: var(--analista); } .coordinador { --c: var(--coordinador); }
+  .hallazgo { --c: var(--hallazgo); }
   .delegacion { --c: var(--delegacion); } .resultado { --c: var(--resultado); }
   .bloqueo { --c: var(--bloqueo); } .informe { --c: var(--informe); }
   .escalamiento { --c: var(--escalamiento); } .fin { --c: var(--fin); } .error { --c: var(--error); }
@@ -62,7 +79,7 @@
 <main>
   <div id="conversacion" aria-live="polite"></div>
   <div id="trabajando"></div>
-  <div id="aviso"></div>
+  <div id="aviso" role="alert"></div>
   <form id="formulario">
     <textarea id="mensaje" maxlength="4000" placeholder="Escribe tu solicitud (Enter envía, Mayús+Enter salto de línea)" aria-label="Mensaje"></textarea>
     <button id="enviar" type="submit">Enviar</button>
@@ -74,7 +91,7 @@
   // Todo texto que llega (del modelo, de las fuentes, del analista) se inserta con textContent.
   var ETIQUETAS = {
     analista: "Analista", coordinador: "Coordinador", delegacion: "Delegación",
-    resultado: "Resultado", bloqueo: "Bloqueo", informe: "Informe",
+    resultado: "Resultado", hallazgo: "Hallazgo", bloqueo: "Bloqueo", informe: "Informe",
     escalamiento: "Escalamiento", fin: "Fin del turno", error: "Error"
   };
   var lista = document.getElementById("conversacion");
@@ -82,7 +99,7 @@
   var aviso = document.getElementById("aviso");
   var campo = document.getElementById("mensaje");
   var boton = document.getElementById("enviar");
-  var cid = null, flujo = null, ultimo = 0, ocupado = false;
+  var cid = null, flujo = null, ultimo = 0, ocupado = false, cerrando = false;
 
   function guardado(valor) {
     try {
@@ -109,6 +126,58 @@
     return isNaN(d) ? "" : d.toLocaleTimeString();
   }
 
+  // El formato del coordinador llega como bloques de datos (nunca como HTML): se dibujan con nodos
+  // del DOM y textContent, así que un <img> o un enlace dentro del texto sigue siendo texto.
+  function hijo(padre, etiqueta) {
+    var nodo = document.createElement(etiqueta);
+    padre.appendChild(nodo);
+    return nodo;
+  }
+
+  function dibujarInline(padre, segmentos) {
+    (Array.isArray(segmentos) ? segmentos : []).forEach(function (s) {
+      var nodo;
+      if (s.t === "negrita") { nodo = document.createElement("strong"); nodo.textContent = s.v; }
+      else if (s.t === "codigo") { nodo = document.createElement("code"); nodo.textContent = s.v; }
+      else { nodo = document.createTextNode(String(s.v)); }
+      padre.appendChild(nodo);
+    });
+  }
+
+  function dibujarFila(fila, etiqueta, celdas) {
+    (Array.isArray(celdas) ? celdas : []).forEach(function (celda) {
+      dibujarInline(hijo(fila, etiqueta), celda);
+    });
+  }
+
+  function dibujarBloque(raiz, b) {
+    if (b.t === "parrafo") {
+      dibujarInline(hijo(raiz, "p"), b.inline);
+    } else if (b.t === "titulo") {
+      var nivel = Math.min(6, Math.max(1, Number(b.nivel) || 3));
+      dibujarInline(hijo(raiz, "h" + nivel), b.inline);
+    } else if (b.t === "lista") {
+      var lista = hijo(raiz, b.ordenada ? "ol" : "ul");
+      (Array.isArray(b.items) ? b.items : []).forEach(function (item) {
+        dibujarInline(hijo(lista, "li"), item);
+      });
+    } else if (b.t === "tabla") {
+      var caja = hijo(raiz, "div"); caja.className = "tabla";
+      var tabla = hijo(caja, "table");
+      dibujarFila(hijo(hijo(tabla, "thead"), "tr"), "th", b.cabecera);
+      var cuerpo = hijo(tabla, "tbody");
+      (Array.isArray(b.filas) ? b.filas : []).forEach(function (fila) {
+        dibujarFila(hijo(cuerpo, "tr"), "td", fila);
+      });
+    } else if (b.t === "separador") {
+      hijo(raiz, "hr");
+    }
+  }
+
+  function dibujarBloques(raiz, bloques) {
+    bloques.forEach(function (b) { dibujarBloque(raiz, b); });
+  }
+
   function tarjeta(e) {
     var div = document.createElement("div");
     div.className = "tarjeta " + (ETIQUETAS[e.tipo] ? e.tipo : "coordinador");
@@ -118,7 +187,16 @@
     var ti = document.createElement("span"); ti.className = "titulo"; ti.textContent = e.titulo;
     var ho = document.createElement("span"); ho.className = "hora"; ho.textContent = hora(e.hora);
     cab.appendChild(et); cab.appendChild(ti); cab.appendChild(ho);
-    var de = document.createElement("div"); de.className = "detalle"; de.textContent = e.detalle;
+    var de = document.createElement("div"); de.className = "detalle";
+    var bloques = e.tipo === "coordinador" && e.extra && Array.isArray(e.extra.bloques)
+      ? e.extra.bloques : [];
+    if (bloques.length) {
+      de.className = "detalle formato";
+      try { dibujarBloques(de, bloques); }
+      catch (error) { de.className = "detalle"; de.textContent = e.detalle; }  // respaldo: texto plano
+    } else {
+      de.textContent = e.detalle;
+    }
     div.appendChild(cab); div.appendChild(de);
     return div;
   }
@@ -140,9 +218,23 @@
       try { mostrar(JSON.parse(m.data)); } catch (e) { /* evento ilegible: se ignora */ }
     };
     flujo.onerror = function () {
-      if (flujo.readyState === EventSource.CLOSED) nueva(); // el servidor ya no la conoce
+      // Al descargar la página (recarga, cierre) el navegador cierra el flujo y avisa con un
+      // error: no significa que la conversación haya desaparecido y no hay que empezar otra.
+      if (cerrando) return;
+      if (flujo.readyState === EventSource.CLOSED) nueva(); // el servidor ya no la conoce (404)
     };
   }
+
+  function descargando() {
+    cerrando = true;
+    if (flujo) flujo.close();
+  }
+  window.addEventListener("pagehide", descargando);
+  window.addEventListener("beforeunload", descargando);
+  // Si el navegador restaura la página desde su caché de navegación, se vuelve a conectar.
+  window.addEventListener("pageshow", function (ev) {
+    if (ev && ev.persisted && cid) { cerrando = false; conectar(); }
+  });
 
   function nueva() {
     guardado(null); ultimo = 0; lista.textContent = ""; vacio(); ocupar(false);
@@ -154,7 +246,8 @@
 
   function enviar() {
     var texto = campo.value.trim();
-    if (!texto || ocupado || !cid) return;
+    if (!texto) { aviso.textContent = "Escribe un mensaje antes de enviar."; campo.focus(); return; }
+    if (ocupado || !cid) return;
     aviso.textContent = "";
     fetch("/api/conversaciones/" + cid + "/mensajes", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -168,6 +261,7 @@
   document.getElementById("formulario").addEventListener("submit", function (ev) {
     ev.preventDefault(); enviar();
   });
+  campo.addEventListener("input", function () { aviso.textContent = ""; });
   campo.addEventListener("keydown", function (ev) {
     if (ev["key"] === "Enter" && !ev.shiftKey) { ev.preventDefault(); enviar(); }
   });

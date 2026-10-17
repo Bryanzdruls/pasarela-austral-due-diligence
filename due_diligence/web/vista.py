@@ -11,6 +11,7 @@ from due_diligence.events import (
     CoordinatorText,
     DomainEvent,
     Escalated,
+    FrontFinding,
     FrontName,
     FrontResult,
     FrontStatus,
@@ -19,6 +20,7 @@ from due_diligence.events import (
     SubagentFinished,
     SubagentStarted,
 )
+from due_diligence.web.markdown import a_bloques
 
 FRENTES = {
     FrontName.REGISTRO_MERCANTIL: "el registro mercantil",
@@ -91,9 +93,9 @@ def _resultado(evento: SubagentFinished, n: int) -> dict[str, Any]:
     estado = result.estado if result else None
     extra = {"frente": evento.frente.value, "estado": estado.value if estado else "sin_resultado"}
     if result is not None and estado is FrontStatus.COMPLETO:
-        fuente, fecha = result.metadatos["fuente"], result.metadatos["fecha"]
-        detalle = f"Fuente: {fuente}. Fecha: {fecha}."
-        return _vista(n, "resultado", f"Respondió {nombre}", detalle, hora, **extra)
+        # La fuente y la fecha de este JSON las escribe el subagente: no se muestran como
+        # procedencia. La que el servidor selló va en la tarjeta de hallazgo.
+        return _vista(n, "resultado", f"Respondió {nombre}", "Entregó su resultado.", hora, **extra)
     if result is not None and estado is FrontStatus.FALLIDO:
         error = result.contenido.get("error", {})
         partes = [f"Motivo: {error.get('motivo', 'sin detalle')}."]
@@ -127,7 +129,14 @@ def a_vista(evento: DomainEvent, n: int) -> dict[str, Any]:
     """Convierte un evento del dominio en la tarjeta que ve el analista."""
     hora = evento.timestamp
     if isinstance(evento, CoordinatorText):
-        return _vista(n, "coordinador", "Coordinador", evento.text, hora)
+        bloques = a_bloques(evento.text)
+        return _vista(n, "coordinador", "Coordinador", evento.text, hora, bloques=bloques)
+    if isinstance(evento, FrontFinding):
+        titulo = f"Hallazgo en {_nombre(evento.frente)}"
+        detalle = evento.resumen
+        if evento.fuente and evento.fecha:  # la procedencia que selló el servidor
+            detalle += f" Fuente: {evento.fuente}. Fecha: {evento.fecha}."
+        return _vista(n, "hallazgo", titulo, detalle, hora, frente=evento.frente.value)
     if isinstance(evento, SubagentStarted):
         titulo = f"Delegó en {_nombre(evento.frente)}"
         return _vista(n, "delegacion", titulo, evento.encargo, hora, frente=evento.frente.value)

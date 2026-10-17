@@ -7,9 +7,16 @@ confirma el servidor (`ok: true`). Ninguno lanza ni cambia una decisión: observ
 from collections.abc import Callable
 from typing import Any
 
-from due_diligence.events import CallBlocked, DomainEvent, Escalated, ReportRegistered
+from due_diligence.events import (
+    CallBlocked,
+    DomainEvent,
+    Escalated,
+    FrontFinding,
+    ReportRegistered,
+)
 from due_diligence.rule_hooks import Hook
 from due_diligence.rules import ESCALAR, INFORME, Decision, _declared_fronts, parse_envelope
+from due_diligence.web.hallazgos import FRENTE_DE, resumen_de
 
 Emit = Callable[[DomainEvent], Any]
 
@@ -22,8 +29,30 @@ def _text(value: Any) -> str:
     return value if isinstance(value, str) else ""
 
 
+def _finding_from(tool: str, input_data: dict[str, Any]) -> DomainEvent | None:
+    """El hallazgo de una consulta que el servidor confirmó; nada si falló o no se entiende."""
+    envelope = parse_envelope(input_data.get("tool_response"))
+    if envelope is None or envelope.get("ok") is not True:
+        return None
+    content = envelope.get("content")
+    consulta = input_data.get("tool_input")
+    resumen = resumen_de(tool, content, consulta) if isinstance(content, dict) else None
+    if not resumen:
+        return None
+    metadata = envelope.get("metadata")
+    sello = metadata if isinstance(metadata, dict) else {}
+    return FrontFinding(
+        FRENTE_DE[tool],
+        resumen,
+        fuente=_text(sello.get("source")),
+        fecha=_text(sello.get("fetched_at")),
+    )
+
+
 def _event_from(input_data: dict[str, Any]) -> DomainEvent | None:
     tool = _short(input_data.get("tool_name"))
+    if tool in FRENTE_DE:
+        return _finding_from(tool, input_data)
     if tool not in (INFORME, ESCALAR):
         return None
     envelope = parse_envelope(input_data.get("tool_response"))
