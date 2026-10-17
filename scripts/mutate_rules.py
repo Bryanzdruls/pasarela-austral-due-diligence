@@ -408,8 +408,8 @@ MUTATIONS += [
         "ambigüedad: el escalamiento no la comprueba",
         RULES,
         """            self._check_ambiguedad(data)
-            or self._check_cobertura(data)""",
-        """            self._check_cobertura(data)""",
+            or self._check_escalamiento(data)""",
+        """            self._check_escalamiento(data)""",
     ),
     (
         "procedencia: la clave del hallazgo solo reconoce el nombre exacto del frente",
@@ -429,6 +429,143 @@ MUTATIONS += [
         """            or self._check_procedencia(data)
 """,
         "",
+    ),
+]
+
+# Escalamiento con criterio y handoff (ticket #6).
+MUTATIONS += [
+    (
+        "escalamiento: no se observan las menciones de noticias",
+        RULES,
+        """            self._observe_menciones(tool_input, content)""",
+        """            pass""",
+    ),
+    (
+        "escalamiento: las menciones de un comercio valen para otro",
+        RULES,
+        """        targets = self._failure_targets("noticias", tool_input)
+        for case in targets:
+            case.menciones = True""",
+        """        targets = list(self.commerces.values())
+        for case in targets:
+            case.menciones = True""",
+    ),
+    (
+        "escalamiento: no se adoptan las menciones anteriores a la identificación",
+        RULES,
+        """        if self._orphan_mentions:
+            case.menciones = True""",
+        """        if False:
+            case.menciones = True""",
+    ),
+    (
+        "escalamiento: la coincidencia en listas no es un motivo",
+        RULES,
+        """            grounds["listas"] = GROUNDS["listas"]""",
+        """            pass""",
+    ),
+    (
+        "escalamiento: el alto riesgo no es un motivo",
+        RULES,
+        """            grounds["riesgo"] = GROUNDS["riesgo"]""",
+        """            pass""",
+    ),
+    (
+        "escalamiento: la contradicción no es un motivo",
+        RULES,
+        """            grounds["conflicto"] = GROUNDS["conflicto"]""",
+        """            pass""",
+    ),
+    (
+        "escalamiento: las menciones no son un motivo",
+        RULES,
+        """            grounds["noticias"] = GROUNDS["noticias"]""",
+        """            pass""",
+    ),
+    (
+        "escalamiento: una cobertura incompleta cuenta como motivo",
+        RULES,
+        """            grounds["noticias"] = GROUNDS["noticias"]
+        return grounds""",
+        """            grounds["noticias"] = GROUNDS["noticias"]
+        if self.failed_fronts(case.id):
+            grounds["cobertura"] = GROUNDS["noticias"]
+        return grounds""",
+    ),
+    (
+        "escalamiento: un comercio sin identificar siempre tiene motivo",
+        RULES,
+        """            return {"riesgo": _DECLARED_RISK} if self._request_evidence() else {}""",
+        """            return {"riesgo": _DECLARED_RISK}""",
+    ),
+    (
+        "escalamiento: el informe con `escalar_a_cumplimiento` no exige motivo",
+        RULES,
+        """        if recomendacion == "escalar_a_cumplimiento":
+            if (sin_motivo""",
+        """        if False:
+            if (sin_motivo""",
+    ),
+    (
+        "escalamiento: la herramienta no exige motivo",
+        RULES,
+        """            or self._check_escalamiento(data)
+""",
+        "",
+    ),
+    (
+        "escalamiento: el identificador distingue mayúsculas",
+        RULES,
+        """        wanted = commerce_id.strip().upper() if isinstance(commerce_id, str) else ""
+        if not wanted:""",
+        """        wanted = commerce_id.strip() if isinstance(commerce_id, str) else ""
+        if not wanted:""",
+    ),
+    (
+        "handoff: no se exige el hallazgo del frente que motiva",
+        RULES,
+        """        if sin_hallazgo:
+            return _deny_handoff_hallazgos(sin_hallazgo)""",
+        """        if False:
+            return _deny_handoff_hallazgos(sin_hallazgo)""",
+    ),
+    (
+        "handoff: un frente declarado sin cubrir no se exime del hallazgo",
+        RULES,
+        """(present | exempt)""",
+        """present""",
+    ),
+    (
+        "handoff: el alto riesgo exige solo el frente de riesgo y no el del registro",
+        RULES,
+        """("riesgo", "registro")""",
+        """("riesgo",)""",
+    ),
+    (
+        "handoff: la causa no se comprueba",
+        RULES,
+        """        return _deny_handoff_causa(sin_nombrar) if sin_nombrar else None""",
+        """        return None""",
+    ),
+    (
+        "handoff: basta que la causa nombre un solo motivo",
+        RULES,
+        """        sin_nombrar = [g for g in grounds.values() if not any(w in text for w in g.palabras)]""",
+        """        named = [g for g in grounds.values() if any(w in text for w in g.palabras)]
+        sin_nombrar = [] if named else list(grounds.values())""",
+    ),
+    (
+        "handoff: la causa distingue tildes y mayúsculas",
+        RULES,
+        """        text = normalize(data.get("causa"))""",
+        """        text = str(data.get("causa"))""",
+    ),
+    (
+        "handoff: el escalamiento no exige declarar las contradicciones",
+        RULES,
+        """            or self._check_conflictos(data)
+            or self._check_handoff(data)""",
+        """            or self._check_handoff(data)""",
     ),
 ]
 

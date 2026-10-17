@@ -160,3 +160,48 @@ def test_the_registry_subagent_still_includes_every_date_with_its_origin():
 
     text = SUBAGENT_PROMPTS["registro_mercantil"].lower()
     assert "fechas distintas" in text and "origen" in text
+
+
+# --- #6: escalamiento con criterio y handoff ---------------------------------------------
+
+
+def test_the_coordinator_prompt_says_when_to_escalate_and_when_not_to():
+    text = COORDINATOR_PROMPT.lower()
+    assert "cuándo escalar" in text
+    for motivo in (
+        "coincidencia en listas",
+        "alto riesgo",
+        "contradicción",
+        "menciones en noticias",
+    ):
+        assert motivo in text, motivo
+    assert "riesgo bajo" in text and "sin hallazgos" in text and "no escales" in text
+
+
+def test_the_coordinator_prompt_says_an_incomplete_coverage_alone_does_not_justify_escalating():
+    text = COORDINATOR_PROMPT.lower()
+    assert "cobertura incompleta" in text and "no basta" in text
+    assert "no_habilitar" in text
+
+
+def test_the_coordinator_prompt_describes_the_summary_for_the_officer():
+    text = COORDINATOR_PROMPT
+    for campo in (
+        "comercio_id",
+        "hallazgos",
+        "cobertura",
+        "conflictos",
+        "causa",
+        "accion_recomendada",
+    ):
+        assert campo in text, campo
+    lower = text.lower()
+    assert "no tiene la conversación" in lower
+    assert "nombra cada motivo" in lower
+    assert "frente que motiva" in lower
+
+
+def test_the_escalation_rules_are_enforced_by_hooks_too_and_the_prompt_only_guides():
+    text = COORDINATOR_PROMPT.lower()
+    assert "escalar sin hallazgo" in text or "escalar sin un hallazgo" in text
+    assert "hooks" in text

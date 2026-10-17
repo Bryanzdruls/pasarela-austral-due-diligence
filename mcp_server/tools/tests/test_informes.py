@@ -99,3 +99,17 @@ def test_report_with_no_arguments_returns_structured_error():
         "hallazgos",
         "cobertura",
     ]
+
+
+def test_the_escalation_stores_the_conflicts_it_was_given(runtime):
+    conflictos = [{"dato": "fecha_constitucion", "valores": [{"valor": "a", "fuente": "x"}]}]
+    r = informes.escalar_a_cumplimiento(**_escalamiento(conflictos=conflictos))
+    assert r["ok"] is True
+    saved = json.loads((runtime / "ESC-0001.json").read_text(encoding="utf-8"))
+    assert saved["conflictos"] == conflictos
+
+
+def test_the_escalation_without_conflicts_stores_an_empty_list(runtime):
+    informes.escalar_a_cumplimiento(**_escalamiento())
+    saved = json.loads((runtime / "ESC-0001.json").read_text(encoding="utf-8"))
+    assert saved["conflictos"] == []

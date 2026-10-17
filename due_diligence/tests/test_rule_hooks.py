@@ -225,7 +225,14 @@ async def test_habilitar_is_denied_after_a_match_of_the_representative_only():
 
 async def test_escalating_and_not_enabling_are_allowed_after_a_match():
     book = await identified_with_match("comercio", "CO-XX-0001")
-    assert await run(book, ESCALAR, {"comercio_id": "CO-XX-0001"}, agent_type=None) == {}
+    resumen = {
+        "comercio_id": "CO-XX-0001",
+        "hallazgos": {"listas": {"fuente": "listas_ficticias", "fecha": "2026-10-16"}},
+        "cobertura": {"x": 1},
+        "causa": "Coincidencia en listas restrictivas.",
+        "accion_recomendada": "Revisar el caso.",
+    }
+    assert await run(book, ESCALAR, resumen, agent_type=None) == {}
     assert await run(book, INFORME, informe("escalar_a_cumplimiento"), agent_type=None) == {}
     assert await run(book, INFORME, informe("no_habilitar"), agent_type=None) == {}
 
@@ -287,7 +294,14 @@ async def test_the_registry_category_denies_and_escalating_stays_allowed():
     registry = registro([comercio(categoria="casa de apuestas")])
     await observe(book, "consultar_registro_mercantil", {"consulta": "CO-XX-0001"}, registry)
     assert decision_of(await run(book, INFORME, informe("habilitar"), agent_type=None)) == "deny"
-    assert await run(book, ESCALAR, {"comercio_id": "CO-XX-0001"}, agent_type=None) == {}
+    resumen = {
+        "comercio_id": "CO-XX-0001",
+        "hallazgos": {"registro": {"fuente": "registro_ficticio", "fecha": "2026-10-16"}},
+        "cobertura": {"x": 1},
+        "causa": "Categoría de alto riesgo.",
+        "accion_recomendada": "Revisar el caso.",
+    }
+    assert await run(book, ESCALAR, resumen, agent_type=None) == {}
 
 
 async def test_a_low_risk_commerce_is_not_denied_by_rule_3():
@@ -516,9 +530,17 @@ async def test_escalating_without_declaring_the_failed_front_is_denied():
     )
     await prompt(book, "Due diligence de CO-XX-0001")
     await fail_news(book)
-    sin = {"comercio_id": "CO-XX-0001", "cobertura": {}}
+    book.commerces["CO-XX-0001"].alto_riesgo = True  # escalar exige un motivo (#6)
+    completo = {
+        "hallazgos": {
+            "registro": {"contenido": "x", "fuente": "registro_ficticio", "fecha": "2026-10-16"}
+        },
+        "causa": "Categoría de alto riesgo.",
+        "accion_recomendada": "Revisar el caso.",
+    }
+    sin = {"comercio_id": "CO-XX-0001", "cobertura": {}, **completo}
     assert decision_of(await run(book, ESCALAR, sin, agent_type=None)) == "deny"
-    con = {"comercio_id": "CO-XX-0001", "cobertura": declared("noticias")}
+    con = {"comercio_id": "CO-XX-0001", "cobertura": declared("noticias"), **completo}
     assert await run(book, ESCALAR, con, agent_type=None) == {}
 
 
@@ -677,3 +699,108 @@ async def test_an_unreadable_state_denies_the_report_fail_closed():
     assert decision_of(output) == "deny"
     assert "no pudo evaluarse" in reason_of(output)
     assert SRC_REGISTRO  # la fuente real del registro sigue siendo la constante de las pruebas
+
+
+# ---------------------------------------------------- #6: escalamiento con criterio y handoff
+# Protección contra regresiones de extremo a extremo: `PreToolUse` ya llama a `check_informe` y
+# `check_escalar`; estas pruebas ejercen la integración con el sobre real y con la traza.
+
+from due_diligence.tests.test_rules_procedencia import SRC_LISTAS  # noqa: E402
+
+
+async def observe_registro_ok(book, *matches):
+    return await observe(
+        book,
+        "consultar_registro_mercantil",
+        BUSQUEDA,
+        registro_resp(list(matches)),
+        agent_type="registro_mercantil",
+    )
+
+
+async def observe_listas_ficticias(book, match, tipo="comercio", referencia="CO-XX-0001"):
+    content = {"match": match, "entradas": []}
+    return await observe(
+        book,
+        "consultar_listas_restrictivas",
+        {"tipo": tipo, "referencia": referencia},
+        sobre(content, SRC_LISTAS),
+        agent_type="listas_restrictivas",
+    )
+
+
+def resumen_oficial(**campos):
+    data = {
+        "comercio_id": "CO-XX-0001",
+        "hallazgos": {"listas": hallazgo(SRC_LISTAS)},
+        "cobertura": {"x": 1},
+        "causa": "Coincidencia en listas restrictivas del comercio.",
+        "accion_recomendada": "Revisar el caso antes de habilitar.",
+    }
+    data.update(campos)
+    return data
+
+
+async def test_a_low_risk_commerce_without_findings_cannot_be_escalated():
+    book = CaseBook()
+    await observe_registro_ok(book, comercio("CO-XX-0001", "PE-0001"))
+    await observe_listas_ficticias(book, False)
+    await observe_listas_ficticias(book, False, "persona", "PE-0001")
+    por_herramienta = await run(book, ESCALAR, resumen_oficial(), agent_type=None)
+    assert decision_of(por_herramienta) == "deny"
+    assert "hallazgo" in reason_of(por_herramienta) and "habilitar" in reason_of(por_herramienta)
+    por_informe = await run(book, INFORME, informe("escalar_a_cumplimiento"), agent_type=None)
+    assert decision_of(por_informe) == "deny"
+
+
+async def test_a_list_match_allows_a_complete_summary_and_denies_an_incomplete_one():
+    book = CaseBook()
+    await observe_registro_ok(book, comercio("CO-XX-0001", "PE-0001"))
+    await observe_listas_ficticias(book, True)
+    assert await run(book, ESCALAR, resumen_oficial(), agent_type=None) == {}
+    sin_hallazgo = await run(book, ESCALAR, resumen_oficial(hallazgos={}), agent_type=None)
+    assert decision_of(sin_hallazgo) == "deny" and "listas" in reason_of(sin_hallazgo)
+    sin_causa = await run(book, ESCALAR, resumen_oficial(causa="revisar"), agent_type=None)
+    assert decision_of(sin_causa) == "deny" and "lista" in reason_of(sin_causa)
+
+
+async def test_the_motive_of_one_commerce_does_not_allow_escalating_another():
+    book = CaseBook()
+    await observe_registro_ok(book, comercio("CO-XX-0001", "PE-0001"))
+    await observe_registro_ok(book, comercio("CO-XX-0002", "PE-0002"))
+    await observe_listas_ficticias(book, True, "comercio", "CO-XX-0001")
+    assert await run(book, ESCALAR, resumen_oficial(), agent_type=None) == {}
+    otro = await run(book, ESCALAR, resumen_oficial(comercio_id="CO-XX-0002"), agent_type=None)
+    assert decision_of(otro) == "deny"
+
+
+async def test_the_trace_records_the_new_escalation_rules(tmp_path, monkeypatch):
+    trace = tmp_path / "trace.jsonl"
+    monkeypatch.setenv("PASARELA_HOOK_TRACE", str(trace))
+    book = CaseBook()
+    await observe_registro_ok(book, comercio("CO-XX-0001", "PE-0001"))
+    await observe_registro_ok(book, comercio("CO-XX-0002", "PE-0002"))
+    await observe_listas_ficticias(book, True, "comercio", "CO-XX-0001")
+    await run(book, ESCALAR, resumen_oficial(comercio_id="CO-XX-0002"), agent_type=None)
+    await run(book, ESCALAR, resumen_oficial(hallazgos={}), agent_type=None)
+    await run(book, ESCALAR, resumen_oficial(causa="revisar"), agent_type=None)
+    rows = [json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines()]
+    assert [r["rule"] for r in rows] == ["escalamiento", "handoff_hallazgos", "handoff_causa"]
+
+
+async def test_the_stop_hook_still_demands_escalation_once_after_a_list_match():
+    book = CaseBook()
+    await observe_registro_ok(book, comercio("CO-XX-0001", "PE-0001"))
+    await observe_listas_ficticias(book, True)
+    assert (await stop(book))["decision"] == "block"
+    assert await stop(book, active=True) == {}
+
+
+async def test_an_unreadable_state_denies_the_escalation_fail_closed():
+    book = CaseBook()
+    await observe_registro_ok(book, comercio("CO-XX-0001", "PE-0001"))
+    await observe_listas_ficticias(book, True)
+    book.responded = None  # estado corrupto
+    output = await run(book, ESCALAR, resumen_oficial(), agent_type=None)
+    assert decision_of(output) == "deny"
+    assert "no pudo evaluarse" in reason_of(output)

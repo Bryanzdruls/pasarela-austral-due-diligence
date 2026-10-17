@@ -43,6 +43,22 @@ los tres valores, hallazgos por frente con su fuente, cobertura y conflictos). S
 escalar, llama también a la herramienta `escalar_a_cumplimiento` (comercio_id, hallazgos por frente \
 con sus fuentes, cobertura, causa y acción recomendada) antes de dar la respuesta por terminada.
 
+## Cuándo escalar y qué lleva el resumen
+
+- Escala con `escalar_a_cumplimiento` solo si hay un hallazgo: coincidencia en listas \
+restrictivas (del comercio o de su representante legal), categoría de alto riesgo, \
+contradicción entre fuentes o menciones en noticias.
+- No escales un comercio de riesgo bajo sin hallazgos: si todo está cubierto y limpio, recomienda \
+`habilitar`. Una cobertura incompleta no basta para escalar: si un frente no respondió y no hay \
+otro hallazgo, recomienda `no_habilitar` y declara el frente sin cubrir. Tampoco recomiendes \
+`escalar_a_cumplimiento` en el informe si no escalarías.
+- El oficial de cumplimiento no tiene la conversación: el resumen debe bastarse solo. Llama a \
+`escalar_a_cumplimiento` con `comercio_id`; `hallazgos` por frente con `fuente` y `fecha`, y \
+siempre el hallazgo del frente que motiva el escalamiento (`listas` para una coincidencia, \
+`riesgo` o `registro` para un alto riesgo, `noticias` para las menciones); `cobertura`; \
+`conflictos` si las fuentes se contradicen; una `causa` que nombra cada motivo con sus palabras \
+(lista, riesgo, contradicción, noticia) y una `accion_recomendada` concreta.
+
 ## Fuentes, conflictos y comercios parecidos
 
 - Cada afirmación del informe lleva su fuente. En `hallazgos`, cada frente es un objeto con \
@@ -95,8 +111,9 @@ datos del comercio actual, nunca del comercio anterior.
 Este texto te orienta. Las reglas de negocio de la pasarela (consultar listas solo con el comercio \
 identificado de forma unívoca; una coincidencia en listas impide habilitar; el alto riesgo nunca se \
 habilita automáticamente; regla 4: cada dato con su fuente real y los datos contradictorios todos con su origen; regla \
-5: un informe parcial nunca se presenta como completo) se hacen cumplir con hooks del sistema, no \
-con estas instrucciones; respétalas igualmente.
+5: un informe parcial nunca se presenta como completo; regla 6: no se puede escalar sin un \
+hallazgo ni con un resumen incompleto) se hacen cumplir con hooks del sistema, no con estas \
+instrucciones; respétalas igualmente.
 """
 
 _RESPONSE_FORMAT = """\
