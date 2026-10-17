@@ -65,3 +65,20 @@ Una sobrevivió la primera vez (**D1**, no detectar la falta de `.git/HEAD` y `.
 
 ## Trazabilidad (T029)
 `docs/TRAZABILIDAD.md`: D2 y D3 a Hecho, D5 (zip) y D6 (video) a Parcial con lo que queda en manos de la persona, la nota del ticket #11 y el resumen recalculado (Hecho 70, Parcial 5, Falta 2).
+
+## Cierre (T030, T031)
+**Recuento final.** `python -m uv run pytest -q`: **1.654 pruebas en verde** (1.528 en `main` más 126 nuevas: 55 de `test_verify_delivery.py` y 71 de `test_docs.py`), `ruff check` y `ruff format --check` limpios, `python scripts/verify_ecosystem.py` con código 0 y `python scripts/verify_docs.py` con todo en orden. Ninguna prueba anterior se modificó (SC-007).
+
+**El zip real (SC-005).** `python scripts/verify_delivery.py --build` sobre el repositorio confirmado: 89 commits en `.git`, 3.566.535 bytes (`.git` 2.487.638 y resto 738.391, frente a 50.000.000), sin entornos virtuales ni cachés, sin archivos de entorno ni de claves, sin credenciales en los archivos ni en el historial y **313 archivos idénticos a los del último commit**. Código de salida 0.
+
+**Con `--final` (hoy).** Falla solo en `enlace del video publicado: pendiente` y dice «El zip NO se puede entregar»; `documentos en orden` pasa. Es lo esperado: el video lo graba y publica la persona. Pasará cuando pegue el enlace en el README, haga el commit y vuelva a generar el zip.
+
+**«Dos páginas».** Se midió como 1.000 palabras (un sustituto, sin generar un PDF): `DECISIONES.md` tiene 571.
+
+## Lo que NO se verificó, y límites
+- **El video de funcionamiento, el zip final subido a la plataforma, la invitación a los evaluadores y el video de defensa son de la persona**; el ticket entrega el guion, los comprobadores y los documentos.
+- **SC-001 se midió una vez, en esta máquina**, con la caché de `uv` caliente y sin probar Linux ni macOS. Un equipo más lento alarga las pruebas (el 96 % del tiempo); por eso el README ofrece una comprobación rápida.
+- **El guion se ensayó por la API de la interfaz**, no con una grabación de pantalla; la aceleración ×6 de la edición es una propuesta que no se probó con un editor.
+- **El comprobador del zip detecta formas conocidas de credencial** (claves de Anthropic, tokens de GitHub y claves privadas). No detecta otras clases (por ejemplo, la clave de otro proveedor) y escanea hasta 2 MB por archivo; los archivos binarios solo se miden por nombre.
+- **`git log --all -G` mira los cambios de líneas**: una credencial en un objeto inalcanzable o dentro de un archivo binario del historial no aparecería.
+- `DECISIONES.md` condensa 11 decisiones; el razonamiento largo sigue en `docs/ECOSISTEMA.md` y en los `research.md`.
