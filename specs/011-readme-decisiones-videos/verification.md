@@ -20,3 +20,24 @@ En `main` (merge del PR #23, `f11f80b`) la suite tenía 1.528 pruebas en verde, 
 **Resultado sobre el repositorio real.** `python scripts/verify_docs.py`: las 8 secciones del README, el enlace al GitHub Project, el video `pendiente`, todas las rutas citadas existen, las 11 necesidades con sus cinco columnas y 571 palabras en `DECISIONES.md` (máximo 1.000).
 
 **Revisión cruzada de `DECISIONES.md` con `docs/ECOSISTEMA.md` (T016, hallazgo C2).** Cada fila se contrastó con su fila de origen: 1 (memoria y su importación), 2 (preferencias locales ignoradas por git), 3 (regla con `paths`), 4 (hook de especificación, también por terminal), 5 (hook de datos reales y su regla), 6 (`permissions.deny` y el hook de secretos, plantilla accesible), 7 (hook posterior a la edición, no bloquea), 8 (revisor de código de solo lectura lanzado por `/abrir-pr`), 9 (revisor de cumplimiento y su skill con `context: fork`), 10 (skills sobre el MCP de GitHub; un hook no puede llamar al MCP) y 11 (plugin y catálogo en este repositorio, hook autocontenido). Sin contradicciones ni decisiones nuevas. Una diferencia deliberada de nivel de detalle: `ECOSISTEMA.md` lista 25 piezas y `DECISIONES.md` solo las que resuelven cada necesidad; esta última no menciona `verify_ecosystem.py` ni el MCP propio, que no son una de las once necesidades.
+
+## Historia 4: guion del video
+**Pruebas primero (T019).** Las pruebas de `CHECK_GUION` fallaron por la razón esperada: `AttributeError: module 'verify_docs' has no attribute 'CHECK_GUION'`. Tras implementarlo (T020), 70 pruebas sintéticas en verde y solo fallaba la del repositorio real, porque aún no existía `docs/VIDEO.md`.
+
+**Ensayo con el modelo real (T021, 2026-10-17).** Se corrieron los siete casos contra la interfaz con el modelo real, uno detrás de otro (el caso 6 en un servidor reiniciado con la falla de noticias), y se cronometraron:
+
+| Caso | Segundos | Qué se vio |
+|---|---|---|
+| 1 | 47,7 | 4 delegaciones, 6 hallazgos, informe «escalar a cumplimiento» y escalamiento |
+| 2 | 38,7 | 5 hallazgos, informe «habilitar», sin escalamiento |
+| 3 | 45,7 | hallazgo de listas del representante, informe y escalamiento |
+| 4 | 59,7 (25,2 + 34,5) | dos turnos; informe a nombre de `CO-CA-0004` tras el identificador |
+| 5 | 55,5 | **sin bloqueo**: el modelo pasó por el registro y escaló el caso; el hook de la regla 1 no llegó a ejercerse |
+| 7 | 54,2 | informe y escalamiento por la contradicción de fechas |
+| 6 | 49,4 | un bloqueo real por el tope de reintentos e informe «no habilitar» con «Sin cubrir: las noticias» |
+
+Los casos 1 a 5 y 7 sumaron 301,6 s en serie; con el 6 y el reinicio de la interfaz, una grabación en directo pasaría de seis minutos. Por eso el guion pide acelerar las esperas al editar: con los tiempos del video editado el total es 4:35 (máximo 5:00).
+
+**Hallazgo de logística que el ensayo destapó.** El caso 6 solo funciona en la interfaz si el servidor se arranca con `PASARELA_FAULTS=noticias` (la variable pasa al servidor MCP); hay que reiniciarla y por eso el guion graba el caso 6 al final. No estaba en `docs/INTERFAZ.md`; el README y el guion ya lo dicen.
+
+**No verificado:** el ensayo se hizo por la API de la interfaz (la misma que usa la página), no con una grabación de pantalla; la velocidad ×6 de la edición es una propuesta, no se probó con un editor.

@@ -56,16 +56,60 @@ def decisiones(filas=range(1, 12), relleno="", celdas=None):
     return "# Decisiones\n\nIntroducción breve.\n\n" + cabecera + cuerpo + "\n" + relleno + "\n"
 
 
+IDS = {1: "CO-TV-0001", 2: "CO-LB-0002", 3: "CO-DA-0003", 4: "CO-CA-0004", 5: "", 6: "CO-LB-0002"}
+IDS[7] = "CO-FH-0006"
+GUION_SECCIONES = ["Antes de grabar", "Qué no mostrar", "Si el modelo varía"]
+
+
+def casos():
+    filas = ""
+    for n in range(1, 8):
+        datos = f"`{IDS[n]}`" if IDS[n] else "cualquiera"
+        if n == 4:
+            datos = "`CO-CA-0004` y `CO-CA-0005`"
+        filas += f'| {n} | Caso {n} | "mensaje del caso {n}" | {datos} | resultado |\n'
+    cabecera = "| # | Caso | Mensaje | Datos | Resultado |\n|---|---|---|---|---|\n"
+    return "# Casos\n\n" + cabecera + filas
+
+
+def guion(tiempos=None, sin_caso=None, sin_id=None, secciones=None):
+    tiempos = tiempos or ["0:20", *["0:35"] * 7, "0:15"]  # introducción, siete casos y cierre
+    secciones = GUION_SECCIONES if secciones is None else secciones
+    filas = [f"| Introducción | — | La página vacía | {tiempos[0]} |"]
+    for n in range(1, 8):
+        if n == sin_caso:
+            continue
+        identificador = "" if n == sin_id else f" ({IDS[n] or 'CO-TV-0001'})"
+        filas.append(f"| {n} | Mensaje del caso {n}{identificador} | Lo que se ve | {tiempos[n]} |")
+    filas.append(f"| Cierre | — | Resumen | {tiempos[8]} |")
+    cuerpo = "# Guion del video\n\n"
+    for titulo in secciones:
+        cuerpo += f"## {titulo}\n\n- punto\n\n"
+    cuerpo += "## Guion\n\n| Caso | Mensaje | Qué debe verse | Tiempo |\n|---|---|---|---|\n"
+    return cuerpo + "\n".join(filas) + "\n"
+
+
 def arbol(
     tmp_path,
     readme_texto=None,
     decisiones_texto=None,
-    archivos=("scripts/hacer.py", "docs/CASOS.md"),
+    archivos=("scripts/hacer.py",),
+    casos_texto=None,
+    video_texto=None,
 ):
     for rel in archivos:
         ruta = tmp_path / rel
         ruta.parent.mkdir(parents=True, exist_ok=True)
         ruta.write_text("x", encoding="utf-8")
+    (tmp_path / "docs").mkdir(exist_ok=True)
+    if casos_texto is not False:
+        (tmp_path / "docs" / "CASOS.md").write_text(
+            casos() if casos_texto is None else casos_texto, encoding="utf-8"
+        )
+    if video_texto is not False:
+        (tmp_path / "docs" / "VIDEO.md").write_text(
+            guion() if video_texto is None else video_texto, encoding="utf-8"
+        )
     if readme_texto is not False:
         (tmp_path / "README.md").write_text(
             readme() if readme_texto is None else readme_texto, encoding="utf-8"
@@ -274,6 +318,79 @@ def test_words_inside_code_blocks_do_not_count_toward_the_limit(tmp_path):
     bloque = "```\n" + " ".join(["codigo"] * 3000) + "\n```\n"
     arbol(tmp_path, decisiones_texto=base + bloque)
     assert vd.CHECK_DECISIONES_LENGTH not in fallos(tmp_path)
+
+
+# --------------------------------------------------------------------------- guion del video
+
+
+def test_a_valid_script_passes_and_is_reported(tmp_path):
+    arbol(tmp_path)
+    estados = {c.name: c for c in vd.check_all(tmp_path)}
+    assert estados[vd.CHECK_GUION].ok and "4:40" in estados[vd.CHECK_GUION].detail
+
+
+def test_exactly_five_minutes_passes_and_one_second_more_fails(tmp_path):
+    justo = ["0:20", *["0:35"] * 6, "0:55", "0:15"]  # 0:20 + 6x0:35 + 0:55 + 0:15 = 5:00
+    arbol(tmp_path, video_texto=guion(tiempos=justo))
+    assert vd.CHECK_GUION not in fallos(tmp_path)
+    pasado = [*justo[:-1], "0:16"]
+    arbol(tmp_path, video_texto=guion(tiempos=pasado))
+    problemas = fallos(tmp_path)
+    assert vd.CHECK_GUION in problemas and "5:01" in problemas[vd.CHECK_GUION]
+
+
+@pytest.mark.parametrize("falta", range(1, 8))
+def test_a_missing_case_fails_and_is_named(tmp_path, falta):
+    arbol(tmp_path, video_texto=guion(sin_caso=falta))
+    problemas = fallos(tmp_path)
+    assert vd.CHECK_GUION in problemas and f"caso {falta}" in problemas[vd.CHECK_GUION].lower()
+
+
+@pytest.mark.parametrize("caso", [1, 2, 3, 4, 6, 7])
+def test_a_case_without_its_fictitious_identifier_fails_and_is_named(tmp_path, caso):
+    arbol(tmp_path, video_texto=guion(sin_id=caso))
+    problemas = fallos(tmp_path)
+    assert vd.CHECK_GUION in problemas and f"caso {caso}" in problemas[vd.CHECK_GUION].lower()
+
+
+def test_case_four_is_satisfied_by_either_of_its_two_candidates(tmp_path):
+    texto = guion(sin_id=4).replace("Mensaje del caso 4", "Mensaje del caso 4 (CO-CA-0005)")
+    arbol(tmp_path, video_texto=texto)
+    assert vd.CHECK_GUION not in fallos(tmp_path)
+
+
+def test_a_case_without_data_in_the_cases_document_needs_no_identifier(tmp_path):
+    arbol(tmp_path, video_texto=guion(sin_id=5))
+    assert vd.CHECK_GUION not in fallos(tmp_path)
+
+
+def test_a_row_without_a_readable_time_fails_and_is_named(tmp_path):
+    arbol(
+        tmp_path,
+        video_texto=guion().replace(
+            "| Lo que se ve | 0:35 |", "| Lo que se ve | medio minuto |", 1
+        ),
+    )
+    problemas = fallos(tmp_path)
+    assert vd.CHECK_GUION in problemas and "tiempo" in problemas[vd.CHECK_GUION].lower()
+
+
+@pytest.mark.parametrize("quitar", GUION_SECCIONES)
+def test_a_missing_section_of_the_script_fails_and_is_named(tmp_path, quitar):
+    arbol(tmp_path, video_texto=guion(secciones=[s for s in GUION_SECCIONES if s != quitar]))
+    problemas = fallos(tmp_path)
+    assert (
+        vd.CHECK_GUION in problemas
+        and quitar.lower().split()[-1][:4] in problemas[vd.CHECK_GUION].lower()
+    )
+
+
+def test_a_missing_script_or_cases_document_fails(tmp_path):
+    arbol(tmp_path, video_texto=False)
+    assert "VIDEO.md" in fallos(tmp_path)[vd.CHECK_GUION]
+    (tmp_path / "docs" / "VIDEO.md").write_text(guion(), encoding="utf-8")
+    (tmp_path / "docs" / "CASOS.md").unlink()
+    assert "CASOS.md" in fallos(tmp_path)[vd.CHECK_GUION]
 
 
 # --------------------------------------------------------------------------- línea de órdenes

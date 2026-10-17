@@ -67,11 +67,11 @@ Ninguna: los dos comprobadores son independientes entre sí y reutilizan `Check`
 
 **Independent Test**: los tiempos suman cinco minutos como máximo, aparecen los siete casos con su identificador ficticio y el guion se ensaya una vez con el sistema real.
 
-- [ ] T018 [US4] Añadir a `scripts/tests/test_docs.py` las pruebas de `CHECK_GUION` (fallan antes de T020): un guion válido pasa; falla si los tiempos (`m:ss`) suman más de 5:00 (con exactamente 5:00 pasa y con 5:01 falla), si falta alguno de los casos 1 a 7, si a un caso le falta su identificador ficticio de `docs/CASOS.md`, o si falta el archivo; y, contra el repositorio real, que `docs/VIDEO.md` pase (fallará hasta T021)
-- [ ] T019 [US4] Ejecutar las pruebas nuevas de T018 y comprobar que fallan por la razón esperada
-- [ ] T020 [US4] Implementar `CHECK_GUION` en `scripts/verify_docs.py` (suma de tiempos de la tabla, siete casos, identificador de cada caso tomado de `docs/CASOS.md`) y comprobar que pasan las pruebas sintéticas de T018
-- [ ] T021 [US4] Escribir `docs/VIDEO.md` según `contracts/documentos.md`: lista previa de preparación (clave solo en el entorno, servidor en marcha, navegador limpio, conversación nueva por caso, nada de claves a la vista), la tabla de los siete casos con el mensaje de `docs/CASOS.md`, lo que debe verse y el tiempo de cada uno (introducción y cierre incluidos, total ≤ 5:00), "Qué no mostrar" y "Si el modelo varía"; ensayarlo una vez con el sistema real y ajustar los tiempos a lo medido
-- [ ] T022 [US4] Marcar T018 a T022 y hacer el commit de la historia (escaneo estricto de secretos, mensaje en un archivo)
+- [x] T018 [US4] Añadir a `scripts/tests/test_docs.py` las pruebas de `CHECK_GUION` (fallan antes de T020): un guion válido pasa; falla si los tiempos (`m:ss`) suman más de 5:00 (con exactamente 5:00 pasa y con 5:01 falla), si falta alguno de los casos 1 a 7, si a un caso le falta su identificador ficticio de `docs/CASOS.md`, o si falta el archivo; y, contra el repositorio real, que `docs/VIDEO.md` pase (fallará hasta T021)
+- [x] T019 [US4] Ejecutar las pruebas nuevas de T018 y comprobar que fallan por la razón esperada
+- [x] T020 [US4] Implementar `CHECK_GUION` en `scripts/verify_docs.py` (suma de tiempos de la tabla, siete casos, identificador de cada caso tomado de `docs/CASOS.md`) y comprobar que pasan las pruebas sintéticas de T018
+- [x] T021 [US4] Escribir `docs/VIDEO.md` según `contracts/documentos.md`: lista previa de preparación (clave solo en el entorno, servidor en marcha, navegador limpio, conversación nueva por caso, nada de claves a la vista), la tabla de los siete casos con el mensaje de `docs/CASOS.md`, lo que debe verse y el tiempo de cada uno (introducción y cierre incluidos, total ≤ 5:00), "Qué no mostrar" y "Si el modelo varía"; ensayarlo una vez con el sistema real y ajustar los tiempos a lo medido
+- [x] T022 [US4] Marcar T018 a T022 y hacer el commit de la historia (escaneo estricto de secretos, mensaje en un archivo)
 
 **Checkpoint**: el guion está escrito, comprobado por máquina y ensayado.
 

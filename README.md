@@ -58,14 +58,14 @@ Son más de 1.500 pruebas, sin modelo y sin clave: usan un cliente falso, los da
 
 Los siete casos obligatorios del enunciado están en `docs/CASOS.md`, con su mensaje, sus datos y el resultado exigido. Se pueden recorrer de tres formas:
 
-- **En la interfaz de chat**, escribiendo el mensaje de cada caso (lo que verás en cada uno está en `docs/INTERFAZ.md`).
+- **En la interfaz de chat**, escribiendo el mensaje de cada caso (lo que verás en cada uno está en `docs/INTERFAZ.md`). El caso 6 necesita una falla de noticias: arranca la interfaz con la variable `PASARELA_FAULTS` en `noticias`.
 - **Sin modelo**, de extremo a extremo y en segundos: `python -m uv run pytest due_diligence/tests/test_casos_obligatorios.py -q`.
 - **Con el modelo real**: `python -m uv run python scripts/run_casos.py` (o `--caso N` para uno solo). Necesita `ANTHROPIC_API_KEY` y decide cada caso por lo que el sistema hizo, no por el texto de la respuesta.
 
 ## Enlaces
 
 - **GitHub Project** (el backlog, con su historial): https://github.com/users/Bryanzdruls/projects/4
-- **Video de funcionamiento**: PENDIENTE
+- **Video de funcionamiento**: PENDIENTE (su guion está en `docs/VIDEO.md`)
 
 ## Mapa de piezas
 

@@ -22,6 +22,7 @@ CHECK_VIDEO_STATE = "estado del enlace del video"
 CHECK_PATHS = "rutas citadas existen"
 CHECK_DECISIONES_TABLE = "once necesidades"
 CHECK_DECISIONES_LENGTH = "extensión de DECISIONES.md"
+CHECK_GUION = "guion del video"
 
 ALL_CHECKS = (
     CHECK_README,
@@ -30,14 +31,24 @@ ALL_CHECKS = (
     CHECK_PATHS,
     CHECK_DECISIONES_TABLE,
     CHECK_DECISIONES_LENGTH,
+    CHECK_GUION,
 )
 
 PROJECT_URL = "https://github.com/users/Bryanzdruls/projects/4"
 # Dos páginas: una página impresa admite unas 450 a 500 palabras (plan, D5).
 MAX_WORDS = 1000
 NEEDS = 11
+MAX_VIDEO_SECONDS = 300
+CASES = range(1, 8)
 MAX_LISTED = 5
 KNOWN_EXTENSIONS = (".md", ".py", ".json", ".js", ".html", ".toml")
+
+# Secciones obligatorias del guion del video (palabra clave sin acentos y cómo se nombra).
+GUION_SECTIONS = {
+    "antes de grabar": "antes de grabar",
+    "no mostrar": "qué no mostrar",
+    "modelo varia": "si el modelo varía",
+}
 
 # Secciones obligatorias del README: palabra clave (sin acentos ni mayúsculas) y cómo se nombra.
 SECTIONS = {
@@ -200,6 +211,82 @@ def check_decisiones_length(root: Path) -> Check:
     )
 
 
+# --------------------------------------------------------------------------- guion del video
+
+
+def _table_rows(text: str) -> list[list[str]]:
+    filas = []
+    for linea in text.splitlines():
+        linea = linea.strip()
+        if not linea.startswith("|"):
+            continue
+        celdas = [c.strip() for c in linea.strip("|").split("|")]
+        if all(re.fullmatch(r":?-+:?", c) for c in celdas if c):
+            continue
+        filas.append(celdas)
+    return filas
+
+
+def _seconds(celda: str) -> int | None:
+    coincide = re.fullmatch(r"(\d+):([0-5]\d)", celda.strip())
+    return int(coincide.group(1)) * 60 + int(coincide.group(2)) if coincide else None
+
+
+def _case_ids(casos: str) -> dict[int, set[str]]:
+    """Identificadores ficticios de cada caso según docs/CASOS.md (los casos sin datos, vacíos)."""
+    ids: dict[int, set[str]] = {}
+    for celdas in _table_rows(casos):
+        if celdas and celdas[0].isdigit() and int(celdas[0]) in CASES:
+            ids[int(celdas[0])] = set(re.findall(r"CO-[A-Z]{2}-\d{4}", " ".join(celdas)))
+    return ids
+
+
+def check_guion(root: Path) -> Check:
+    texto = _read(root, "docs/VIDEO.md")
+    if texto is None:
+        return Check(CHECK_GUION, False, "falta docs/VIDEO.md")
+    casos = _read(root, "docs/CASOS.md")
+    if casos is None:
+        return Check(CHECK_GUION, False, "falta docs/CASOS.md: no se pueden contrastar los casos")
+    problemas = []
+    encabezados = [_normalize(x) for x in texto.splitlines() if x.lstrip().startswith("#")]
+    for clave, nombre in GUION_SECTIONS.items():
+        if not any(clave in e for e in encabezados):
+            problemas.append(f"falta la sección «{nombre}»")
+
+    esperados = _case_ids(casos)
+    total, vistos, sin_tiempo = 0, set(), []
+    for celdas in _table_rows(texto):
+        if not celdas or celdas[0].lower() in ("caso", "#"):
+            continue
+        segundos = _seconds(celdas[-1])
+        etiqueta = celdas[0]
+        coincide = re.fullmatch(r"(?:caso\s*)?([1-7])", etiqueta.lower())
+        if segundos is None:
+            sin_tiempo.append(etiqueta)
+        else:
+            total += segundos
+        if coincide:
+            n = int(coincide.group(1))
+            vistos.add(n)
+            ids = esperados.get(n, set())
+            if ids and not any(i in " ".join(celdas) for i in ids):
+                problemas.append(
+                    f"al caso {n} le falta su identificador ({' o '.join(sorted(ids))})"
+                )
+    if faltan := [n for n in CASES if n not in vistos]:
+        problemas.extend(f"falta el caso {n}" for n in faltan)
+    if sin_tiempo:
+        problemas.append("filas sin tiempo legible (m:ss): " + ", ".join(sin_tiempo))
+    if total > MAX_VIDEO_SECONDS:
+        problemas.append(f"los tiempos suman {total // 60}:{total % 60:02d} (máximo 5:00)")
+    if problemas:
+        return Check(CHECK_GUION, False, "; ".join(problemas))
+    return Check(
+        CHECK_GUION, True, f"siete casos, tiempos que suman {total // 60}:{total % 60:02d}"
+    )
+
+
 # --------------------------------------------------------------------------- conjunto
 
 
@@ -210,6 +297,7 @@ _CHECKS = (
     check_paths,
     check_decisiones_table,
     check_decisiones_length,
+    check_guion,
 )
 
 
