@@ -18,9 +18,10 @@ Cada hecho es una tarjeta con su etiqueta, un título en lenguaje llano, un deta
 | Tarjeta | Cuándo aparece | De dónde sale |
 |---|---|---|
 | Analista | Envías un mensaje | Tu texto |
-| Coordinador | El coordinador responde | Su mensaje |
+| Coordinador | El coordinador responde | Su mensaje, con su formato (títulos, listas, negritas, código y tablas); lo que no tiene formato se ve como texto |
 | Delegación | Delega en un frente (registro, listas, noticias, riesgo) | La llamada que hizo y el encargo que dio |
 | Resultado | Un frente responde, falla o no se puede dar por completo | Lo que devolvió el subagente |
+| Hallazgo | Una fuente responde sin error | Una frase redactada por el sistema con lo que devolvió el servidor y a qué consulta corresponde (p. ej. "Sin coincidencias en las listas restrictivas para la persona PE-0001"); una consulta fallida no genera hallazgo |
 | Bloqueo | Un hook rechaza una llamada | **La decisión del hook**, con su regla y su motivo literal |
 | Informe | Se registra un informe | El sobre `ok: true` del servidor |
 | Escalamiento | Se escala a cumplimiento | El sobre `ok: true` del servidor |
@@ -47,5 +48,6 @@ Los mensajes de cada caso están en `docs/CASOS.md`. En la interfaz se reconocen
 - Una conversación vive en memoria mientras el proceso corre; recargar la página recupera el historial, reiniciar el proceso lo pierde.
 - Un turno a la vez por conversación.
 - Starlette en lugar de FastAPI (decisión D1 de `research.md`).
-- El aspecto visual se comprobó solo con pruebas de la página y por la API/SSE: no se ha visto en un navegador real (ver `verification.md`).
+- El aspecto visual se comprobó en el navegador integrado de Claude Code con el modelo real (casos 1 y 4, ver `verification.md`); no se ha probado en Chrome, Firefox ni Safari, ni en un teléfono real.
+- Al enviar un mensaje vacío la página avisa y no crea ninguna tarjeta. El navegador puede servir una copia en caché de la página tras cambiar el código: recarga con Ctrl+F5.
 - No valida el encabezado `Host`: pensada solo para `127.0.0.1`, sin protección contra DNS rebinding.

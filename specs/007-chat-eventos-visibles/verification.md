@@ -49,3 +49,40 @@ Cada informe y escalamiento mostrado corresponde a un sobre `ok: true` del servi
 - `spec.md` nombra Starlette y `127.0.0.1` en las suposiciones y en FR-010 porque el issue nombra la tecnología.
 - Una conversación vive en memoria; reiniciar el proceso la pierde. Un turno a la vez.
 - Starlette en lugar de FastAPI (D1, declarado en la spec).
+
+## 6. QA en un navegador con el modelo real y mejoras (FR-013 a FR-016, T020 a T027)
+
+**Cómo se hizo (2026-10-17).** Se arrancó la interfaz con `python -m due_diligence.web` y se recorrió en el navegador integrado de Claude Code con el modelo real. La clave se tomó de la variable de entorno del usuario y se cargó solo en el proceso del servidor: no se escribió en ningún archivo ni se mostró. Se probaron el caso 1 (alto riesgo), el caso 4 (nombres casi idénticos), un intento de saltarse la regla 1, un mensaje vacío y una etiqueta HTML dentro del mensaje.
+
+**Qué halló la primera pasada y qué se hizo**
+
+| Hallazgo | Tarea | Resultado |
+|---|---|---|
+| La respuesta del coordinador mostraba `##`, `**`, comillas invertidas y la tabla como `\|---\|` | FR-013 | `markdown.py` produce bloques de datos; la página los dibuja con nodos del DOM y `textContent` |
+| Las tarjetas de resultado solo decían la fuente y la fecha | FR-014 | Tarjeta `hallazgo` redactada por el sistema con lo que devolvió el servidor y la consulta a la que responde |
+| El campo de mensaje flotaba a mitad de pantalla con la conversación vacía | FR-015 | Diseño en columna a pantalla completa |
+| Enviar vacío no avisaba | FR-016 | Aviso, foco al campo y borrado al escribir |
+
+**Defectos que encontraron las pruebas y la mutación (no la QA manual)**
+- El tope de 200 bloques no era estricto: con 199 bloques, un párrafo pendiente y un título salían 201. Ahora se recorta al final (`test_the_cap_is_strict_...`).
+- Ninguna prueba distinguía si el hallazgo comprobaba `ok: true`: su contenido de error ya no tenía forma de hallazgo. Se añadió una prueba con contenido válido y `ok: false`.
+- Las dos frases de listas eran idénticas para el comercio y para el representante, y un "Sin menciones" iba seguido de "1 mención" sin decir de qué consulta. Los hallazgos de listas y noticias ahora nombran a quién se consultó o qué se buscó (texto acotado a una línea de 80 caracteres).
+- Dos pruebas mías estaban mal y se corrigieron en la prueba, no en el código: `****` es una regla horizontal en Markdown, no una negrita vacía; y el literal `createElement("table")` no existe porque la página usa un ayudante `hijo(padre, "table")`.
+
+**Verificado en el navegador con el modelo real**
+- FR-015: con la conversación vacía, el borde inferior del formulario queda a 752 de 768 px y no hay desplazamiento (antes a 550 de 768).
+- FR-016: el aviso aparece, el foco vuelve al campo, no se crea ninguna tarjeta y el aviso desaparece al escribir.
+- FR-013: la respuesta final del caso 1 se dibujó con 6 títulos, 6 listas, 9 negritas y 6 fragmentos de código, sin `#`, `**` ni comillas invertidas sin interpretar. La tabla de candidatos del caso 4 se dibujó como una tabla real.
+- FR-014: caso 1, "Categoría suplementos dietarios: riesgo alto", "CO-TV-0001, Tienda Verde SAS, estado activo. Representante legal: …" y las listas y noticias con su sujeto. Caso 4: "2 comercios con nombre parecido: CO-CA-0004 (…), CO-CA-0005 (…). Hace falta el identificador para continuar."
+- Una etiqueta `<img onerror>` dentro del mensaje no se ejecutó (0 imágenes, el título no cambió).
+
+**Verificación por mutación de lo nuevo.** 16 mutaciones (la negrita sin marcar, las tablas sin reconocer, el tope de bloques, la lista numerada, la frase de "sin coincidencias", el hallazgo ante un fallo del servidor, el nivel de riesgo, los bloques del coordinador, `innerHTML`, el aviso del vacío, el hueco a media pantalla, el aviso de identificador, y que los hallazgos pierdan su sujeto, su acotado o sus saltos de línea): todas detectadas por alguna prueba; el control sin mutación pasa. Las dos que sobrevivieron en la primera corrida (el tope y el fallo del servidor) son los dos primeros defectos de arriba y se corrigieron con pruebas nuevas.
+
+**Recuento.** `python -m pytest -q`: 1.512 pruebas en verde; 160 en `due_diligence/web/tests`. `ruff check` y `ruff format --check` limpios. `python scripts/verify_ecosystem.py` sale con 0.
+
+**No verificado**
+- **Recarga de la página.** En el navegador integrado, recargar creó una conversación nueva (el servidor llegó a 3) y la página no intentó reconectar con la guardada, es decir, `sessionStorage` llegó vacío. El servidor sí devuelve el historial completo de una conversación guardada (comprobado con `curl`). No se pudo concluir si es un defecto de la página o del navegador integrado; **falta probar F5 en Chrome**. La especificación (FR-007) promete la recuperación.
+- La tarjeta de bloqueo por hook no se vio en la página con el modelo real: el modelo se negó por sí mismo a saltarse la regla 1. La cubren las pruebas.
+- Los casos 2, 3, 6 y 7 no se recorrieron en la página en esta QA (sí con `scripts/run_casos.py` y en la verificación del #7).
+- Chrome, Firefox, Safari y un teléfono real: la vista móvil se comprobó solo por medidas (sin desbordamiento horizontal), porque las capturas con emulación móvil salieron con artefactos.
+- El navegador puede servir la página en caché tras cambiar el código (ocurrió una vez); la interfaz no manda `Cache-Control`.

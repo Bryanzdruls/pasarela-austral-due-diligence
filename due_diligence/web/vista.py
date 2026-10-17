@@ -11,6 +11,7 @@ from due_diligence.events import (
     CoordinatorText,
     DomainEvent,
     Escalated,
+    FrontFinding,
     FrontName,
     FrontResult,
     FrontStatus,
@@ -19,6 +20,7 @@ from due_diligence.events import (
     SubagentFinished,
     SubagentStarted,
 )
+from due_diligence.web.markdown import a_bloques
 
 FRENTES = {
     FrontName.REGISTRO_MERCANTIL: "el registro mercantil",
@@ -127,7 +129,11 @@ def a_vista(evento: DomainEvent, n: int) -> dict[str, Any]:
     """Convierte un evento del dominio en la tarjeta que ve el analista."""
     hora = evento.timestamp
     if isinstance(evento, CoordinatorText):
-        return _vista(n, "coordinador", "Coordinador", evento.text, hora)
+        bloques = a_bloques(evento.text)
+        return _vista(n, "coordinador", "Coordinador", evento.text, hora, bloques=bloques)
+    if isinstance(evento, FrontFinding):
+        titulo = f"Hallazgo en {_nombre(evento.frente)}"
+        return _vista(n, "hallazgo", titulo, evento.resumen, hora, frente=evento.frente.value)
     if isinstance(evento, SubagentStarted):
         titulo = f"Delegó en {_nombre(evento.frente)}"
         return _vista(n, "delegacion", titulo, evento.encargo, hora, frente=evento.frente.value)

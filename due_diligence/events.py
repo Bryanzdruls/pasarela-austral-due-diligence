@@ -123,6 +123,18 @@ class Escalated:
     timestamp: str = field(default_factory=_now)
 
 
+@dataclass(frozen=True)
+class FrontFinding:
+    """Lo que una fuente devolvió en una consulta que el servidor confirmó (`ok: true`).
+
+    Lo redacta el sistema a partir del sobre del servidor, no el modelo (ticket #7, para el chat).
+    """
+
+    frente: FrontName
+    resumen: str
+    timestamp: str = field(default_factory=_now)
+
+
 DomainEvent = (
     SubagentStarted
     | SubagentFinished
@@ -131,6 +143,7 @@ DomainEvent = (
     | CallBlocked
     | ReportRegistered
     | Escalated
+    | FrontFinding
 )
 
 _FENCED_ANYWHERE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
