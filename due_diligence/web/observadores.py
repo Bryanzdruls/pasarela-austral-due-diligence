@@ -37,7 +37,16 @@ def _finding_from(tool: str, input_data: dict[str, Any]) -> DomainEvent | None:
     content = envelope.get("content")
     consulta = input_data.get("tool_input")
     resumen = resumen_de(tool, content, consulta) if isinstance(content, dict) else None
-    return FrontFinding(FRENTE_DE[tool], resumen) if resumen else None
+    if not resumen:
+        return None
+    metadata = envelope.get("metadata")
+    sello = metadata if isinstance(metadata, dict) else {}
+    return FrontFinding(
+        FRENTE_DE[tool],
+        resumen,
+        fuente=_text(sello.get("source")),
+        fecha=_text(sello.get("fetched_at")),
+    )
 
 
 def _event_from(input_data: dict[str, Any]) -> DomainEvent | None:

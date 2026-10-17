@@ -133,6 +133,10 @@ class FrontFinding:
     frente: FrontName
     resumen: str
     timestamp: str = field(default_factory=_now)
+    # Procedencia que selló el servidor en su sobre (`metadata.source` y `fetched_at`); vacía si el
+    # sobre no la trae. Nunca sale de lo que escriba un subagente.
+    fuente: str = ""
+    fecha: str = ""
 
 
 DomainEvent = (

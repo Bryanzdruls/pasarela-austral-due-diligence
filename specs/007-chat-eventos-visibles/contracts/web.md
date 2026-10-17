@@ -18,7 +18,7 @@
 
 Tipos: `analista`, `coordinador`, `delegacion`, `resultado`, `hallazgo`, `bloqueo`, `informe`, `escalamiento`, `fin`, `error`. `n` es el número de orden en la conversación.
 
-`hallazgo` (FR-014): lo que el servidor devolvió en una consulta que salió bien, en una frase (`extra.frente` lo identifica). Una consulta fallida no genera hallazgo.
+`hallazgo` (FR-014): lo que el servidor devolvió en una consulta que salió bien, en una frase y con la fuente y la fecha que selló el servidor (`extra.frente` lo identifica). Una consulta fallida no genera hallazgo.
 
 `coordinador` lleva además `extra.bloques` (FR-013): el texto con su formato como datos, nunca HTML. `detalle` conserva el texto original. Cada bloque es uno de:
 

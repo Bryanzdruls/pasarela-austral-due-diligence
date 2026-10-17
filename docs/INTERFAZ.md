@@ -20,8 +20,8 @@ Cada hecho es una tarjeta con su etiqueta, un título en lenguaje llano, un deta
 | Analista | Envías un mensaje | Tu texto |
 | Coordinador | El coordinador responde | Su mensaje, con su formato (títulos, listas, negritas, código y tablas); lo que no tiene formato se ve como texto |
 | Delegación | Delega en un frente (registro, listas, noticias, riesgo) | La llamada que hizo y el encargo que dio |
-| Resultado | Un frente responde, falla o no se puede dar por completo | Lo que devolvió el subagente |
-| Hallazgo | Una fuente responde sin error | Una frase redactada por el sistema con lo que devolvió el servidor y a qué consulta corresponde (p. ej. "Sin coincidencias en las listas restrictivas para la persona PE-0001"); una consulta fallida no genera hallazgo |
+| Resultado | Un frente responde, falla o no se puede dar por completo | Lo que devolvió el subagente. Una respuesta completa solo dice "Entregó su resultado": su fuente y su fecha las escribe el subagente y no se muestran como procedencia |
+| Hallazgo | Una fuente responde sin error | Una frase redactada por el sistema con lo que devolvió el servidor y a qué consulta corresponde (p. ej. "Sin coincidencias en las listas restrictivas para la persona PE-0001"), con **la fuente y la fecha que selló el servidor**; una consulta fallida no genera hallazgo |
 | Bloqueo | Un hook rechaza una llamada | **La decisión del hook**, con su regla y su motivo literal |
 | Informe | Se registra un informe | El sobre `ok: true` del servidor |
 | Escalamiento | Se escala a cumplimiento | El sobre `ok: true` del servidor |

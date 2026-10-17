@@ -70,11 +70,25 @@ def test_every_front_has_a_plain_name(frente):
     assert "_" not in v["titulo"]
 
 
-def test_a_complete_front_result_says_it_responded_with_its_source():
+def test_a_complete_front_result_says_it_responded_but_not_with_a_provenance_the_model_wrote():
+    # La fuente y la fecha que muestra la interfaz salen del sobre del servidor (tarjeta de
+    # hallazgo), no del JSON del subagente: un subagente podría escribir cualquier fecha.
     v = a_vista(SubagentFinished(FrontName.REGISTRO_MERCANTIL, completo()), 2)
     check_common(v, "resultado")
     assert "respondió" in v["titulo"].lower()
-    assert "registro_ficticio" in v["detalle"] and "2026-01-01" in v["detalle"]
+    assert v["detalle"] == "Entregó su resultado."
+    assert "registro_ficticio" not in v["detalle"] and "2026-01-01" not in v["detalle"]
+
+
+def test_an_invented_date_in_the_subagent_json_never_reaches_the_card():
+    inventado = FrontResult(
+        FrontName.LISTAS_RESTRICTIVAS,
+        {"x": 1},
+        {"fuente": "listas_restrictivas_ficticias", "fecha": "1999-12-31"},
+        FrontStatus.COMPLETO,
+    )
+    v = a_vista(SubagentFinished(FrontName.LISTAS_RESTRICTIVAS, inventado), 2)
+    assert "1999" not in v["titulo"] + v["detalle"] + str(v["extra"])
 
 
 def test_a_failed_front_says_so_whether_retryable_and_what_was_obtained():

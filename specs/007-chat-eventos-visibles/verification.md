@@ -129,3 +129,7 @@ Un hueco menor: no hay prueba de que un `on_decision` que falla deje intacta la 
 
 **Recuento tras la ronda.** 168 pruebas en `due_diligence/web/tests`; la suite completa se cerró en 1.520 pruebas en verde, con `ruff` limpio y el ecosistema completo.
 
+**Observación 2 del compliance-reviewer, corregida por decisión de la persona (T030).** La fuente y la fecha de la tarjeta "Respondió …" salían del JSON que escribe el subagente (solo validado contra la constante de la fuente y el formato ISO), no del servidor, lo que contradice el principio del ticket. Prueba primero: con un subagente que devolvía la fecha `1999-12-31`, la tarjeta la mostraba. Ahora la procedencia sale del sobre del servidor (`metadata.source` y `fetched_at`) y va en la tarjeta de hallazgo; la tarjeta "Respondió" solo dice "Entregó su resultado". 4 mutaciones detectadas. Con el modelo real (caso 7, `CO-FH-0006`): cada hallazgo lleva su fuente y su fecha del servidor (p. ej. `registro_mercantil_ficticio`, `2026-10-17T13:39:58+00:00`) y las tarjetas "Respondió" no repiten nada del subagente.
+
+**Siguen abiertas** (se declaran en el PR): la observación 1 (el hallazgo del registro no muestra las dos fechas en conflicto, solo que son distintas), la observación 3 (el "Sin cubrir" y la tarjeta "Falló" salen de lo que declara el modelo) y los menores 3 a 5 y 7 a 9 del revisor de código. El menor 6 es la observación 2, ya corregida.
+

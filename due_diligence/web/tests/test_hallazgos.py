@@ -20,8 +20,12 @@ RIESGO = "consultar_riesgo_categoria"
 INTERNOS = ("mcp__", "match_count", "ambiguous", "ok:", "tool_use_id", "{", "}")
 
 
-def envelope(content, ok=True):
-    return json.dumps({"ok": ok, "content": content, "metadata": {"source": "x_ficticio"}})
+FECHA = "2026-10-17T12:00:00+00:00"
+
+
+def envelope(content, ok=True, metadata=None):
+    metadata = {"source": "x_ficticio", "fetched_at": FECHA} if metadata is None else metadata
+    return json.dumps({"ok": ok, "content": content, "metadata": metadata})
 
 
 async def observar(tool, content, ok=True, prefix=PREFIX, entrada=None):
@@ -235,6 +239,41 @@ async def test_a_failing_emit_never_breaks_the_hook():
 
 
 # --------------------------------------------------------------------------- vista
+
+
+async def test_a_finding_carries_the_source_and_date_the_server_stamped():
+    """La procedencia sale del sobre del servidor, no de lo que escriba el subagente."""
+    evento = await un_hallazgo(RIESGO, {"categoria": "libros", "riesgo": "bajo"})
+    assert (evento.fuente, evento.fecha) == ("x_ficticio", FECHA)
+
+
+@pytest.mark.parametrize("metadata", [{}, {"source": 5, "fetched_at": None}, "texto", []])
+async def test_a_finding_without_usable_metadata_is_still_shown_without_provenance(metadata):
+    datos = {
+        "tool_name": PREFIX + RIESGO,
+        "tool_input": {},
+        "tool_response": envelope({"categoria": "libros", "riesgo": "bajo"}, metadata=metadata),
+    }
+    emitted = []
+    await observador_post(emitted.append)(datos, "t", None)
+    assert len(emitted) == 1 and (emitted[0].fuente, emitted[0].fecha) == ("", "")
+
+
+def test_the_finding_card_shows_the_provenance_the_server_gave():
+    evento = FrontFinding(
+        FrontName.REGISTRO_MERCANTIL,
+        "Ningún comercio coincide.",
+        fuente="registro_ficticio",
+        fecha=FECHA,
+    )
+    assert a_vista(evento, 1)["detalle"] == (
+        f"Ningún comercio coincide. Fuente: registro_ficticio. Fecha: {FECHA}."
+    )
+
+
+def test_the_finding_card_never_invents_a_provenance_it_was_not_given():
+    detalle = a_vista(FrontFinding(FrontName.NOTICIAS, "Sin menciones."), 1)["detalle"]
+    assert detalle == "Sin menciones." and "Fuente" not in detalle
 
 
 def test_the_finding_card_names_the_front_and_carries_the_summary():
