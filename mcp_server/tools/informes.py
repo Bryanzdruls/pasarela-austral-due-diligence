@@ -19,10 +19,12 @@ DESCRIPTION_INFORME = (
 )
 
 DESCRIPTION_ESCALAR = (
-    "Pasa el caso a un oficial de cumplimiento. El oficial no ve la conversación: el resumen "
-    "debe bastarse solo (comercio, hallazgos por frente con su fuente, cobertura, causa del "
-    "escalamiento y acción recomendada). Si falta algún campo o un frente no trae fuente, "
-    "se rechaza indicando cuáles."
+    "Pasa el caso a un oficial de cumplimiento, y solo si hay un hallazgo que lo justifica. El "
+    "oficial no ve la conversación: el resumen debe bastarse solo. Incluye el comercio, los "
+    "`hallazgos` por frente (cada uno con su `fuente` y `fecha`, en especial el frente que "
+    "motiva el escalamiento), la `cobertura` alcanzada, los `conflictos` si las fuentes se "
+    "contradicen, la `causa` del escalamiento (que nombra cada motivo) y la `accion_recomendada`. "
+    "Si falta algún campo o un frente no trae fuente, se rechaza indicando cuáles."
 )
 
 _INFORME_REQUIRED = ("comercio_id", "recomendacion", "hallazgos", "cobertura")
@@ -86,6 +88,7 @@ def escalar_a_cumplimiento(
     cobertura: dict[str, Any] | None = None,
     causa: str | None = None,
     accion_recomendada: str | None = None,
+    conflictos: list[Any] | None = None,
 ) -> dict[str, Any]:
     values = {
         "comercio_id": comercio_id,
@@ -97,5 +100,7 @@ def escalar_a_cumplimiento(
     partial = _validate(values, _ESCALAMIENTO_REQUIRED)
     if partial:
         return error(SOURCE, "invalid_input", False, partial)
-    escalamiento_id = store.save_record("ESC", {**_clean(values), "registrado_en": now_iso()})
+    escalamiento_id = store.save_record(
+        "ESC", {**_clean(values), "conflictos": conflictos or [], "registrado_en": now_iso()}
+    )
     return ok({"escalamiento_id": escalamiento_id}, SOURCE)

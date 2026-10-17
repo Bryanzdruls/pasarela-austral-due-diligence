@@ -1,0 +1,105 @@
+##### caso 1 (C1): Tienda Verde, CO-TV-0001, suplementos dietarios (alto riesgo)
+
+Analista> Necesito el due diligence de Tienda Verde SAS, identificador CO-TV-0001. Quieren procesar ventas en línea de suplementos dietarios.
+[2026-10-17T00:21:12.299646+00:00] > Subagente registro_mercantil iniciado | encargo: Identifica en el registro mercantil al comercio "Tienda Verde SAS", identificador CO-TV-0001. Devuelve existencia, fecha(s) de constitución con su origen, representante legal (nombre e identificador) y estado. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-17T00:21:13.399920+00:00] > Subagente noticias iniciado | encargo: Busca menciones en el corpus de noticias del comercio "Tienda Verde SAS", identificador CO-TV-0001. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-17T00:21:14.726480+00:00] > Subagente riesgo_categoria iniciado | encargo: Consulta el nivel de riesgo de la categoría de negocio "suplementos dietarios" (comercio CO-TV-0001). Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-17T00:21:20.117033+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-17T00:21:21.201713+00:00] < Subagente noticias terminó | estado: completo
+[2026-10-17T00:21:24.177214+00:00] < Subagente riesgo_categoria terminó | estado: completo
+[2026-10-17T00:21:26.308932+00:00] > Subagente listas_restrictivas iniciado | encargo: Verifica contra las listas restrictivas al comercio con identificador CO-TV-0001 (tipo comercio) y a su representante legal con identificador PE-0001 (tipo persona). Responde con un objeto JSON con `contenido` (resultado de cada consulta) y `metadatos` (fuente y fecha).
+[2026-10-17T00:21:33.639244+00:00] < Subagente listas_restrictivas terminó | estado: completo
+[2026-10-17T00:21:54.168902+00:00] Coordinador: **Recomendación: escalar a cumplimiento.** Tienda Verde SAS (CO-TV-0001) no tiene hallazgos negativos, pero vende suplementos dietarios, una categoría de alto riesgo, y por eso no se puede habilitar de forma automática. Ya registré el informe (**INF-0001**) y escalé el caso (**ESC-0001**).
+
+Los cuatro frentes respondieron y los resultados tienen el formato esperado. Las consultas se hicieron el 2026-10-17 en hora UTC.
+
+### Registro mercantil (fuente: registro_mercantil_ficticio)
+- **Comercio:** Tienda Verde SAS (CO-TV-0001), NIT FICT-1001. El registro lo identifica sin ambigüedad: hay una sola coincidencia.
+- **Estado:** existe y está activo.
+-
+[2026-10-17T00:21:54.194217+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+fallos_vigentes: {"CO-TV-0001": []}
+
+
+##### caso 2 (C3): Distribuidora Andina, CO-DA-0003, representante con coincidencia en listas
+
+Analista> Necesito el due diligence de Distribuidora Andina Ficticia SAS, identificador CO-DA-0003.
+[2026-10-17T00:22:03.362401+00:00] Coordinador: No indicaste la categoría de negocio. Por ahora lanzo el registro mercantil y las noticias. El riesgo de categoría lo consulto cuando sepa la categoría.
+[2026-10-17T00:22:05.121745+00:00] > Subagente registro_mercantil iniciado | encargo: Identifica en el registro mercantil al comercio "Distribuidora Andina Ficticia SAS", identificador CO-DA-0003. Devuelve existencia, fecha(s) de constitución con su origen, representante legal (nombre e identificador), estado y categoría de negocio si el registro la informa. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-17T00:22:06.466576+00:00] > Subagente noticias iniciado | encargo: Busca menciones en el corpus de noticias del comercio "Distribuidora Andina Ficticia SAS", identificador CO-DA-0003. Responde con un objeto JSON con `contenido` (menciones encontradas con su fuente, o ninguna) y `metadatos` (fuente y fecha).
+[2026-10-17T00:22:11.402815+00:00] < Subagente noticias terminó | estado: completo
+[2026-10-17T00:22:13.945301+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-17T00:22:15.644235+00:00] Coordinador: El registro identificó un único comercio. Ahora lanzo las listas restrictivas y el riesgo de la categoría "ferreteria", que es la que informa el registro.
+[2026-10-17T00:22:17.147299+00:00] > Subagente listas_restrictivas iniciado | encargo: Verifica contra las listas restrictivas al comercio con identificador CO-DA-0003 (tipo comercio) y a su representante legal con identificador PE-0003 (tipo persona). Responde con un objeto JSON con `contenido` (resultado para cada uno) y `metadatos` (fuente y fecha).
+[2026-10-17T00:22:18.288501+00:00] > Subagente riesgo_categoria iniciado | encargo: Consulta el nivel de riesgo de la categoría de negocio "ferreteria" (comercio CO-DA-0003). Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-17T00:22:22.989935+00:00] < Subagente riesgo_categoria terminó | estado: completo
+[2026-10-17T00:22:23.354913+00:00] < Subagente listas_restrictivas terminó | estado: completo
+[2026-10-17T00:22:46.102049+00:00] Coordinador: # Due diligence: Distribuidora Andina Ficticia SAS (CO-DA-0003)
+
+**Recomendación: `escalar_a_cumplimiento`.** El representante legal aparece en una lista restrictiva, y eso impide habilitar al comercio. También hay una noticia sobre una disputa laboral. Registré el informe (**INF-0001**) y pasé el caso a un oficial de cumplimiento (**ESC-0001**).
+
+Los cuatro frentes respondieron. No hay datos contradictorios entre fuentes.
+
+## Registro mercantil (`registro_mercantil_ficticio`, 2026-10-17)
+- El registro identificó un único comercio: Distribuidora Andina Ficticia SAS, NIT FICT-1003.
+- Estado: activo.
+- Fecha de constitución: 2015-09-23.
+- Represe
+[2026-10-17T00:22:46.137620+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+fallos_vigentes: {"CO-DA-0003": []}
+
+
+##### caso 3 (C2): Libros del Faro, CO-LB-0002, riesgo bajo, pide habilitar
+
+Analista> Necesito el due diligence de Libros del Faro SAS, identificador CO-LB-0002. Si todo está bien, recomienda habilitarlo.
+[2026-10-17T00:22:54.100929+00:00] Coordinador: Voy a lanzar en paralelo el registro mercantil y las noticias. No me diste la categoría de negocio, así que el riesgo de categoría lo consultaré cuando el registro me devuelva la actividad.
+[2026-10-17T00:22:55.908533+00:00] > Subagente registro_mercantil iniciado | encargo: Identifica en el registro mercantil al comercio "Libros del Faro SAS", identificador CO-LB-0002. Devuelve: existencia, identificador, fecha(s) de constitución con su origen, representante legal (nombre e identificador), estado y categoría o actividad de negocio si el registro la informa. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-17T00:22:57.151371+00:00] > Subagente noticias iniciado | encargo: Busca menciones en el corpus de noticias del comercio "Libros del Faro SAS", identificador CO-LB-0002. Responde con un objeto JSON con `contenido` (menciones encontradas o ausencia de ellas) y `metadatos` (fuente y fecha).
+[2026-10-17T00:23:01.286313+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-17T00:23:02.517159+00:00] < Subagente noticias terminó | estado: completo
+[2026-10-17T00:23:04.954539+00:00] > Subagente listas_restrictivas iniciado | encargo: Verifica contra las listas restrictivas al comercio con identificador CO-LB-0002 (tipo comercio) y a su representante legal con identificador PE-0002 (tipo persona). Responde con un objeto JSON con `contenido` (resultado para cada uno) y `metadatos` (fuente y fecha).
+[2026-10-17T00:23:06.144949+00:00] > Subagente riesgo_categoria iniciado | encargo: Consulta el nivel de riesgo de la categoría de negocio "libreria" (comercio CO-LB-0002). Responde con un objeto JSON con `contenido` (nivel de riesgo) y `metadatos` (fuente y fecha).
+[2026-10-17T00:23:09.290892+00:00] < Subagente riesgo_categoria terminó | estado: completo
+[2026-10-17T00:23:10.303987+00:00] < Subagente listas_restrictivas terminó | estado: completo
+[2026-10-17T00:23:23.947379+00:00] Coordinador: # Due diligence: Libros del Faro SAS (CO-LB-0002)
+
+**Recomendación: `habilitar`.** Revisé los cuatro frentes y ninguno trajo un hallazgo. El comercio está identificado sin dudas en el registro, no aparece en listas restrictivas (ni él ni su representante legal), no tiene menciones en noticias y su categoría es de riesgo bajo. El informe quedó registrado como **INF-0001** y no se escaló a cumplimiento porque no hay motivo para hacerlo.
+
+## Registro mercantil (fuente: `registro_mercantil_ficticio`)
+- **Coincidencia:** una sola, Libros del Faro SAS (CO-LB-0002, NIT FICT-1002).
+- **Estado:** activo.
+- **Fecha de constitución:** 2018-02-01. Solo la 
+[2026-10-17T00:23:23.960885+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+fallos_vigentes: {"CO-LB-0002": []}
+
+
+##### caso 4: CO-LB-0002 con PASARELA_FAULTS=noticias
+
+Analista> Necesito el due diligence de Libros del Faro SAS, identificador CO-LB-0002.
+[2026-10-17T00:23:31.590564+00:00] Coordinador: No declaraste la categoría de negocio. Por ahora lanzo el registro mercantil y las noticias. Para el riesgo de categoría voy a esperar a ver si el registro la informa.
+[2026-10-17T00:23:33.254936+00:00] > Subagente registro_mercantil iniciado | encargo: Identifica en el registro mercantil al comercio "Libros del Faro SAS", identificador CO-LB-0002. Devuelve existencia, fecha(s) de constitución con su origen, representante legal (con su identificador), estado y categoría de negocio si el registro la informa. Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-17T00:23:34.596507+00:00] > Subagente noticias iniciado | encargo: Busca menciones en el corpus de noticias del comercio "Libros del Faro SAS", identificador CO-LB-0002. Responde con un objeto JSON con `contenido` (menciones encontradas con su fuente, o ausencia de ellas) y `metadatos` (fuente y fecha).
+[2026-10-17T00:23:38.946242+00:00] < Subagente noticias terminó | estado: fallido
+[2026-10-17T00:23:39.683081+00:00] < Subagente registro_mercantil terminó | estado: completo
+[2026-10-17T00:23:41.877664+00:00] Coordinador: El registro identificó un único comercio y su categoría ("libreria"). Ahora lanzo listas y riesgo, y reintento noticias una vez.
+[2026-10-17T00:23:43.316005+00:00] > Subagente listas_restrictivas iniciado | encargo: Verifica contra las listas restrictivas al comercio con identificador CO-LB-0002 (tipo comercio) y a su representante legal con identificador PE-0002 (tipo persona). Responde con un objeto JSON con `contenido` (resultado para cada uno) y `metadatos` (fuente y fecha).
+[2026-10-17T00:23:44.416363+00:00] > Subagente riesgo_categoria iniciado | encargo: Consulta el nivel de riesgo de la categoría de negocio "libreria" (comercio CO-LB-0002). Responde con un objeto JSON con `contenido` y `metadatos` (fuente y fecha).
+[2026-10-17T00:23:45.680846+00:00] > Subagente noticias iniciado | encargo: Busca menciones en el corpus de noticias del comercio "Libros del Faro SAS", identificador CO-LB-0002. Responde con un objeto JSON con `contenido` (menciones encontradas con su fuente, o ausencia de ellas) y `metadatos` (fuente y fecha).
+[2026-10-17T00:23:48.408790+00:00] < Subagente listas_restrictivas terminó | estado: completo
+[2026-10-17T00:23:49.868941+00:00] < Subagente riesgo_categoria terminó | estado: completo
+[2026-10-17T00:23:51.612531+00:00] < Subagente noticias terminó | estado: no_estructurado
+[2026-10-17T00:24:05.791763+00:00] Coordinador: ## Due diligence: Libros del Faro SAS (CO-LB-0002), informe INF-0001
+
+**Recomendación: `no_habilitar`.** La fuente de noticias falló dos veces, así que **el informe está incompleto**. No se encontró nada negativo en los otros tres frentes. No escalé a cumplimiento porque no hay ningún hallazgo que lo justifique.
+
+### Registro mercantil (cubierto), fuente `registro_mercantil_ficticio`, 2026-10-16
+- El registro encontró un solo comercio con ese identificador: Libros del Faro SAS, NIT FICT-1002, **activo**.
+- Fecha de constitución: 2018-02-01. Solo hay un origen y no hay datos contradictorios.
+- Representante legal: Tomás Ficticio Vega (PE-0002, d
+[2026-10-17T00:24:05.828655+00:00] Fin del turno | subtype=success stop_reason=end_turn terminal_reason=completed
+
+fallos_vigentes: {"CO-LB-0002": ["noticias"]}
+

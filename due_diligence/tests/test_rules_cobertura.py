@@ -81,6 +81,27 @@ def informe_con(recomendacion, cobertura, comercio_id="CO-XX-0001"):
     return data
 
 
+def con_motivo(book, cid="CO-XX-0001"):
+    """Un motivo para escalar (alto riesgo): escalar o recomendar escalar lo exige (#6)."""
+    book.commerces[cid].alto_riesgo = True
+    return book
+
+
+def resumen_motivo(cid="CO-XX-0001", **campos):
+    """Resumen completo al oficial para un comercio con el motivo de `con_motivo`."""
+    data = {
+        "comercio_id": cid,
+        "hallazgos": {
+            "registro": {"contenido": "x", "fuente": "registro_ficticio", "fecha": "2026-10-16"}
+        },
+        "cobertura": {"x": 1},
+        "causa": "Categoría de alto riesgo.",
+        "accion_recomendada": "Revisar el caso.",
+    }
+    data.update(campos)
+    return data
+
+
 def covered_listas(book, cid="CO-XX-0001", rep="PE-0001"):
     with_listas(book, "comercio", cid, False)
     if rep:
@@ -359,6 +380,7 @@ def test_a_report_that_omits_a_failed_front_is_rejected_naming_it(frente, recome
     book = covered_listas(identified(comercio()))
     book.start_request("Investiga CO-XX-0001")
     fail(book, frente)
+    con_motivo(book)
     decision = book.check_informe(informe_con(recomendacion, {}))
     assert_blocked(decision, rule="cobertura", hint=frente)
 
@@ -369,6 +391,7 @@ def test_a_report_that_declares_the_failed_front_is_accepted(frente, recomendaci
     book = covered_listas(identified(comercio()))
     book.start_request("Investiga CO-XX-0001")
     fail(book, frente)
+    con_motivo(book)
     assert book.check_informe(informe_con(recomendacion, declared(frente))).allowed is True
 
 
@@ -466,25 +489,28 @@ def test_the_failure_of_another_commerce_does_not_oblige_the_declaration():
 
 
 def test_escalating_requires_the_same_declaration():
-    book = identified(comercio())
+    book = con_motivo(identified(comercio()))
     book.start_request("Investiga CO-XX-0001")
     fail(book, "noticias")
-    sin = {"comercio_id": "CO-XX-0001", "cobertura": {}}
+    sin = resumen_motivo(cobertura={})
     assert_blocked(book.check_escalar(sin), rule="cobertura", hint="noticias")
-    con = {"comercio_id": "CO-XX-0001", "cobertura": declared("noticias")}
+    con = resumen_motivo(cobertura=declared("noticias"))
     assert book.check_escalar(con).allowed is True
 
 
 @pytest.mark.parametrize("tool_input", [None, {}, "x", [], {"comercio_id": 5}])
-def test_escalating_with_unreadable_input_is_allowed_when_nothing_failed(tool_input):
-    assert CaseBook().check_escalar(tool_input).allowed is True
+def test_escalating_with_unreadable_input_has_no_failure_to_declare(tool_input):
+    """Sin motivo rechaza la regla `escalamiento` (#6), no la cobertura."""
+    decision = CaseBook().check_escalar(tool_input)
+    assert decision.rule == "escalamiento"
 
 
 def test_without_failures_the_old_reports_are_accepted_unchanged():
     book = covered_listas(identified(comercio()))
     assert book.check_informe(informe("habilitar")).allowed is True
     assert book.check_informe(informe_con("no_habilitar", {"x": 1})).allowed is True
-    assert book.check_escalar({"comercio_id": "CO-XX-0001", "cobertura": {"x": 1}}).allowed is True
+    con_motivo(book)
+    assert book.check_escalar(resumen_motivo()).allowed is True
 
 
 # --------------------------------------------------------------------------- habilitar (T018)
@@ -520,8 +546,10 @@ def test_habilitar_with_the_listas_failing_is_rejected_even_if_declared():
     fail(book, "listas", tool_input=listas("comercio", "CO-XX-0001"))
     decision = book.check_informe(informe_con("habilitar", declared("listas")))
     assert_blocked(decision, rule="cobertura_habilitar")
-    for recomendacion in ("no_habilitar", "escalar_a_cumplimiento"):
-        assert book.check_informe(informe_con(recomendacion, declared("listas"))).allowed is True
+    assert book.check_informe(informe_con("no_habilitar", declared("listas"))).allowed is True
+    con_motivo(book)  # escalar exige un motivo (#6)
+    escalar = informe_con("escalar_a_cumplimiento", declared("listas"))
+    assert book.check_informe(escalar).allowed is True
 
 
 def test_habilitar_with_the_registry_failing_is_rejected_by_identification():

@@ -413,7 +413,14 @@ def test_after_the_identifier_the_chosen_commerce_is_accepted_and_the_other_stay
     book = ambiguo()
     observe_registro(book, comercio("CO-XX-0004", "PE-0004"), consulta="CO-XX-0004")
     assert book.check_informe(informe_con("no_habilitar", "CO-XX-0004")).allowed is True
-    assert book.check_escalar(escalamiento("CO-XX-0004")).allowed is True
+    book.commerces["CO-XX-0004"].alto_riesgo = True  # escalar exige un motivo (#6)
+    completo = escalamiento(
+        "CO-XX-0004",
+        hallazgos={"registro": hallazgo(SRC_REGISTRO)},
+        causa="Categoría de alto riesgo.",
+        accion_recomendada="Revisar el caso.",
+    )
+    assert book.check_escalar(completo).allowed is True
     assert_blocked(book.check_informe(informe_con("no_habilitar", "CO-XX-0005")), rule="ambiguedad")
 
 
@@ -569,10 +576,11 @@ def test_keys_that_are_not_a_front_are_not_checked_against_the_sources():
     assert con_fuentes().check_informe(data).allowed is True
 
 
-def test_a_front_declared_uncovered_is_exempt_even_with_a_finding():
+def test_a_front_that_never_responded_and_is_declared_uncovered_is_exempt_even_with_a_finding():
+    """Si el frente llegó a responder, sus hallazgos se comprueban igual (revisión del #6)."""
     from due_diligence.tests.test_rules_cobertura import declared, fail
 
-    book = con_fuentes()
+    book = observe_registro(CaseBook(), comercio("CO-XX-0001", "PE-0001"))
     book.start_request("Investiga CO-XX-0001")
     fail(book, "noticias")
     data = informe_con(
@@ -612,9 +620,15 @@ def test_findings_of_another_shape_never_raise(hallazgos):
 
 def test_escalating_requires_the_same_provenance():
     book = con_fuentes()
-    mala = escalamiento("CO-XX-0001", hallazgos={"noticias": hallazgo("diario_ficticio")})
+    book.commerces["CO-XX-0001"].alto_riesgo = True  # escalar exige un motivo (#6)
+    base = {"causa": "Categoría de alto riesgo.", "accion_recomendada": "Revisar el caso."}
+    mala = escalamiento("CO-XX-0001", hallazgos={"noticias": hallazgo("diario_ficticio")}, **base)
     assert_blocked(book.check_escalar(mala), rule="procedencia", hint="noticias")
-    buena = escalamiento("CO-XX-0001", hallazgos={"noticias": hallazgo(SRC_NOTICIAS)})
+    buena = escalamiento(
+        "CO-XX-0001",
+        hallazgos={"noticias": hallazgo(SRC_NOTICIAS), "registro": hallazgo(SRC_REGISTRO)},
+        **base,
+    )
     assert book.check_escalar(buena).allowed is True
 
 

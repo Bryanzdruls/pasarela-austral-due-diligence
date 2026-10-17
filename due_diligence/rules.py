@@ -97,6 +97,29 @@ _FRONT_ALIASES = {
 MAX_ATTEMPTS = 2
 
 
+@dataclass(frozen=True)
+class Ground:
+    """Un motivo para escalar: qué es, qué frentes lo respaldan en el resumen y qué palabras
+    debe contener la causa para nombrarlo."""
+
+    clave: str
+    descripcion: str
+    frentes: tuple[str, ...]
+    palabras: tuple[str, ...]
+
+
+GROUNDS = {
+    "listas": Ground("listas", "coincidencia en listas restrictivas", ("listas",), ("lista",)),
+    "riesgo": Ground("riesgo", "categoría de alto riesgo", ("riesgo", "registro"), ("riesgo",)),
+    "conflicto": Ground(
+        "conflicto", "contradicción entre fuentes", (), ("contradic", "conflict", "discrep")
+    ),
+    "noticias": Ground("noticias", "menciones en noticias", ("noticias",), ("noticia", "mencion")),
+}
+# Un comercio sin identificar solo puede escalarse por un alto riesgo que declaró el analista.
+_DECLARED_RISK = Ground("riesgo", "categoría de alto riesgo declarada", (), ("riesgo",))
+
+
 def front_of_alias(name: Any) -> str | None:
     """El frente (nombre del servidor) que designa `name`, o None si no es un frente."""
     if not isinstance(name, str):
@@ -141,6 +164,8 @@ class CommerceCase:
     # Datos con valores distintos entre las fuentes del registro (ticket #5): dato -> pares
     # (valor, fuente). Lo señala el servidor en `conflicts`; el informe debe declararlos todos.
     conflictos: dict[str, tuple[tuple[str, str], ...]] = field(default_factory=dict)
+    # Las noticias devolvieron menciones del comercio (ticket #6): permite escalar, no lo exige.
+    menciones: bool = False
 
 
 def _short_name(tool: Any) -> str:
@@ -182,6 +207,9 @@ class CaseBook:
         # aún no se identificaron de forma unívoca.
         self.responded: dict[str, dict[str, str]] = {}
         self.candidates: set[str] = set()
+        # Menciones de noticias anteriores a la identificación: las adopta el primer comercio
+        # que se identifique (corren en paralelo con el registro).
+        self._orphan_mentions = False
 
     def start_request(self, prompt: Any) -> None:
         """Nueva solicitud del analista: su texto es evidencia de la categoría declarada.
@@ -194,6 +222,7 @@ class CaseBook:
         self.declared_text = prompt if isinstance(prompt, str) else ""
         self.risk_observations = []
         self.attempts = {}
+        self._orphan_mentions = False  # unas menciones sin comercio no esperan a otra solicitud
         self._request_commerces = {cid for cid in self.commerces if cid in self.declared_text}
         self._fallback_commerces = (
             set(self.commerces)
@@ -227,6 +256,8 @@ class CaseBook:
             self._observe_registro(content)
         elif tool == LISTAS:
             self._observe_listas(tool_input, content)
+        elif tool == NOTICIAS:
+            self._observe_menciones(tool_input, content)
         elif tool == ESCALAR:
             self._observe_escalar(tool_input)
 
@@ -240,6 +271,19 @@ class CaseBook:
         for source in sources:
             if normalize(source):
                 self.responded.setdefault(frente, {})[normalize(source)] = fecha
+
+    def _observe_menciones(self, tool_input: Any, content: dict[str, Any]) -> None:
+        """Una respuesta de noticias con menciones marca a los comercios de la solicitud."""
+        found = content.get("menciones")
+        if not isinstance(found, list) or not found:
+            return
+        # Solo los comercios que esta solicitud identificó: el único comercio conocido de antes
+        # no hereda las menciones de una consulta sobre otro (revisión del #6).
+        targets = [self.commerces[c] for c in self._request_commerces if c in self.commerces]
+        for case in targets:
+            case.menciones = True
+        if not targets:
+            self._orphan_mentions = True
 
     def _observe_candidates(self, content: dict[str, Any]) -> None:
         """Varias coincidencias: ninguna se identifica hasta que el analista da su id."""
@@ -364,6 +408,9 @@ class CaseBook:
     def _adopt_orphans(self, case: CommerceCase) -> None:
         """El registro identificó un comercio: adopta las fallas de noticias y riesgo (corren en
         paralelo con el registro) y descarta las del propio registro, que ya respondió."""
+        if self._orphan_mentions:
+            case.menciones = True
+            self._orphan_mentions = False
         for key, failure in list(self.orphan_failures.items()):
             if failure.frente in ("noticias", "riesgo"):
                 case.fallos[key] = failure
@@ -403,6 +450,55 @@ class CaseBook:
         missing = [frente for frente in FRENTES if frente in failed and frente not in declared]
         return _deny_cobertura(missing) if missing else None
 
+    def _case_of(self, commerce_id: Any) -> CommerceCase | None:
+        """El comercio identificado con ese identificador, sin distinguir mayúsculas ni espacios."""
+        wanted = commerce_id.strip().upper() if isinstance(commerce_id, str) else ""
+        if not wanted:
+            return None
+        return next((c for cid, c in self.commerces.items() if cid.upper() == wanted), None)
+
+    def escalation_grounds(self, commerce_id: Any) -> dict[str, Ground]:
+        """Motivos para escalar el comercio (ticket #6). Una cobertura incompleta no es uno."""
+        case = self._case_of(commerce_id)
+        if case is None:
+            return {"riesgo": _DECLARED_RISK} if self._request_evidence() else {}
+        grounds: dict[str, Ground] = {}
+        if any(case.listas.values()):
+            grounds["listas"] = GROUNDS["listas"]
+        if self._is_high_risk(case):
+            grounds["riesgo"] = GROUNDS["riesgo"]
+        if case.conflictos:
+            grounds["conflicto"] = GROUNDS["conflicto"]
+        if case.menciones:
+            grounds["noticias"] = GROUNDS["noticias"]
+        return grounds
+
+    def _check_escalamiento(self, data: dict[str, Any]) -> Decision | None:
+        """Escalar (o recomendar escalar) exige un hallazgo que lo justifique."""
+        commerce_id = _text(data.get("comercio_id"))
+        if self.escalation_grounds(commerce_id):
+            return None
+        return _deny_escalamiento(commerce_id)
+
+    def _check_handoff(self, data: dict[str, Any]) -> Decision | None:
+        """El oficial no tiene la conversación: el resumen trae el hallazgo del frente que motiva
+        cada escalamiento y una causa que nombra cada motivo."""
+        grounds = self.escalation_grounds(_text(data.get("comercio_id")))
+        # Las menciones permiten escalar (D3): solo obligan si son el único motivo.
+        grounds = {k: g for k, g in grounds.items() if k != "noticias"} or grounds
+        hallazgos = data.get("hallazgos")
+        present = (
+            {front_of_alias(k) for k, v in hallazgos.items() if isinstance(v, dict)}
+            if isinstance(hallazgos, dict)
+            else set()
+        )
+        sin_hallazgo = [g for g in grounds.values() if g.frentes and not set(g.frentes) & present]
+        if sin_hallazgo:
+            return _deny_handoff_hallazgos(sin_hallazgo)
+        text = normalize(data.get("causa"))
+        sin_nombrar = [g for g in grounds.values() if not any(w in text for w in g.palabras)]
+        return _deny_handoff_causa(sin_nombrar) if sin_nombrar else None
+
     def _check_ambiguedad(self, data: dict[str, Any]) -> Decision | None:
         """Un candidato de un resultado ambiguo no admite informe ni escalamiento hasta que el
         analista dé su identificador y el registro lo identifique de forma unívoca."""
@@ -421,7 +517,9 @@ class CaseBook:
         problems: list[str] = []
         for key, finding in hallazgos.items():
             frente = front_of_alias(key)
-            if frente is None or frente in uncovered:
+            # Un frente declarado sin cubrir solo se exime si nunca respondió: si respondió, sus
+            # hallazgos se comprueban igual (revisión del #6: una fuente inventada pasaba).
+            if frente is None or (frente in uncovered and not self.responded.get(frente)):
                 continue
             problem = _finding_problem(finding, self.responded.get(frente, {}))
             if problem:
@@ -483,8 +581,8 @@ class CaseBook:
 
     def _observe_escalar(self, tool_input: Any) -> None:
         commerce_id = _text(tool_input.get("comercio_id")) if isinstance(tool_input, dict) else None
-        if commerce_id in self.commerces:
-            self.commerces[commerce_id].escalado = True
+        if (case := self._case_of(commerce_id)) is not None:
+            case.escalado = True
 
     def _observe_listas(self, tool_input: Any, content: dict[str, Any]) -> None:
         if not isinstance(tool_input, dict):
@@ -540,6 +638,9 @@ class CaseBook:
             return _deny_vocabulario()
         if (ambiguo := self._check_ambiguedad(data)) is not None:
             return ambiguo
+        if recomendacion == "escalar_a_cumplimiento":
+            if (sin_motivo := self._check_escalamiento(data)) is not None:
+                return sin_motivo
         if (sin_declarar := self._check_cobertura(data)) is not None:
             return sin_declarar
         if (sin_fuente := self._check_procedencia(data)) is not None:
@@ -592,8 +693,11 @@ class CaseBook:
         data = tool_input if isinstance(tool_input, dict) else {}
         return (
             self._check_ambiguedad(data)
+            or self._check_escalamiento(data)
             or self._check_cobertura(data)
             or self._check_procedencia(data)
+            or self._check_conflictos(data)
+            or self._check_handoff(data)
             or ALLOW
         )
 
@@ -787,6 +891,47 @@ def _deny_conflicto(case: CommerceCase, missing: list[tuple[str, str, str]]) -> 
         f"Regla 4: las fuentes de {case.id} se contradicen y el informe debe mostrar todos los "
         f"valores con su origen, sin elegir uno. Falta declarar en `conflictos`: {faltan}. "
         f"Qué hacer: vuelve a registrar el informe con `conflictos` como {ejemplo}.",
+    )
+
+
+def _deny_escalamiento(commerce_id: str | None) -> Decision:
+    quien = f"el comercio {commerce_id}" if commerce_id else "un comercio sin identificador"
+    return Decision(
+        False,
+        "escalamiento",
+        f"No corresponde escalar {quien}: no hay ningún hallazgo que lo justifique (coincidencia "
+        "en listas restrictivas, categoría de alto riesgo, contradicción entre fuentes o "
+        "menciones en noticias). Una cobertura incompleta, sola, no basta. Qué hacer: si crees que "
+        "sí hay un hallazgo, comprueba que `comercio_id` sea el identificador del comercio que "
+        "identificó el registro; si no lo hay, no lo escales: si todo está cubierto y limpio "
+        "registra el informe con `habilitar`; si falta cobertura, registra `no_habilitar` "
+        "declarando el frente sin cubrir.",
+    )
+
+
+def _deny_handoff_hallazgos(missing: list[Ground]) -> Decision:
+    faltan = "; ".join(f"`{g.frentes[0]}` ({g.descripcion})" for g in missing)
+    return Decision(
+        False,
+        "handoff_hallazgos",
+        "Un oficial de cumplimiento no tiene la conversación: el resumen debe traer, en "
+        "`hallazgos`, el hallazgo con su `fuente` y `fecha` de cada frente que motiva el "
+        f"escalamiento. Falta: {faltan}. Qué hacer: vuelve a llamar a `escalar_a_cumplimiento` "
+        'con `hallazgos` que incluya esos frentes, p. ej. {"listas": {"contenido": "...", '
+        '"fuente": "<la fuente que devolvió el frente>", "fecha": "<fecha de la consulta>"}}.',
+    )
+
+
+def _deny_handoff_causa(missing: list[Ground]) -> Decision:
+    falta = "; ".join(
+        f"{g.descripcion} (palabras que valen: {', '.join(g.palabras)})" for g in missing
+    )
+    return Decision(
+        False,
+        "handoff_causa",
+        "La `causa` del escalamiento debe nombrar cada motivo para que el oficial sepa por qué "
+        f"recibe el caso. No nombra: {falta}. Qué hacer: vuelve a llamar a "
+        "`escalar_a_cumplimiento` con una `causa` que diga cada motivo con esas palabras.",
     )
 
 

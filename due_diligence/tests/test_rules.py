@@ -312,11 +312,24 @@ def test_a_match_of_one_commerce_does_not_affect_another():
     assert book.check_informe(informe("habilitar", "CO-XX-0002")).allowed is True
 
 
+def escalamiento_completo(causa, hallazgos, cid="CO-XX-0001"):
+    """Resumen completo al oficial (ticket #6: el hallazgo del frente que motiva y la causa)."""
+    return {
+        "comercio_id": cid,
+        "hallazgos": hallazgos,
+        "cobertura": {"x": 1},
+        "causa": causa,
+        "accion_recomendada": "Revisar el caso.",
+    }
+
+
 @pytest.mark.parametrize("recomendacion", ["no_habilitar", "escalar_a_cumplimiento"])
 def test_the_other_recommendations_and_escalating_are_always_allowed_with_a_match(recomendacion):
     book = with_listas(identified(comercio()), "comercio", "CO-XX-0001", True)
     assert book.check_informe(informe(recomendacion)).allowed is True
-    assert book.check_escalar({"comercio_id": "CO-XX-0001"}).allowed is True
+    hallazgos = {"listas": {"fuente": "listas_ficticias", "fecha": "2026-10-16"}}
+    resumen = escalamiento_completo("Coincidencia en listas restrictivas.", hallazgos)
+    assert book.check_escalar(resumen).allowed is True
 
 
 def test_a_failed_or_unreadable_listas_result_is_not_recorded_as_no_match():
@@ -401,7 +414,9 @@ def test_a_low_risk_commerce_without_alerts_can_be_enabled():
 def test_escalating_is_always_allowed_for_a_high_risk_commerce(recomendacion):
     book = identified(comercio(categoria="apuestas"))
     assert book.check_informe(informe(recomendacion)).allowed is True
-    assert book.check_escalar({"comercio_id": "CO-XX-0001"}).allowed is True
+    hallazgos = {"registro": {"fuente": "registro_ficticio", "fecha": "2026-10-16"}}
+    resumen = escalamiento_completo("Categoría de alto riesgo.", hallazgos)
+    assert book.check_escalar(resumen).allowed is True
 
 
 def test_the_evidence_of_a_request_does_not_pass_to_a_low_risk_commerce_investigated_later():
@@ -486,9 +501,9 @@ def test_habilitar_for_a_commerce_never_identified_is_rejected():
     assert_blocked(other.check_informe(informe("habilitar", None)), rule="identificacion")
 
 
-@pytest.mark.parametrize("recomendacion", ["no_habilitar", "escalar_a_cumplimiento"])
-def test_the_non_enabling_recommendations_do_not_need_an_identified_commerce(recomendacion):
-    assert CaseBook().check_informe(informe(recomendacion, "CO-XX-0009")).allowed is True
+def test_not_enabling_does_not_need_an_identified_commerce():
+    """Escalar sin comercio identificado ya no se permite sin motivo (#6: `escalamiento`)."""
+    assert CaseBook().check_informe(informe("no_habilitar", "CO-XX-0009")).allowed is True
 
 
 def test_a_clean_identified_commerce_can_be_enabled():
