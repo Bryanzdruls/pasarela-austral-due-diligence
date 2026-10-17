@@ -410,7 +410,19 @@ def check_zip(zip_path: Path | str, final: bool = False, limit: int = SIZE_LIMIT
                         CHECK_VIDEO, estado == "publicado", f"estado del enlace del video: {estado}"
                     )
                 )
+                checks.append(_check_docs(repo))
     return checks
+
+
+def _check_docs(repo: Path) -> Check:
+    """Las comprobaciones de documentos sobre el contenido del zip, no sobre el árbol de trabajo."""
+    import verify_docs  # import tardío: verify_docs importa este módulo
+
+    rotos = [c for c in verify_docs.check_all(repo) if not c.ok]
+    if rotos:
+        detalle = "; ".join(f"{c.name}: {c.detail}" for c in rotos)
+        return Check(CHECK_DOCS, False, detalle)
+    return Check(CHECK_DOCS, True, "README, DECISIONES.md y el guion pasan sus comprobaciones")
 
 
 # --------------------------------------------------------------------------- línea de órdenes

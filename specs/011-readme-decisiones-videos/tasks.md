@@ -79,9 +79,9 @@ Ninguna: los dos comprobadores son independientes entre sí y reutilizan `Check`
 
 **Goal**: una sola orden dice si se puede entregar: enlace del video real y todos los documentos en orden.
 
-- [ ] T023 [US3] Añadir en `scripts/tests/test_verify_delivery.py` las pruebas (fallan antes de T025): con `--final`, `verify_delivery` ejecuta además `verify_docs.check_all(raíz)`; si una comprobación de documentos falla (por ejemplo, una ruta citada inexistente), falla `CHECK_DOCS` y el detalle nombra cuál; sin `--final` no existe `CHECK_DOCS`; con todo en orden y el enlace publicado, el código de salida es `0`
-- [ ] T024 [US3] Ejecutar las pruebas nuevas de T023 y comprobar que fallan por la razón esperada
-- [ ] T025 [US3] Implementar `CHECK_DOCS` en `scripts/verify_delivery.py` (solo con `--final`, importando `verify_docs`); comprobar que pasan las pruebas de T023 y que las de T003 a T005 siguen pasando
+- [x] T023 [US3] Añadir en `scripts/tests/test_verify_delivery.py` las pruebas (fallan antes de T025): con `--final`, `verify_delivery` ejecuta además `verify_docs.check_all(raíz)`; si una comprobación de documentos falla (por ejemplo, una ruta citada inexistente), falla `CHECK_DOCS` y el detalle nombra cuál; sin `--final` no existe `CHECK_DOCS`; con todo en orden y el enlace publicado, el código de salida es `0`
+- [x] T024 [US3] Ejecutar las pruebas nuevas de T023 y comprobar que fallan por la razón esperada
+- [x] T025 [US3] Implementar `CHECK_DOCS` en `scripts/verify_delivery.py` (solo con `--final`, importando `verify_docs`); comprobar que pasan las pruebas de T023 y que las de T003 a T005 siguen pasando
 - [ ] T026 [US3] Marcar T023 a T026 y hacer el commit de la historia (escaneo estricto de secretos, mensaje en un archivo)
 
 ## Phase 7: Polish & Cross-Cutting

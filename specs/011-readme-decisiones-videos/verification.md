@@ -41,3 +41,6 @@ Los casos 1 a 5 y 7 sumaron 301,6 s en serie; con el 6 y el reinicio de la inter
 **Hallazgo de logística que el ensayo destapó.** El caso 6 solo funciona en la interfaz si el servidor se arranca con `PASARELA_FAULTS=noticias` (la variable pasa al servidor MCP); hay que reiniciarla y por eso el guion graba el caso 6 al final. No estaba en `docs/INTERFAZ.md`; el README y el guion ya lo dicen.
 
 **No verificado:** el ensayo se hizo por la API de la interfaz (la misma que usa la página), no con una grabación de pantalla; la velocidad ×6 de la edición es una propuesta, no se probó con un editor.
+
+## Verificación final única (T023 a T026, hallazgo I1 del análisis)
+`python scripts/verify_delivery.py --build --final` ejecuta ahora, además del enlace del video, las comprobaciones de `verify_docs.py` **sobre el contenido del zip** (no sobre el árbol de trabajo): una sola orden dice si se puede entregar. Pruebas primero: 4 fallaron por la razón esperada (`CHECK_DOCS` no existía) y la que comprueba que sin `--final` no existe ya pasaba. Tras implementarlo, 126 pruebas en verde entre `test_verify_delivery.py` y `test_docs.py`.

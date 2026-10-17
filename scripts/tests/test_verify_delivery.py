@@ -367,3 +367,57 @@ def test_the_archive_may_or_may_not_have_a_common_root_folder(zip_ok, tmp_path):
         for nombre in zin.namelist():
             zout.writestr(nombre.split("/", 1)[1], zin.read(nombre))
     assert fallos(d.check_zip(plano)) == {}
+
+
+# --------------------------------------------------------------------------- --final y documentos
+
+
+@pytest.fixture
+def repo_docs(repo):
+    """El repositorio sintético con README, DECISIONES.md y guion válidos y el video publicado."""
+    import test_docs as td
+
+    td.arbol(
+        repo,
+        readme_texto=td.readme(video=URL_VIDEO),
+        archivos=("scripts/hacer.py",),
+    )
+    commit(repo, "documentos")
+    return repo
+
+
+def test_final_also_runs_the_document_checks_on_the_content_of_the_zip(repo_docs, tmp_path):
+    zip_path = d.build_zip(repo_docs, tmp_path / "e.zip")
+    checks = d.check_zip(zip_path, final=True)
+    assert d.CHECK_DOCS in {c.name for c in checks}
+    assert fallos(checks) == {}
+    assert d.CHECK_DOCS not in {c.name for c in d.check_zip(zip_path)}
+
+
+def test_a_broken_document_in_the_zip_fails_the_final_check_and_names_what_broke(
+    repo_docs, tmp_path
+):
+    with_missing = (repo_docs / "README.md").read_text(encoding="utf-8")
+    (repo_docs / "README.md").write_text(with_missing + "\nVer `docs/inventado.md`.\n")
+    commit(repo_docs, "cita algo que no existe")
+    zip_path = d.build_zip(repo_docs, tmp_path / "e.zip")
+    problemas = fallos(d.check_zip(zip_path, final=True))
+    assert d.CHECK_DOCS in problemas and "rutas citadas existen" in problemas[d.CHECK_DOCS]
+    assert "docs/inventado.md" in problemas[d.CHECK_DOCS]
+
+
+def test_a_zip_without_the_documents_fails_the_final_check(repo, tmp_path):
+    problemas = fallos(d.check_zip(d.build_zip(repo, tmp_path / "e.zip"), final=True))
+    assert d.CHECK_DOCS in problemas and "DECISIONES.md" in problemas[d.CHECK_DOCS]
+
+
+def test_the_final_cli_exits_0_when_everything_is_in_order_and_1_when_it_is_not(
+    repo_docs, repo, tmp_path
+):
+    ok = run_cli("--build", "--final", "--root", str(repo_docs), "--out", str(tmp_path / "a.zip"))
+    assert ok.returncode == 0, ok.stdout
+    assert d.CHECK_DOCS in ok.stdout and "FALLA" not in ok.stdout
+    (repo_docs / "DECISIONES.md").unlink()
+    commit(repo_docs, "borra las decisiones")
+    mal = run_cli("--build", "--final", "--root", str(repo_docs), "--out", str(tmp_path / "b.zip"))
+    assert mal.returncode == 1 and d.CHECK_DOCS in mal.stdout and "FALLA" in mal.stdout
