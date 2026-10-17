@@ -222,6 +222,7 @@ class CaseBook:
         self.declared_text = prompt if isinstance(prompt, str) else ""
         self.risk_observations = []
         self.attempts = {}
+        self._orphan_mentions = False  # unas menciones sin comercio no esperan a otra solicitud
         self._request_commerces = {cid for cid in self.commerces if cid in self.declared_text}
         self._fallback_commerces = (
             set(self.commerces)
@@ -276,7 +277,9 @@ class CaseBook:
         found = content.get("menciones")
         if not isinstance(found, list) or not found:
             return
-        targets = self._failure_targets("noticias", tool_input)
+        # Solo los comercios que esta solicitud identificó: el único comercio conocido de antes
+        # no hereda las menciones de una consulta sobre otro (revisión del #6).
+        targets = [self.commerces[c] for c in self._request_commerces if c in self.commerces]
         for case in targets:
             case.menciones = True
         if not targets:
@@ -487,10 +490,7 @@ class CaseBook:
             if isinstance(hallazgos, dict)
             else set()
         )
-        exempt = _declared_fronts(data.get("cobertura"))
-        sin_hallazgo = [
-            g for g in grounds.values() if g.frentes and not set(g.frentes) & (present | exempt)
-        ]
+        sin_hallazgo = [g for g in grounds.values() if g.frentes and not set(g.frentes) & present]
         if sin_hallazgo:
             return _deny_handoff_hallazgos(sin_hallazgo)
         text = normalize(data.get("causa"))
@@ -577,8 +577,8 @@ class CaseBook:
 
     def _observe_escalar(self, tool_input: Any) -> None:
         commerce_id = _text(tool_input.get("comercio_id")) if isinstance(tool_input, dict) else None
-        if commerce_id in self.commerces:
-            self.commerces[commerce_id].escalado = True
+        if (case := self._case_of(commerce_id)) is not None:
+            case.escalado = True
 
     def _observe_listas(self, tool_input: Any, content: dict[str, Any]) -> None:
         if not isinstance(tool_input, dict):
@@ -897,9 +897,11 @@ def _deny_escalamiento(commerce_id: str | None) -> Decision:
         "escalamiento",
         f"No corresponde escalar {quien}: no hay ningún hallazgo que lo justifique (coincidencia "
         "en listas restrictivas, categoría de alto riesgo, contradicción entre fuentes o "
-        "menciones en noticias). Una cobertura incompleta, sola, no basta. Qué hacer: no lo "
-        "escales; si todo está cubierto y limpio, registra el informe con `habilitar`; si falta "
-        "cobertura, registra `no_habilitar` declarando el frente sin cubrir.",
+        "menciones en noticias). Una cobertura incompleta, sola, no basta. Qué hacer: si crees que "
+        "sí hay un hallazgo, comprueba que `comercio_id` sea el identificador del comercio que "
+        "identificó el registro; si no lo hay, no lo escales: si todo está cubierto y limpio "
+        "registra el informe con `habilitar`; si falta cobertura, registra `no_habilitar` "
+        "declarando el frente sin cubrir.",
     )
 
 

@@ -443,7 +443,7 @@ MUTATIONS += [
     (
         "escalamiento: las menciones de un comercio valen para otro",
         RULES,
-        """        targets = self._failure_targets("noticias", tool_input)
+        """        targets = [self.commerces[c] for c in self._request_commerces if c in self.commerces]
         for case in targets:
             case.menciones = True""",
         """        targets = list(self.commerces.values())
@@ -530,10 +530,30 @@ MUTATIONS += [
             return _deny_handoff_hallazgos(sin_hallazgo)""",
     ),
     (
-        "handoff: un frente declarado sin cubrir no se exime del hallazgo",
+        "handoff: un frente declarado sin cubrir exime el hallazgo que motiva",
         RULES,
-        """(present | exempt)""",
-        """present""",
+        """if g.frentes and not set(g.frentes) & present""",
+        """if g.frentes and not set(g.frentes) & (present | _declared_fronts(data.get("cobertura")))""",
+    ),
+    (
+        "menciones: el único comercio conocido de antes hereda las de otra consulta",
+        RULES,
+        """        targets = [self.commerces[c] for c in self._request_commerces if c in self.commerces]""",
+        """        targets = self._failure_targets("noticias", tool_input)""",
+    ),
+    (
+        "menciones: las huérfanas esperan a una solicitud posterior",
+        RULES,
+        """        self._orphan_mentions = False  # unas menciones sin comercio no esperan a otra solicitud""",
+        """        pass""",
+    ),
+    (
+        "escalamiento: el escalamiento registrado distingue mayúsculas del identificador",
+        RULES,
+        """        if (case := self._case_of(commerce_id)) is not None:
+            case.escalado = True""",
+        """        if commerce_id in self.commerces:
+            self.commerces[commerce_id].escalado = True""",
     ),
     (
         "handoff: el alto riesgo exige solo el frente de riesgo y no el del registro",

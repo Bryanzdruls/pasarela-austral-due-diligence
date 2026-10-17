@@ -472,12 +472,12 @@ def test_a_complete_summary_with_several_grounds_and_an_uncovered_front_is_accep
     assert book.check_escalar(data).allowed is True
 
 
-def test_a_front_declared_uncovered_is_not_required_as_a_finding():
+def test_declaring_a_front_uncovered_never_exempts_a_finding_that_motivates_the_escalation():
     from due_diligence.tests.test_rules_cobertura import declared
 
     book = menciones(con_registro())
     data = resumen(hallazgos={}, causa="Menciones en noticias.", cobertura=declared("noticias"))
-    assert book.check_escalar(data).allowed is True
+    assert_blocked(book.check_escalar(data), rule="handoff_hallazgos", hint="noticias")
 
 
 def test_a_corrupt_state_raises_so_the_hook_can_fail_closed():
@@ -485,3 +485,67 @@ def test_a_corrupt_state_raises_so_the_hook_can_fail_closed():
     book.responded = None  # estado corrupto
     with pytest.raises(Exception):  # noqa: B017 - el hook convierte cualquier excepción en denegación
         book.check_escalar(resumen_listas())
+
+
+# ------------------------------------------------------------ revisión del #6 (code-reviewer)
+
+
+def test_mentions_of_a_new_request_do_not_go_to_a_commerce_known_from_before():
+    """Entrada del code-reviewer: el único comercio conocido heredaba las menciones de otro."""
+    book = con_registro()
+    book.start_request(
+        "Investiga Comercio Nuevo SAS"
+    )  # sin identificar: no es del comercio anterior
+    menciones(book)
+    assert book.commerces[CID].menciones is False
+    assert_blocked(book.check_escalar(resumen(causa="menciones en noticias")), rule="escalamiento")
+
+
+def test_orphan_mentions_do_not_survive_to_a_later_request():
+    """Entrada del code-reviewer: las menciones huérfanas contaminaban al siguiente comercio."""
+    book = CaseBook()
+    book.start_request("Investiga a Persona X")
+    menciones(book)
+    book.start_request("Investiga CO-XX-0002")
+    observe_registro(book, comercio("CO-XX-0002", "PE-0002"))
+    assert book.commerces["CO-XX-0002"].menciones is False
+    assert motivos(book, "CO-XX-0002") == set()
+
+
+def test_a_front_declared_uncovered_does_not_exempt_the_finding_that_motivates_the_escalation():
+    """Entrada del code-reviewer: declarar `listas` sin cubrir eximía el hallazgo."""
+    book = coincidencia(con_registro())
+    cobertura = {
+        "listas": {"estado": "sin_cubrir", "motivo": "falló la consulta del representante"}
+    }
+    data = resumen(hallazgos={}, causa="Coincidencia en lista", cobertura=cobertura)
+    assert_blocked(book.check_escalar(data), rule="handoff_hallazgos", hint="listas")
+
+
+def test_the_rejection_of_an_unknown_commerce_id_tells_to_check_the_identifier():
+    book = coincidencia(con_registro())
+    decision = book.check_escalar(resumen("CO-XX-1"))
+    assert_blocked(decision, rule="escalamiento", hint="identificador")
+
+
+def test_the_escalation_is_recorded_even_if_the_id_is_written_in_another_case():
+    from due_diligence.tests.test_rules import ESCALAR_OK
+
+    book = coincidencia(con_registro())
+    book.observe("escalar_a_cumplimiento", {"comercio_id": "co-xx-0001"}, ESCALAR_OK)
+    assert book.pending_escalations() == []
+
+
+@pytest.mark.parametrize(
+    "montar, campos",
+    [
+        (lambda: coincidencia(con_registro()), {"listas": SRC_LISTAS, "causa": "lista"}),
+        (lambda: con_registro(categoria="apuestas"), {"registro": SRC_REGISTRO, "causa": "riesgo"}),
+        (lambda: menciones(con_registro()), {"noticias": SRC_NOTICIAS, "causa": "noticia"}),
+    ],
+    ids=["listas", "riesgo", "noticias"],
+)
+def test_the_tool_allows_a_complete_summary_for_each_ground(montar, campos):
+    frente = next(k for k in campos if k != "causa")
+    data = resumen(hallazgos={frente: hallazgo(campos[frente])}, causa=campos["causa"])
+    assert montar().check_escalar(data).allowed is True
