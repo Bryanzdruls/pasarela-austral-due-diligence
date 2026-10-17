@@ -14,6 +14,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "due_diligence" / "rules.py"
 HOOKS = ROOT / "due_diligence" / "rule_hooks.py"
+OPTIONS = ROOT / "due_diligence" / "options.py"
+FAULTS = ROOT / "mcp_server" / "faults.py"
+CASOS = "due_diligence/tests/test_casos_obligatorios.py"
 
 MUTATIONS = [
     (
@@ -601,11 +604,42 @@ MUTATIONS += [
     ),
 ]
 
+# Mutaciones de sistema (ticket #8): romper el cableado de producción debe hacer fallar los casos
+# obligatorios por sí solos (se ejecutan solo `test_casos_obligatorios.py`).
+CASE_MUTATIONS = [
+    (
+        "sistema: el hook de reglas (PreToolUse) no está conectado",
+        OPTIONS,
+        """        "PreToolUse": everywhere(tool_guard, make_pre_tool_use(book)),""",
+        """        "PreToolUse": everywhere(tool_guard),""",
+    ),
+    (
+        "sistema: el hook de parada no está conectado",
+        OPTIONS,
+        """        "Stop": everywhere(make_stop(book)),""",
+        """        "Stop": everywhere(),""",
+    ),
+    (
+        "sistema: no se observan los resultados (PostToolUse)",
+        OPTIONS,
+        """        "PostToolUse": everywhere(make_post_tool_use(book)),""",
+        """        "PostToolUse": everywhere(),""",
+    ),
+    (
+        "sistema: el servidor ignora la inyección de fallas",
+        FAULTS,
+        """    faults = _active()
+    if fuente not in faults:""",
+        """    faults = {}
+    if fuente not in faults:""",
+    ),
+]
 
-def run_tests() -> bool:
+
+def run_tests(objetivo: str = "due_diligence") -> bool:
     """True si las pruebas pasan."""
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", "-q", "-x", "due_diligence"],
+        [sys.executable, "-m", "pytest", "-q", "-x", objetivo],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -614,7 +648,8 @@ def run_tests() -> bool:
 
 
 def main() -> int:
-    originals = {path: path.read_text(encoding="utf-8") for path in (RULES, HOOKS)}
+    rutas = (RULES, HOOKS, OPTIONS, FAULTS)
+    originals = {path: path.read_text(encoding="utf-8") for path in rutas}
     if not run_tests():
         print("Las pruebas no pasan sin mutar: arréglalas antes de verificar por mutación.")
         return 1
@@ -631,10 +666,22 @@ def main() -> int:
             path.write_text(text, encoding="utf-8")
             print(f"{'DETECTADA' if detected else 'SOBREVIVIÓ':13s} {name}")
             problems += 0 if detected else 1
+        for name, path, old, new in CASE_MUTATIONS:
+            text = originals[path]
+            if old not in text:
+                print(f"NO APLICABLE  {name}")
+                problems += 1
+                continue
+            path.write_text(text.replace(old, new, 1), encoding="utf-8")
+            detected = not run_tests(CASOS)
+            path.write_text(text, encoding="utf-8")
+            print(f"{'DETECTADA' if detected else 'SOBREVIVIÓ':13s} {name} (casos obligatorios)")
+            problems += 0 if detected else 1
     finally:
         for path, text in originals.items():
             path.write_text(text, encoding="utf-8")
-    print(f"{len(MUTATIONS) - problems} de {len(MUTATIONS)} detectadas")
+    total = len(MUTATIONS) + len(CASE_MUTATIONS)
+    print(f"{total - problems} de {total} detectadas")
     return 0 if problems == 0 else 1
 
 
