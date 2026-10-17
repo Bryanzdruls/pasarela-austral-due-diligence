@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pasarela Austral · Due diligence</title>
+<style>
+  :root {
+    --fondo: #f5f6f8; --panel: #ffffff; --texto: #1c2430; --suave: #5b6676; --borde: #d9dee6;
+    --analista: #1f4fd8; --coordinador: #1c2430; --delegacion: #6a4fd8; --resultado: #0b7a5a;
+    --bloqueo: #b42318; --informe: #0b6bcb; --escalamiento: #b54708; --fin: #5b6676;
+    --error: #b42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fondo: #12161c; --panel: #1b222c; --texto: #e6e9ee; --suave: #9aa5b5; --borde: #2c3644;
+      --analista: #7da2ff; --coordinador: #e6e9ee; --delegacion: #b3a2ff; --resultado: #4fd1a5;
+      --bloqueo: #ff8a80; --informe: #7cc0ff; --escalamiento: #ffb35c; --fin: #9aa5b5;
+      --error: #ff8a80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fondo); color: var(--texto);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 14px 16px; border-bottom: 1px solid var(--borde); background: var(--panel); }
+  header h1 { margin: 0; font-size: 17px; }
+  header p { margin: 2px 0 0; color: var(--suave); font-size: 13px; }
+  main { max-width: 860px; margin: 0 auto; padding: 16px; }
+  #conversacion { display: flex; flex-direction: column; gap: 10px; min-height: 40vh; }
+  .vacio { color: var(--suave); text-align: center; padding: 40px 0; }
+  .tarjeta { background: var(--panel); border: 1px solid var(--borde); border-left: 4px solid var(--c);
+             border-radius: 8px; padding: 10px 12px; max-width: 92%; }
+  .tarjeta.analista { align-self: flex-end; }
+  .cabecera { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .etiqueta { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+              color: var(--c); }
+  .titulo { font-weight: 600; }
+  .hora { margin-left: auto; font-size: 12px; color: var(--suave); }
+  .detalle { margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .detalle:empty { display: none; }
+  .analista { --c: var(--analista); } .coordinador { --c: var(--coordinador); }
+  .delegacion { --c: var(--delegacion); } .resultado { --c: var(--resultado); }
+  .bloqueo { --c: var(--bloqueo); } .informe { --c: var(--informe); }
+  .escalamiento { --c: var(--escalamiento); } .fin { --c: var(--fin); } .error { --c: var(--error); }
+  #trabajando { color: var(--suave); font-size: 13px; min-height: 20px; margin: 10px 0; }
+  form { display: flex; gap: 8px; position: sticky; bottom: 0; padding: 10px 0 16px;
+         background: var(--fondo); }
+  textarea { flex: 1; resize: vertical; min-height: 48px; max-height: 200px; padding: 10px;
+             border: 1px solid var(--borde); border-radius: 8px; background: var(--panel);
+             color: var(--texto); font: inherit; }
+  button { padding: 0 18px; border: 0; border-radius: 8px; background: var(--analista);
+           color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  #aviso { color: var(--error); font-size: 13px; min-height: 18px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Pasarela Austral · Due diligence de comercios</h1>
+  <p>Conversa con el coordinador y mira qué delega, qué se bloquea y qué se registra. Datos ficticios.</p>
+</header>
+<main>
+  <div id="conversacion" aria-live="polite"></div>
+  <div id="trabajando"></div>
+  <div id="aviso"></div>
+  <form id="formulario">
+    <textarea id="mensaje" maxlength="4000" placeholder="Escribe tu solicitud (Enter envía, Mayús+Enter salto de línea)" aria-label="Mensaje"></textarea>
+    <button id="enviar" type="submit">Enviar</button>
+  </form>
+</main>
+<script>
+(function () {
+  "use strict";
+  // Todo texto que llega (del modelo, de las fuentes, del analista) se inserta con textContent.
+  var ETIQUETAS = {
+    analista: "Analista", coordinador: "Coordinador", delegacion: "Delegación",
+    resultado: "Resultado", bloqueo: "Bloqueo", informe: "Informe",
+    escalamiento: "Escalamiento", fin: "Fin del turno", error: "Error"
+  };
+  var lista = document.getElementById("conversacion");
+  var trabajando = document.getElementById("trabajando");
+  var aviso = document.getElementById("aviso");
+  var campo = document.getElementById("mensaje");
+  var boton = document.getElementById("enviar");
+  var cid = null, flujo = null, ultimo = 0, ocupado = false;
+
+  function guardado(valor) {
+    try {
+      if (valor === undefined) return sessionStorage.getItem("cid");
+      if (valor === null) sessionStorage.removeItem("cid"); else sessionStorage.setItem("cid", valor);
+    } catch (e) { return null; }
+    return null;
+  }
+
+  function vacio() {
+    var p = document.createElement("div");
+    p.className = "vacio"; p.id = "vacio";
+    p.textContent = "Escribe tu primera solicitud para empezar.";
+    lista.appendChild(p);
+  }
+
+  function ocupar(si) {
+    ocupado = si; boton.disabled = si;
+    trabajando.textContent = si ? "El coordinador está trabajando…" : "";
+  }
+
+  function hora(iso) {
+    var d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleTimeString();
+  }
+
+  function tarjeta(e) {
+    var div = document.createElement("div");
+    div.className = "tarjeta " + (ETIQUETAS[e.tipo] ? e.tipo : "coordinador");
+    var cab = document.createElement("div"); cab.className = "cabecera";
+    var et = document.createElement("span"); et.className = "etiqueta";
+    et.textContent = ETIQUETAS[e.tipo] || String(e.tipo);
+    var ti = document.createElement("span"); ti.className = "titulo"; ti.textContent = e.titulo;
+    var ho = document.createElement("span"); ho.className = "hora"; ho.textContent = hora(e.hora);
+    cab.appendChild(et); cab.appendChild(ti); cab.appendChild(ho);
+    var de = document.createElement("div"); de.className = "detalle"; de.textContent = e.detalle;
+    div.appendChild(cab); div.appendChild(de);
+    return div;
+  }
+
+  function mostrar(e) {
+    if (e.n <= ultimo) return;          // la reconexión repite el historial: no se duplica
+    ultimo = e.n;
+    var v = document.getElementById("vacio"); if (v) v.remove();
+    lista.appendChild(tarjeta(e));
+    if (e.tipo === "analista") ocupar(true);
+    if (e.tipo === "fin" || e.tipo === "error") ocupar(false);
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+
+  function conectar() {
+    if (flujo) flujo.close();
+    flujo = new EventSource("/api/conversaciones/" + cid + "/eventos");
+    flujo.onmessage = function (m) {
+      try { mostrar(JSON.parse(m.data)); } catch (e) { /* evento ilegible: se ignora */ }
+    };
+    flujo.onerror = function () {
+      if (flujo.readyState === EventSource.CLOSED) nueva(); // el servidor ya no la conoce
+    };
+  }
+
+  function nueva() {
+    guardado(null); ultimo = 0; lista.textContent = ""; vacio(); ocupar(false);
+    fetch("/api/conversaciones", { method: "POST" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { cid = d.id; guardado(cid); conectar(); })
+      .catch(function () { aviso.textContent = "No se pudo crear la conversación."; });
+  }
+
+  function enviar() {
+    var texto = campo.value.trim();
+    if (!texto || ocupado || !cid) return;
+    aviso.textContent = "";
+    fetch("/api/conversaciones/" + cid + "/mensajes", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texto: texto })
+    }).then(function (r) {
+      if (r.status === 202) { campo.value = ""; return; }
+      return r.json().then(function (d) { aviso.textContent = d.error || "No se pudo enviar."; });
+    }).catch(function () { aviso.textContent = "No se pudo enviar el mensaje."; });
+  }
+
+  document.getElementById("formulario").addEventListener("submit", function (ev) {
+    ev.preventDefault(); enviar();
+  });
+  campo.addEventListener("keydown", function (ev) {
+    if (ev["key"] === "Enter" && !ev.shiftKey) { ev.preventDefault(); enviar(); }
+  });
+
+  vacio();
+  var previo = guardado();
+  if (previo) { cid = previo; conectar(); } else { nueva(); }
+})();
+</script>
+</body>
+</html>

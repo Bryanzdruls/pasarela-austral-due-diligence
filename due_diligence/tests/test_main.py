@@ -53,3 +53,16 @@ async def test_an_sdk_failure_is_reported_without_a_traceback_and_the_exit_code_
     assert code == 2
     assert any("se cayó" in line for line in printed)
     assert factory.created[0].closed
+
+
+def test_render_event_shows_blocks_reports_and_escalations_in_plain_words():
+    from due_diligence.events import CallBlocked, Escalated, ReportRegistered
+
+    blocked = render_event(CallBlocked("listas_restrictivas", "consultar_listas", "1", "falta id"))
+    assert (
+        "bloque" in blocked.lower() and "falta id" in blocked and "listas_restrictivas" in blocked
+    )
+    report = render_event(ReportRegistered("INF-0001", "CO-XX-0001", "no_habilitar"))
+    assert "INF-0001" in report and "no_habilitar" in report
+    escalated = render_event(Escalated("ESC-0001", "CO-XX-0001", "coincidencia en listas"))
+    assert "ESC-0001" in escalated and "coincidencia en listas" in escalated

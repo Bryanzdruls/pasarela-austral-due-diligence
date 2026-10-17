@@ -365,3 +365,25 @@ def test_lists_does_not_start_after_a_failed_registry():
     )
     violations = dependency_violations(events)
     assert len(violations) == 1 and "completo" in violations[0]
+
+
+def test_the_web_events_are_immutable_timestamped_and_part_of_the_domain_union():
+    import dataclasses
+    import typing
+
+    import pytest
+
+    from due_diligence.events import CallBlocked, DomainEvent, Escalated, ReportRegistered
+
+    blocked = CallBlocked("listas_restrictivas", "consultar_listas_restrictivas", "1", "motivo")
+    report = ReportRegistered("INF-0001", "CO-XX-0001", "no_habilitar")
+    escalated = Escalated("ESC-0001", "CO-XX-0001", "coincidencia en listas")
+    members = typing.get_args(DomainEvent)
+    for event in (blocked, report, escalated):
+        assert type(event) in members
+        assert event.timestamp
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            event.timestamp = "otra"  # type: ignore[misc]
+    assert (blocked.agente, blocked.regla, blocked.motivo) == ("listas_restrictivas", "1", "motivo")
+    assert (report.informe_id, report.recomendacion) == ("INF-0001", "no_habilitar")
+    assert (escalated.escalamiento_id, escalated.causa) == ("ESC-0001", "coincidencia en listas")

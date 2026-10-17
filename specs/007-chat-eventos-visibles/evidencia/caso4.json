@@ -1,0 +1,184 @@
+[
+ {
+  "n": 1,
+  "tipo": "analista",
+  "titulo": "Analista",
+  "detalle": "Necesito el due diligence de Cafetería Aurora.",
+  "hora": "2026-10-17T02:23:53.093102+00:00",
+  "extra": {}
+ },
+ {
+  "n": 2,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el registro mercantil",
+  "detalle": "Identifica en el registro mercantil al comercio \"Cafetería Aurora\". Devuelve un JSON con `contenido` (existencia, identificador del comercio, fecha(s) de constitución con su origen, representante legal con su identificador, estado, categoría de actividad si figura; si hay varias coincidencias, lista todos los candidatos con su identificador y lo que los distingue, sin elegir) y `metadatos` (fuente y fecha de consulta).",
+  "hora": "2026-10-17T02:24:10.380711+00:00",
+  "extra": {
+   "frente": "registro_mercantil"
+  }
+ },
+ {
+  "n": 3,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las noticias",
+  "detalle": "Busca menciones del comercio \"Cafetería Aurora\" en el corpus de noticias. Devuelve un JSON con `contenido` (menciones encontradas con titular/resumen y fecha, o indicación de que no hay menciones) y `metadatos` (fuente y fecha de consulta).",
+  "hora": "2026-10-17T02:24:11.753566+00:00",
+  "extra": {
+   "frente": "noticias"
+  }
+ },
+ {
+  "n": 4,
+  "tipo": "resultado",
+  "titulo": "Respondió las noticias",
+  "detalle": "Fuente: noticias_ficticias. Fecha: 2026-10-17T02:24:14+00:00.",
+  "hora": "2026-10-17T02:24:18.662645+00:00",
+  "extra": {
+   "frente": "noticias",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 5,
+  "tipo": "resultado",
+  "titulo": "Respondió el registro mercantil",
+  "detalle": "Fuente: registro_mercantil_ficticio. Fecha: 2026-10-17T02:24:13+00:00.",
+  "hora": "2026-10-17T02:24:20.151009+00:00",
+  "extra": {
+   "frente": "registro_mercantil",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 6,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "No puedo seguir con el due diligence todavía: el registro mercantil encontró **dos comercios activos** que coinciden con \"Cafetería Aurora\" y no voy a elegir uno por mi cuenta.\n\n| | **CO-CA-0004** | **CO-CA-0005** |\n|---|---|---|\n| Razón social | Cafetería Aurora SAS (con tilde) | Cafeteria Aurora S.A.S. (sin tilde) |\n| NIT | FICT-1004 | FICT-1005 |\n| Fecha de constitución | 2020-01-15 | 2022-06-30 |\n| Representante legal | Lucía Demo Campos (PE-0004) | Camilo Ejemplo Duarte (PE-0005) |\n| Categoría en el registro | cafeteria | cafeteria |\n| Volumen mensual estimado en el registro | 12.000.000 | 9.000.000 |\n| Estado | activo | activo |\n\nFuente de todos los datos: `registro_mercantil_ficticio`, consulta del 2026-10-16.\n\n**Estado de cada frente:**\n- **Registro mercantil:** hay dos candidatos y ninguno está identificado todavía.\n- **Noticias:** busqué por el nombre \"Cafetería Aurora\" y no apareció ninguna mención (fuente: `noticias_ficticias`). Como hay dos comercios con ese nombre, esto todavía no se puede atribuir a ninguno de los dos.\n- **Listas restrictivas:** no las consulté. Solo pueden consultarse cuando el comercio está identificado sin ambigüedad.\n- **Riesgo de categoría:** no lo consulté. Tampoco me indicaste una categoría ni un volumen.\n\nNo registré ningún informe ni escalé el caso.\n\n**¿Me pasas el identificador del comercio que quieres investigar (CO-CA-0004 o CO-CA-0005)?** Si puedes, dime también la categoría de negocio y el volumen mensual que declaró el comercio. Con eso consulto las listas para el comercio y su representante legal, reviso el riesgo de la categoría y te entrego el informe con la recomendación.",
+  "hora": "2026-10-17T02:24:27.535906+00:00",
+  "extra": {}
+ },
+ {
+  "n": 7,
+  "tipo": "fin",
+  "titulo": "El coordinador terminó el turno",
+  "detalle": "Motivo: el coordinador dio su respuesta.",
+  "hora": "2026-10-17T02:24:27.647813+00:00",
+  "extra": {}
+ },
+ {
+  "n": 8,
+  "tipo": "analista",
+  "titulo": "Analista",
+  "detalle": "El identificador es CO-CA-0004.",
+  "hora": "2026-10-17T02:24:27.651320+00:00",
+  "extra": {}
+ },
+ {
+  "n": 9,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el registro mercantil",
+  "detalle": "Identifica en el registro mercantil al comercio con identificador \"CO-CA-0004\". Devuelve un JSON con `contenido` (existencia, identificador, razón social, fecha(s) de constitución con su origen, representante legal con su identificador, estado, categoría) y `metadatos` (fuente y fecha de consulta).",
+  "hora": "2026-10-17T02:24:32.263865+00:00",
+  "extra": {
+   "frente": "registro_mercantil"
+  }
+ },
+ {
+  "n": 10,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el riesgo de la categoría",
+  "detalle": "Consulta el nivel de riesgo de la categoría de negocio \"cafeteria\". Devuelve un JSON con `contenido` (nivel de riesgo, o sin_clasificar si es el caso) y `metadatos` (fuente y fecha de consulta).",
+  "hora": "2026-10-17T02:24:33.574057+00:00",
+  "extra": {
+   "frente": "riesgo_categoria"
+  }
+ },
+ {
+  "n": 11,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las noticias",
+  "detalle": "Busca menciones del comercio con identificador \"CO-CA-0004\" (razón social \"Cafetería Aurora SAS\") en el corpus de noticias. Devuelve un JSON con `contenido` (menciones con resumen y fecha, o indicación de que no hay) y `metadatos` (fuente y fecha de consulta).",
+  "hora": "2026-10-17T02:24:34.972151+00:00",
+  "extra": {
+   "frente": "noticias"
+  }
+ },
+ {
+  "n": 12,
+  "tipo": "resultado",
+  "titulo": "Respondió el registro mercantil",
+  "detalle": "Fuente: registro_mercantil_ficticio. Fecha: 2026-10-17T02:24:34+00:00.",
+  "hora": "2026-10-17T02:24:37.652281+00:00",
+  "extra": {
+   "frente": "registro_mercantil",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 13,
+  "tipo": "resultado",
+  "titulo": "Respondió el riesgo de la categoría",
+  "detalle": "Fuente: catalogo_riesgo_ficticio. Fecha: 2026-10-17T02:24:35+00:00.",
+  "hora": "2026-10-17T02:24:38.229563+00:00",
+  "extra": {
+   "frente": "riesgo_categoria",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 14,
+  "tipo": "resultado",
+  "titulo": "Respondió las noticias",
+  "detalle": "Fuente: noticias_ficticias. Fecha: 2026-10-17T02:24:38+00:00.",
+  "hora": "2026-10-17T02:24:42.223806+00:00",
+  "extra": {
+   "frente": "noticias",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 15,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las listas restrictivas",
+  "detalle": "Verifica contra las listas restrictivas al comercio con identificador \"CO-CA-0004\" (tipo comercio) y a su representante legal con identificador \"PE-0004\" (tipo persona). Devuelve un JSON con `contenido` (resultado por cada identificador: coincidencia sí/no y detalle) y `metadatos` (fuente y fecha de consulta).",
+  "hora": "2026-10-17T02:24:45.126505+00:00",
+  "extra": {
+   "frente": "listas_restrictivas"
+  }
+ },
+ {
+  "n": 16,
+  "tipo": "resultado",
+  "titulo": "Respondió las listas restrictivas",
+  "detalle": "Fuente: listas_restrictivas_ficticias. Fecha: 2026-10-17T02:24:48+00:00.",
+  "hora": "2026-10-17T02:24:51.384740+00:00",
+  "extra": {
+   "frente": "listas_restrictivas",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 17,
+  "tipo": "informe",
+  "titulo": "Informe INF-0001 registrado",
+  "detalle": "Comercio CO-CA-0004. Recomendación: habilitar.",
+  "hora": "2026-10-17T02:24:57.552349+00:00",
+  "extra": {}
+ },
+ {
+  "n": 18,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "Recomiendo **habilitar** Cafetería Aurora SAS (CO-CA-0004). Revisé los cuatro frentes (registro, listas restrictivas, noticias y riesgo de categoría) y ninguno mostró hallazgos. El informe quedó registrado como **INF-0001**.\n\n**Registro mercantil** (`registro_mercantil_ficticio`, 2026-10-16)\n- El comercio está identificado sin ambigüedad: Cafetería Aurora SAS, NIT FICT-1004, activo.\n- Fecha de constitución: 2020-01-15. Solo hay un origen, así que no hay datos contradictorios.\n- Representante legal: Lucía Demo Campos (PE-0004).\n- Categoría en el registro: cafeteria. Volumen mensual estimado: 12.000.000.\n\n**Listas restrictivas** (`listas_restrictivas_ficticias`, 2026-10-16)\n- No hay coincidencias ni para el comercio (CO-CA-0004) ni para su representante legal (PE-0004).\n\n**Noticias** (`noticias_ficticias`, 2026-10-16)\n- No hay menciones. Volví a buscar por el identificador CO-CA-0004 y por la razón social, para que el resultado corresponda a este comercio y no al otro con nombre parecido.\n\n**Riesgo de categoría** (`catalogo_riesgo_ficticio`, 2026-10-16)\n- La categoría \"cafeteria\" tiene riesgo **bajo**. No me diste una categoría, así que consulté la que figura en el registro.\n\n**Datos aportados por el analista**\n- Categoría declarada: no indicada.\n- Volumen estimado: no indicado.\n\n**Recomendación: `habilitar`**\n- El registro identificó al comercio y las listas se consultaron con éxito para el comercio y para su representante, sin coincidencias.\n- No hay noticias, la categoría es de riesgo bajo y las fuentes no se contradicen.\n- Como no hay ningún hallazgo, no corresponde escalar a cumplimiento.",
+  "hora": "2026-10-17T02:25:04.446604+00:00",
+  "extra": {}
+ },
+ {
+  "n": 19,
+  "tipo": "fin",
+  "titulo": "El coordinador terminó el turno",
+  "detalle": "Motivo: el coordinador dio su respuesta.",
+  "hora": "2026-10-17T02:25:04.554741+00:00",
+  "extra": {}
+ }
+]

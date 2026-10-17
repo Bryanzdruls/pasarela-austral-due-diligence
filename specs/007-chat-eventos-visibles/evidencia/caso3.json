@@ -1,0 +1,179 @@
+[
+ {
+  "n": 1,
+  "tipo": "analista",
+  "titulo": "Analista",
+  "detalle": "Necesito el due diligence de Distribuidora Andina Ficticia SAS, identificador CO-DA-0003.",
+  "hora": "2026-10-17T02:22:39.071413+00:00",
+  "extra": {}
+ },
+ {
+  "n": 2,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "No me diste categoría ni volumen. Lanzo ya el registro mercantil y las noticias. El frente de riesgo lo lanzaré con la categoría que informe el registro, si la trae.",
+  "hora": "2026-10-17T02:22:49.216480+00:00",
+  "extra": {}
+ },
+ {
+  "n": 3,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el registro mercantil",
+  "detalle": "Consulta en el registro mercantil el comercio \"Distribuidora Andina Ficticia SAS\", identificador CO-DA-0003. Devuelve un objeto JSON con `contenido` (existencia, identificador, fecha(s) de constitución con su origen, representante legal con su identificador, estado y categoría o actividad si la reporta; si hay varias coincidencias, lista los candidatos con lo que los distingue) y `metadatos` (fuente y fecha de consulta). Si la fuente falla, responde {\"estado\": \"error\", \"frente\": \"registro\", \"obtenido\": ..., \"reintentable\": true/false}.",
+  "hora": "2026-10-17T02:22:51.482747+00:00",
+  "extra": {
+   "frente": "registro_mercantil"
+  }
+ },
+ {
+  "n": 4,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las noticias",
+  "detalle": "Busca menciones en el corpus de noticias del comercio \"Distribuidora Andina Ficticia SAS\", identificador CO-DA-0003. Devuelve un objeto JSON con `contenido` (menciones encontradas con titular, fecha y resumen, o indica que no hay) y `metadatos` (fuente y fecha de consulta). Si la fuente falla, responde {\"estado\": \"error\", \"frente\": \"noticias\", \"obtenido\": ..., \"reintentable\": true/false}.",
+  "hora": "2026-10-17T02:22:53.218447+00:00",
+  "extra": {
+   "frente": "noticias"
+  }
+ },
+ {
+  "n": 5,
+  "tipo": "resultado",
+  "titulo": "Respondió las noticias",
+  "detalle": "Fuente: noticias_ficticias. Fecha: 2026-10-17T02:22:55+00:00.",
+  "hora": "2026-10-17T02:22:57.849149+00:00",
+  "extra": {
+   "frente": "noticias",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 6,
+  "tipo": "resultado",
+  "titulo": "No se pudo dar por completo el registro mercantil",
+  "detalle": "La respuesta del frente no tenía la forma esperada; no se toma como completa.",
+  "hora": "2026-10-17T02:23:00.123401+00:00",
+  "extra": {
+   "frente": "registro_mercantil",
+   "estado": "no_estructurado"
+  }
+ },
+ {
+  "n": 7,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "El registro respondió vacío, sin la forma esperada. Lo trato como un fallo y lo relanzo una vez.",
+  "hora": "2026-10-17T02:23:02.320757+00:00",
+  "extra": {}
+ },
+ {
+  "n": 8,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el registro mercantil",
+  "detalle": "Consulta en el registro mercantil el comercio con identificador CO-DA-0003 (\"Distribuidora Andina Ficticia SAS\"). Es obligatorio que tu respuesta final sea un objeto JSON, aunque la consulta no devuelva nada o falle. Formato: `contenido` (existencia, identificador, fecha(s) de constitución con su origen, representante legal con su identificador, estado y categoría o actividad si la reporta; si hay varias coincidencias, los candidatos con lo que los distingue; si no hay ninguna, dilo) y `metadatos` (fuente y fecha de consulta). Si la fuente falla, responde {\"estado\": \"error\", \"frente\": \"registro\", \"obtenido\": ..., \"reintentable\": true/false}.",
+  "hora": "2026-10-17T02:23:04.833922+00:00",
+  "extra": {
+   "frente": "registro_mercantil"
+  }
+ },
+ {
+  "n": 9,
+  "tipo": "resultado",
+  "titulo": "Respondió el registro mercantil",
+  "detalle": "Fuente: registro_mercantil_ficticio. Fecha: 2026-10-17T02:23:07+00:00.",
+  "hora": "2026-10-17T02:23:11.046114+00:00",
+  "extra": {
+   "frente": "registro_mercantil",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 10,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "Comercio identificado de forma unívoca. Lanzo listas restrictivas y riesgo (ferretería, la categoría que reporta el registro).",
+  "hora": "2026-10-17T02:23:12.652864+00:00",
+  "extra": {}
+ },
+ {
+  "n": 11,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las listas restrictivas",
+  "detalle": "Verifica contra las listas restrictivas al comercio con identificador CO-DA-0003 (tipo comercio) y a su representante legal con identificador PE-0003 (tipo persona). Tu respuesta final debe ser un objeto JSON con `contenido` (resultado para el comercio y para el representante: coincidencia sí/no y detalle) y `metadatos` (fuente y fecha de consulta). Si la fuente falla, responde {\"estado\": \"error\", \"frente\": \"listas\", \"obtenido\": ..., \"reintentable\": true/false}.",
+  "hora": "2026-10-17T02:23:14.647969+00:00",
+  "extra": {
+   "frente": "listas_restrictivas"
+  }
+ },
+ {
+  "n": 12,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el riesgo de la categoría",
+  "detalle": "Consulta el nivel de riesgo de la categoría de negocio \"ferreteria\" (comercio CO-DA-0003). Tu respuesta final debe ser un objeto JSON con `contenido` (categoría y nivel de riesgo) y `metadatos` (fuente y fecha de consulta). Si la fuente falla, responde {\"estado\": \"error\", \"frente\": \"riesgo\", \"obtenido\": ..., \"reintentable\": true/false}.",
+  "hora": "2026-10-17T02:23:16.188540+00:00",
+  "extra": {
+   "frente": "riesgo_categoria"
+  }
+ },
+ {
+  "n": 13,
+  "tipo": "resultado",
+  "titulo": "Respondió las listas restrictivas",
+  "detalle": "Fuente: listas_restrictivas_ficticias. Fecha: 2026-10-17T02:23:17+00:00.",
+  "hora": "2026-10-17T02:23:20.376309+00:00",
+  "extra": {
+   "frente": "listas_restrictivas",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 14,
+  "tipo": "resultado",
+  "titulo": "Respondió el riesgo de la categoría",
+  "detalle": "Fuente: catalogo_riesgo_ficticio. Fecha: 2026-10-17T02:23:18+00:00.",
+  "hora": "2026-10-17T02:23:20.601595+00:00",
+  "extra": {
+   "frente": "riesgo_categoria",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 15,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "El representante legal aparece en una lista restrictiva, así que corresponde escalar. Registro el informe y escalo.",
+  "hora": "2026-10-17T02:23:24.935269+00:00",
+  "extra": {}
+ },
+ {
+  "n": 16,
+  "tipo": "informe",
+  "titulo": "Informe INF-0001 registrado",
+  "detalle": "Comercio CO-DA-0003. Recomendación: escalar a cumplimiento.",
+  "hora": "2026-10-17T02:23:31.028712+00:00",
+  "extra": {}
+ },
+ {
+  "n": 17,
+  "tipo": "escalamiento",
+  "titulo": "Escalado a cumplimiento (ESC-0001)",
+  "detalle": "Comercio CO-DA-0003. Causa: Coincidencia en lista restrictiva: el representante legal (PE-0003, Héctor Muestra Lista) figura en lista_restrictiva_ficticia_a desde el 2024-03-01. No hay riesgo alto de categoría (ferreteria, riesgo bajo), no hay contradicción entre fuentes ni menciones en noticias.",
+  "hora": "2026-10-17T02:23:37.112976+00:00",
+  "extra": {}
+ },
+ {
+  "n": 18,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "# Due diligence: Distribuidora Andina Ficticia SAS (CO-DA-0003)\n\n**Recomendación: `escalar_a_cumplimiento`.** El representante legal aparece en una lista restrictiva, así que el comercio no se puede habilitar. Informe registrado como **INF-0001** y caso escalado como **ESC-0001**.\n\nRespondieron los cuatro frentes, así que el informe está completo. El primer intento del registro mercantil volvió vacío, sin el formato esperado; no lo di por bueno y lo relancé una vez. El reintento respondió bien.\n\n## Registro mercantil\n*Fuente: registro_mercantil_ficticio, consultado el 2026-10-17 (fecha UTC)*\n- El registro identificó un único comercio con este identificador. Razón social: Distribuidora Andina Ficticia SAS, NIT FICT-1003.\n- **Estado:** activo.\n- **Constitución:** 2015-09-23. Solo hay un origen, así que no hay conflicto de fechas.\n- **Representante legal:** Héctor Muestra Lista (PE-0003, documento FICT-0003).\n- **Categoría según el registro:** ferretería.\n- **Volumen mensual estimado según el registro:** 30.000.000.\n\n## Listas restrictivas\n*Fuente: listas_restrictivas_ficticias, consultado el 2026-10-17*\n- **Comercio CO-DA-0003:** no aparece en ninguna lista.\n- **Representante legal PE-0003:** ⚠️ **aparece** en `lista_restrictiva_ficticia_a`, incluido el 2024-03-01.\n\n## Noticias\n*Fuente: noticias_ficticias, consultado el 2026-10-17*\n- No hay menciones del comercio en el corpus.\n\n## Riesgo de categoría\n*Fuente: catalogo_riesgo_ficticio, consultado el 2026-10-17*\n- La categoría ferretería tiene riesgo **bajo**. La consulté con la categoría que informa el registro, porque tú no declaraste ninguna.\n\n## Datos aportados por el analista\n- **Categoría declarada:** no la indicaste.\n- **Volumen estimado:** no lo indicaste.\n\n## Motivo y escalamiento\n- **Causa:** la única razón para escalar es que el representante legal figura en una lista restrictiva. El riesgo de categoría es bajo, las fuentes no se contradicen y no hay noticias.\n- **Acción que propuse al oficial de cumplimiento:**\n  1. No habilitar mientras siga abierta la revisión.\n  2. Comprobar si la entrada de la lista corresponde de verdad a esta persona, cotejando el documento FICT-0003.\n  3. Si se confirma, rechazar la vinculación o exigir que cambie el representante legal y hacer una revisión reforzada de los accionistas.",
+  "hora": "2026-10-17T02:23:46.246494+00:00",
+  "extra": {}
+ },
+ {
+  "n": 19,
+  "tipo": "fin",
+  "titulo": "El coordinador terminó el turno",
+  "detalle": "Motivo: el coordinador dio su respuesta.",
+  "hora": "2026-10-17T02:23:46.392521+00:00",
+  "extra": {}
+ }
+]

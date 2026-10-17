@@ -1,0 +1,150 @@
+[
+ {
+  "n": 1,
+  "tipo": "analista",
+  "titulo": "Analista",
+  "detalle": "Necesito el due diligence de Ferretería Horizonte SAS, identificador CO-FH-0006.",
+  "hora": "2026-10-17T02:27:25.225712+00:00",
+  "extra": {}
+ },
+ {
+  "n": 2,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "Lanzo primero el registro mercantil y las noticias. No me diste una categoría de negocio, así que espero a ver si el registro trae una antes de consultar el riesgo.",
+  "hora": "2026-10-17T02:27:39.660550+00:00",
+  "extra": {}
+ },
+ {
+  "n": 3,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el registro mercantil",
+  "detalle": "Identifica en el registro mercantil al comercio con identificador CO-FH-0006 (nombre: Ferretería Horizonte SAS). Devuelve existencia, fecha(s) de constitución con su origen, representante legal (con su identificador), estado y categoría de negocio si el registro la informa. Responde en JSON con `contenido` y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:27:41.416782+00:00",
+  "extra": {
+   "frente": "registro_mercantil"
+  }
+ },
+ {
+  "n": 4,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las noticias",
+  "detalle": "Busca menciones en el corpus de noticias del comercio Ferretería Horizonte SAS, identificador CO-FH-0006. Responde en JSON con `contenido` (menciones encontradas, cada una con su detalle, o ninguna) y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:27:42.853427+00:00",
+  "extra": {
+   "frente": "noticias"
+  }
+ },
+ {
+  "n": 5,
+  "tipo": "resultado",
+  "titulo": "Respondió las noticias",
+  "detalle": "Fuente: noticias_ficticias. Fecha: 2026-10-17T02:27:45+00:00.",
+  "hora": "2026-10-17T02:27:51.728187+00:00",
+  "extra": {
+   "frente": "noticias",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 6,
+  "tipo": "resultado",
+  "titulo": "Respondió el registro mercantil",
+  "detalle": "Fuente: registro_mercantil_ficticio. Fecha: 2026-10-17T02:27:44+00:00.",
+  "hora": "2026-10-17T02:27:55.958854+00:00",
+  "extra": {
+   "frente": "registro_mercantil",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 7,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "El registro encontró un único comercio. Ahora lanzo las listas restrictivas y el riesgo de la categoría que informa el registro (\"ferreteria\").",
+  "hora": "2026-10-17T02:27:57.624926+00:00",
+  "extra": {}
+ },
+ {
+  "n": 8,
+  "tipo": "delegacion",
+  "titulo": "Delegó en las listas restrictivas",
+  "detalle": "Verifica contra las listas restrictivas al comercio con identificador CO-FH-0006 (tipo comercio) y a su representante legal con identificador PE-0006 (tipo persona). Responde en JSON con `contenido` (resultado para cada uno) y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:27:59.260760+00:00",
+  "extra": {
+   "frente": "listas_restrictivas"
+  }
+ },
+ {
+  "n": 9,
+  "tipo": "delegacion",
+  "titulo": "Delegó en el riesgo de la categoría",
+  "detalle": "Consulta el nivel de riesgo de la categoría de negocio \"ferreteria\" (comercio CO-FH-0006). Responde en JSON con `contenido` (nivel de riesgo) y `metadatos` (fuente y fecha de la consulta).",
+  "hora": "2026-10-17T02:28:00.220579+00:00",
+  "extra": {
+   "frente": "riesgo_categoria"
+  }
+ },
+ {
+  "n": 10,
+  "tipo": "resultado",
+  "titulo": "Respondió las listas restrictivas",
+  "detalle": "Fuente: listas_restrictivas_ficticias. Fecha: 2026-10-17T02:28:02+00:00.",
+  "hora": "2026-10-17T02:28:05.809142+00:00",
+  "extra": {
+   "frente": "listas_restrictivas",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 11,
+  "tipo": "resultado",
+  "titulo": "Respondió el riesgo de la categoría",
+  "detalle": "Fuente: catalogo_riesgo_ficticio. Fecha: 2026-10-17T02:28:03+00:00.",
+  "hora": "2026-10-17T02:28:06.170226+00:00",
+  "extra": {
+   "frente": "riesgo_categoria",
+   "estado": "completo"
+  }
+ },
+ {
+  "n": 12,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "Las dos fuentes del registro dan fechas de constitución distintas. Eso es una contradicción entre fuentes, así que corresponde escalar.",
+  "hora": "2026-10-17T02:28:08.130954+00:00",
+  "extra": {}
+ },
+ {
+  "n": 13,
+  "tipo": "informe",
+  "titulo": "Informe INF-0001 registrado",
+  "detalle": "Comercio CO-FH-0006. Recomendación: escalar a cumplimiento.",
+  "hora": "2026-10-17T02:28:13.729233+00:00",
+  "extra": {}
+ },
+ {
+  "n": 14,
+  "tipo": "escalamiento",
+  "titulo": "Escalado a cumplimiento (ESC-0001)",
+  "detalle": "Comercio CO-FH-0006. Causa: Contradicción entre fuentes del registro en la fecha de constitución: registro_mercantil_ficticio indica 2016-03-14 y camara_comercio_alterna_ficticia indica 2017-03-14. No hay coincidencias en listas, no hay menciones en noticias y el riesgo de la categoría es bajo.",
+  "hora": "2026-10-17T02:28:20.401478+00:00",
+  "extra": {}
+ },
+ {
+  "n": 15,
+  "tipo": "coordinador",
+  "titulo": "Coordinador",
+  "detalle": "# Due diligence: Ferretería Horizonte SAS (CO-FH-0006)\n\n**Recomendación: `escalar_a_cumplimiento`.** Las dos fuentes del registro dan fechas de constitución distintas. Todo lo demás salió limpio. El caso ya está escalado (ESC-0001) y el informe registrado (INF-0001).\n\nLos cuatro frentes se consultaron con éxito y el informe está completo.\n\n## Registro mercantil\nFuente: `registro_mercantil_ficticio`, consultado el 2026-10-17.\n- **Comercio:** existe y está activo. Hay una sola coincidencia, con NIT FICT-1006.\n- **Representante legal:** Ana Inventada Mora (PE-0006, documento FICT-0006).\n- **Categoría:** \"ferreteria\".\n- **Volumen mensual:** el registro indica 22.000.000.\n- **Fecha de constitución:** hay un conflicto que no se puede resolver con las fuentes. No doy ninguna fecha por correcta:\n  - 2016-03-14, según `registro_mercantil_ficticio`\n  - 2017-03-14, según `camara_comercio_alterna_ficticia`\n\n## Listas restrictivas\nFuente: `listas_restrictivas_ficticias`, consultado el 2026-10-17.\n- Comercio CO-FH-0006: sin coincidencias.\n- Representante legal PE-0006: sin coincidencias.\n\n## Noticias\nFuente: `noticias_ficticias`, consultado el 2026-10-17.\n- No hay menciones del comercio en el corpus.\n\n## Riesgo de categoría\nFuente: `catalogo_riesgo_ficticio`, consultado el 2026-10-17.\n- La categoría \"ferreteria\" es de riesgo **bajo**.\n- Usé la categoría que trae el registro porque no me diste una.\n\n## Datos aportados por el analista\n- **Categoría declarada:** no la indicaste.\n- **Volumen estimado:** no lo indicaste.\n\n## Por qué se escala\nEl comercio no tiene coincidencias en listas, no aparece en noticias y su riesgo es bajo. Lo único que impide habilitarlo es la contradicción en la fecha de constitución entre las dos fuentes del registro.\n\nLe recomendé a cumplimiento pedir al comercio su certificado de existencia y representación legal vigente y compararlo con ambas fuentes. Si coincide con una de ellas y no aparece otra inconsistencia, se puede habilitar.",
+  "hora": "2026-10-17T02:28:29.051515+00:00",
+  "extra": {}
+ },
+ {
+  "n": 16,
+  "tipo": "fin",
+  "titulo": "El coordinador terminó el turno",
+  "detalle": "Motivo: el coordinador dio su respuesta.",
+  "hora": "2026-10-17T02:28:29.123909+00:00",
+  "extra": {}
+ }
+]

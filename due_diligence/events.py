@@ -91,7 +91,47 @@ class RunFinished:
     timestamp: str = field(default_factory=_now)
 
 
-DomainEvent = SubagentStarted | SubagentFinished | CoordinatorText | RunFinished
+@dataclass(frozen=True)
+class CallBlocked:
+    """Una llamada que un hook de reglas o de aislamiento rechazó (ticket #7, para el chat)."""
+
+    agente: str
+    herramienta: str
+    regla: str
+    motivo: str
+    timestamp: str = field(default_factory=_now)
+
+
+@dataclass(frozen=True)
+class ReportRegistered:
+    """El servidor confirmó el registro de un informe (`ok: true`)."""
+
+    informe_id: str
+    comercio_id: str
+    recomendacion: str
+    timestamp: str = field(default_factory=_now)
+    sin_cubrir: tuple[str, ...] = ()  # frentes que el informe declara sin cubrir
+
+
+@dataclass(frozen=True)
+class Escalated:
+    """El servidor confirmó un escalamiento a cumplimiento (`ok: true`)."""
+
+    escalamiento_id: str
+    comercio_id: str
+    causa: str
+    timestamp: str = field(default_factory=_now)
+
+
+DomainEvent = (
+    SubagentStarted
+    | SubagentFinished
+    | CoordinatorText
+    | RunFinished
+    | CallBlocked
+    | ReportRegistered
+    | Escalated
+)
 
 _FENCED_ANYWHERE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 _DELEGATION_TOOLS = ("Agent", "Task")

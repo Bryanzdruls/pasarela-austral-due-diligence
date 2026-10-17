@@ -9,8 +9,11 @@ from claude_agent_sdk import ClaudeSDKClient
 
 from due_diligence.coordinator import DueDiligenceSession
 from due_diligence.events import (
+    CallBlocked,
     CoordinatorText,
     DomainEvent,
+    Escalated,
+    ReportRegistered,
     RunFinished,
     SubagentFinished,
     SubagentStarted,
@@ -32,6 +35,21 @@ def render_event(event: DomainEvent) -> str:
         return (
             f"{stamp} Fin del turno | subtype={event.subtype} "
             f"stop_reason={event.stop_reason} terminal_reason={event.terminal_reason}"
+        )
+    if isinstance(event, CallBlocked):
+        return (
+            f"{stamp} X Llamada bloqueada | agente: {event.agente} | regla: {event.regla} | "
+            f"{event.motivo}"
+        )
+    if isinstance(event, ReportRegistered):
+        return (
+            f"{stamp} + Informe {event.informe_id} registrado | {event.comercio_id} | "
+            f"recomendación: {event.recomendacion}"
+        )
+    if isinstance(event, Escalated):
+        return (
+            f"{stamp} ! Escalamiento {event.escalamiento_id} | {event.comercio_id} | "
+            f"causa: {event.causa}"
         )
     return f"{stamp} {event!r}"
 
