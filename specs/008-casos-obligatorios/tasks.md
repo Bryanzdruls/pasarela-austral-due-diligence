@@ -56,10 +56,10 @@ description: "Tareas de los casos de prueba obligatorios automatizados"
 
 ## Phase 6: Verificación y cierre
 
-- [ ] T017 Ejecutar con el modelo real `scripts/run_casos.py` (los siete casos, una corrida) y registrar en `specs/008-casos-obligatorios/verification.md` el resultado de cada caso, el motivo de los que fallen y cómo se repitieron; guardar la salida y los registros como evidencia
-- [ ] T018 [P] Actualizar `docs/TRAZABILIDAD.md` (C1 a C7 con la evidencia: la prueba sin modelo y la ejecución real; recontar el resumen) y `due_diligence/CLAUDE.md` (cómo ejecutar los casos), con `python scripts/verify_ecosystem.py` en verde
-- [ ] T019 Ejecutar `python -m pytest -q`, `ruff check .`, `ruff format --check .` y `python scripts/verify_ecosystem.py`; marcar las tareas; escribir el modelo de amenaza, la nota de revisión, los límites declarados y el recuento final en `verification.md`
-- [ ] T020 Una revisión de código independiente (`/abrir-pr 8`, `code-reviewer` y `compliance-reviewer`) con el modelo de amenaza escrito y pidiendo una entrada reproducible por hallazgo; corregir solo lo bloqueante o importante con entrada reproducible y registrar lo demás; abrir el PR con `Closes #8` tras confirmación de la persona
+- [x] T01&Ejecutar con el modelo real `scripts/run_casos.py` (los siete casos, una corrida) y registrar en `specs/008-casos-obligatorios/verification.md` el resultado de cada caso, el motivo de los que fallen y cómo se repitieron; guardar la salida y los registros como evidencia
+- [x] T01&[P] Actualizar `docs/TRAZABILIDAD.md` (C1 a C7 con la evidencia: la prueba sin modelo y la ejecución real; recontar el resumen) y `due_diligence/CLAUDE.md` (cómo ejecutar los casos), con `python scripts/verify_ecosystem.py` en verde
+- [x] T01&Ejecutar `python -m pytest -q`, `ruff check .`, `ruff format --check .` y `python scripts/verify_ecosystem.py`; marcar las tareas; escribir el modelo de amenaza, la nota de revisión, los límites declarados y el recuento final en `verification.md`
+- [x] T020 Una revisión de código independiente (`/abrir-pr 8`, `code-reviewer` y `compliance-reviewer`) con el modelo de amenaza escrito y pidiendo una entrada reproducible por hallazgo; corregir solo lo bloqueante o importante con entrada reproducible y registrar lo demás; abrir el PR con `Closes #8` tras confirmación de la persona
 
 ## Dependencies & Execution Order
 

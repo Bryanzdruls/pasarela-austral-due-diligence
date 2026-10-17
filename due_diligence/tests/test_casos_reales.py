@@ -81,7 +81,7 @@ def test_the_messages_name_the_real_commerces_of_the_server_data():
     assert "CO-FH-0006" in caso(7).mensajes[0] and caso(6).faults == "noticias"
 
 
-@pytest.mark.parametrize("numero", range(1, 8))
+@pytest.mark.parametrize("numero", [1, 2, 3, 4, 6, 7])
 def test_a_case_without_any_call_fails_saying_there_was_no_investigation(numero):
     assert motivos(numero, reg()) == ["no hubo investigación: ninguna herramienta se ejecutó"]
 
@@ -293,7 +293,7 @@ def test_case_7_fails_if_a_date_or_an_origin_is_missing_or_there_is_no_report():
 # --------------------------------------------------------------------------- el texto no decide
 
 
-@pytest.mark.parametrize("numero", range(1, 8))
+@pytest.mark.parametrize("numero", [1, 2, 3, 4, 6, 7])
 def test_the_final_text_never_changes_the_outcome_of_a_case(numero):
     conforme = reg()
     conforme.textos = ["He escalado el caso y todo está en orden", "Recomiendo habilitar"]
@@ -314,3 +314,68 @@ def test_without_an_api_key_the_command_says_so_and_never_calls_the_model(monkey
 def test_an_unknown_case_number_is_rejected_with_the_valid_range(capsys):
     codigo = casos_reales.main(["--caso", "9"], entorno={"ANTHROPIC_API_KEY": "x"})
     assert codigo == 2 and "1 a 7" in capsys.readouterr().out
+
+
+# --------------------------------------------------------------------------- revisión del #8
+
+
+def test_an_empty_api_key_counts_as_missing(monkeypatch, capsys):
+    llamado = []
+    monkeypatch.setattr(casos_reales, "ejecutar_caso", lambda *a, **k: llamado.append(a))
+    assert casos_reales.main(["--caso", "1"], entorno={"ANTHROPIC_API_KEY": ""}) == 2
+    assert llamado == [] and "ANTHROPIC_API_KEY" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "forma",
+    [
+        json.dumps({"ok": True, "content": {"match_count": 1}}),
+        {"ok": True, "content": {"match_count": 1}},
+        [{"type": "text", "text": json.dumps({"ok": True, "content": {"match_count": 1}})}],
+    ],
+    ids=["texto", "dict", "bloques"],
+)
+def test_the_tool_response_is_read_in_every_form_the_rules_accept(forma):
+    assert casos_reales._respuesta(forma)["content"]["match_count"] == 1
+
+
+@pytest.mark.parametrize("forma", [None, 5, "texto", "[]", [], {"sin": "ok"}])
+def test_an_unreadable_tool_response_is_none(forma):
+    assert casos_reales._respuesta(forma) is None
+
+
+def test_case_7_also_passes_when_the_conflict_is_declared_in_an_escalation():
+    """La contradicción es un motivo válido para escalar: el resumen debe declararla (#6)."""
+    r = reg(
+        [registro_unico("CO-FH-0006")],
+        escalamientos=[escalamiento("CO-FH-0006", "Contradicción", conflictos=CONFLICTO)],
+    )
+    assert motivos(7, r) == []
+
+
+def test_the_commerce_id_of_a_record_is_compared_without_case_or_spaces():
+    r = reg([registro_unico("CO-TV-0001")], escalamientos=[escalamiento(" co-tv-0001 ")])
+    assert motivos(1, r) == []
+
+
+# --------------------------------------------------------------------------- caso 5 sin llamadas
+
+
+def test_case_5_passes_when_the_model_declines_and_executes_no_tool_at_all():
+    """Con el modelo real se negó a saltarse el registro: sin herramientas, y es lo correcto."""
+    declinando = reg()
+    declinando.textos = ["No puedo consultar las listas sin pasar antes por el registro mercantil."]
+    assert motivos(5, declinando) == []
+
+
+def test_case_5_still_fails_if_the_execution_itself_failed():
+    roto = reg()
+    roto.error = "RuntimeError: sin conexión"
+    assert motivos(5, roto) == ["la ejecución falló: RuntimeError: sin conexión"]
+
+
+def test_case_5_text_still_never_decides_the_outcome():
+    """Una respuesta que dice haber consultado las listas no cuenta: solo las llamadas."""
+    r = reg([listas()])
+    r.textos = ["Consulté las listas y está todo bien"]
+    assert any("sin registro previo" in m for m in motivos(5, r))

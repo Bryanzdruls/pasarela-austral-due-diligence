@@ -128,21 +128,21 @@ Comportamientos obligatorios:
 | B7 | Errores estructurados y cobertura parcial; el coordinador decide reintentar o declarar | Hecho | Error estructurado del subagente (`FrontStatus.FALLIDO`), tope de un reintento y ninguno para lo no reintentable impuesto por hook (`check_fuente`), y declaración de la cobertura en el informe (en `main`, PR #18). El coordinador decide reintentar por su prompt; el hook solo pone el tope |
 | B8 | Procedencia y conflictos en el informe, con su origen | Hecho | Ver R4: hallazgos con `fuente` y `fecha` exigidos por hook, y `conflictos` completos (en `main`, PR #19) |
 | B9 | Varios comercios parecidos: el coordinador pide el identificador | Hecho | Con el modelo real el coordinador mostró los candidatos y pidió el identificador, y siguió solo con el elegido; un hook rechaza el informe o el escalamiento a nombre de un candidato sin identificar (`ambiguedad`, probado sin el modelo, no ejercido con él) (en `main`, PR #19) |
-| B10 | Escalar con criterio (listas y alto riesgo; no escalar bajo riesgo sin hallazgos) | En rama | `CaseBook.escalation_grounds` (coincidencia en listas, alto riesgo, contradicción, menciones en noticias) y `PreToolUse` rechaza escalar, o recomendar escalar, un comercio sin motivo (`escalamiento`); una cobertura incompleta sola no es motivo (lectura literal del enunciado, decisión D2); `due_diligence/rules.py` (rama `006`), 85 mutaciones detectadas. Con el modelo real: C1 y C3 se escalaron, C2 se habilitó y, con una fuente caída, `CO-LB-0002` recibió `no_habilitar` y no se escaló; una orden de escalar `CO-LB-0002` fue rechazada una vez (`specs/006-*/verification.md`) |
-| B11 | Handoff útil al oficial de cumplimiento | En rama | `escalar_a_cumplimiento` acepta `conflictos`; el hook exige el hallazgo, con fuente y fecha, del frente que motiva (`handoff_hallazgos`), una causa que nombra cada motivo (`handoff_causa`, por palabras clave) y las contradicciones declaradas (rama `006`). Con el modelo real los resúmenes de C1 y C3 salieron completos; el rechazo de una causa vaga no se ejerció con el modelo (rechazó escribirla) |
+| B10 | Escalar con criterio (listas y alto riesgo; no escalar bajo riesgo sin hallazgos) | Hecho | `CaseBook.escalation_grounds` (coincidencia en listas, alto riesgo, contradicción, menciones en noticias) y `PreToolUse` rechaza escalar, o recomendar escalar, un comercio sin motivo (`escalamiento`); una cobertura incompleta sola no es motivo (lectura literal del enunciado, decisión D2); `due_diligence/rules.py` (en `main`, PR #20), 85 mutaciones detectadas. Con el modelo real: C1 y C3 se escalaron, C2 se habilitó y, con una fuente caída, `CO-LB-0002` recibió `no_habilitar` y no se escaló; una orden de escalar `CO-LB-0002` fue rechazada una vez (`specs/006-*/verification.md`) |
+| B11 | Handoff útil al oficial de cumplimiento | Hecho | `escalar_a_cumplimiento` acepta `conflictos`; el hook exige el hallazgo, con fuente y fecha, del frente que motiva (`handoff_hallazgos`), una causa que nombra cada motivo (`handoff_causa`, por palabras clave) y las contradicciones declaradas (en `main`, PR #20). Con el modelo real los resúmenes de C1 y C3 salieron completos; el rechazo de una causa vaga no se ejerció con el modelo (rechazó escribirla) |
 | B12 | Interfaz de chat que muestre mensajes, delegaciones, informe y escalamiento | **Falta** | Ticket #7. La consola interactiva de la rama `002` no cumple este requisito |
 
 Casos de prueba que el repositorio debe incluir y pasar:
 
 | ID | Caso | Estado | Evidencia / pendiente |
 |---|---|---|---|
-| C1 | Mensaje del escenario: comercio de alto riesgo que va a un oficial | Parcial | Verificado con el modelo real (`CO-TV-0001`, `specs/006-*/verification.md`, rama `006`); automatización de extremo a extremo: ticket #8 |
-| C2 | Comercio de bajo riesgo sin hallazgos, con habilitación | Parcial | Verificado con el modelo real (`CO-LB-0002`, rama `006`); automatización de extremo a extremo: ticket #8 |
-| C3 | Representante legal con coincidencia en listas | Parcial | Verificado con el modelo real (`CO-DA-0003`, `specs/006-*/verification.md`, rama `006`); automatización de extremo a extremo: ticket #8 |
-| C4 | Dos comercios con nombres casi idénticos | Parcial | Verificado con el modelo real (`CO-CA-0004`/`0005`, `specs/005-*/verification.md`, rama `005`); automatización de extremo a extremo: ticket #8 |
-| C5 | Consulta a listas sin identificación unívoca, bloqueada | Hecho | Prueba del caso del enunciado en `due_diligence/tests/test_rule_hooks.py` (listas sin identificación unívoca, denegada con la regla 1) y bloqueo real con el modelo (`specs/003-*/verification-forzado.txt`). La automatización de extremo a extremo con el modelo: ticket #8 |
-| C6 | Falla del servicio de noticias con cobertura incompleta declarada | Parcial | Verificado con el modelo real con `PASARELA_FAULTS=noticias` (`specs/004-*/verification.md`, rama `004`); la automatización de extremo a extremo con el modelo: ticket #8 |
-| C7 | Dos fuentes con fechas de constitución distintas | Parcial | Verificado con el modelo real (`CO-FH-0006`, `specs/005-*/verification.md`, rama `005`); automatización de extremo a extremo: ticket #8 |
+| C1 | Mensaje del escenario: comercio de alto riesgo que va a un oficial | En rama | Prueba de extremo a extremo (`test_case_1_*`, `due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real (`python scripts/run_casos.py`, `specs/008-*/verification.md`): PASA (rama `008`) |
+| C2 | Comercio de bajo riesgo sin hallazgos, con habilitación | En rama | `test_case_2_*` (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA (rama `008`) |
+| C3 | Representante legal con coincidencia en listas | En rama | `test_case_3_*` (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA (rama `008`) |
+| C4 | Dos comercios con nombres casi idénticos | En rama | `test_case_4_*` (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA (rama `008`) |
+| C5 | Consulta a listas sin identificación unívoca, bloqueada | Hecho | Prueba del caso del enunciado en `due_diligence/tests/test_rule_hooks.py` (listas sin identificación unívoca, denegada con la regla 1) y bloqueo real con el modelo (`specs/003-*/verification-forzado.txt`). La automatización de extremo a extremo con el modelo: ticket #8 Automatizado de extremo a extremo en `test_case_5_*` (tres formas, `due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos); con el modelo real el caso PASA porque se negó a saltarse el registro, sin ejercer el hook (rama `008`) |
+| C6 | Falla del servicio de noticias con cobertura incompleta declarada | En rama | `test_case_6_*` con falla reintentable y no reintentable (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA (rama `008`) |
+| C7 | Dos fuentes con fechas de constitución distintas | En rama | `test_case_7_*` (`due_diligence/tests/test_casos_obligatorios.py`; sin modelo, en menos de dos segundos) y con el modelo real: PASA por la vía del escalamiento (rama `008`) |
 
 ## 7. Entregables y sustentación
 
@@ -185,12 +185,12 @@ Requisitos trazados: **84** (reglas generales, reglas de negocio, Spec Kit, GitH
 
 | Estado | Cantidad |
 |---|---|
-| Hecho | 60 |
+| Hecho | 62 |
 | Hecho (en main o en rama) | 3 |
-| En rama | 2 |
-| Parcial | 9 |
+| En rama | 6 |
+| Parcial | 3 |
 | Falta | 7 |
 | Otro: En curso | 2 |
 | Otro: Pendiente | 1 |
 
-Última actualización: 2026-10-17, al preparar el PR del ticket #6 (pendiente de fusión). Se actualiza al cerrar cada ticket.
+Última actualización: 2026-10-17, al preparar el PR del ticket #8 (pendiente de fusión). Se actualiza al cerrar cada ticket.

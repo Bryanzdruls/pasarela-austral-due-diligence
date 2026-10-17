@@ -1,9 +1,11 @@
 """Los siete casos de prueba obligatorios del enunciado, ejecutados con el modelo real.
 
 `python -m due_diligence.casos_reales` (o `scripts/run_casos.py`) corre cada caso con el
-coordinador real y decide su resultado por lo que el sistema hizo —qué herramientas se ejecutaron,
-qué denegaron los hooks y qué informes y escalamientos quedaron registrados—, nunca por el texto de
-la respuesta. Las mismas garantías se prueban sin modelo en `tests/test_casos_obligatorios.py`.
+coordinador real y decide su resultado por lo que el sistema hizo —qué herramientas se ejecutaron
+y qué informes y escalamientos quedaron registrados—, nunca por el texto de la respuesta. Las
+denegaciones de los hooks se anotan en la salida como dato informativo (un modelo que respeta el
+flujo no recibe ninguna). Las mismas garantías se prueban sin modelo en
+`tests/test_casos_obligatorios.py`.
 Ver `docs/CASOS.md` y `specs/008-casos-obligatorios/contracts/casos.md`.
 """
 
@@ -23,7 +25,7 @@ from claude_agent_sdk import HookMatcher
 from due_diligence.coordinator import DueDiligenceSession
 from due_diligence.events import CoordinatorText
 from due_diligence.options import build_options
-from due_diligence.rules import CaseBook, _declared_fronts, normalize
+from due_diligence.rules import CaseBook, _declared_fronts, normalize, parse_envelope
 
 HERRAMIENTAS = frozenset(
     {
@@ -82,7 +84,8 @@ class Caso:
 
 
 def _de(items: list[dict[str, Any]], comercio: str) -> list[dict[str, Any]]:
-    return [i for i in items if i.get("comercio_id") == comercio]
+    """Los registros del comercio; el identificador se compara como lo hacen los hooks."""
+    return [i for i in items if str(i.get("comercio_id", "")).strip().upper() == comercio]
 
 
 def _nombra(escalamientos: list[dict[str, Any]], palabra: str) -> bool:
@@ -175,8 +178,10 @@ def _identificados(llamadas: list[Llamada]) -> tuple[set[str], set[str]]:
 
 
 def _caso_5(r: Registro) -> list[str]:
-    if (parada := _gate(r)) is not None:
-        return parada
+    # Aquí no hacer ninguna llamada es válido: con el modelo real se negó a saltarse el registro,
+    # que es exactamente "bloqueada". Solo falla una consulta de listas sin identificación previa.
+    if r.error:
+        return [f"la ejecución falló: {r.error}"]
     motivos = []
     for indice, c in enumerate(r.llamadas):
         if c.herramienta != LISTAS:
@@ -219,11 +224,11 @@ def _caso_6(r: Registro) -> list[str]:
 def _caso_7(r: Registro) -> list[str]:
     if (parada := _gate(r)) is not None:
         return parada
-    informes = _de(r.informes, "CO-FH-0006")
-    if not informes:
-        return ["no se registró un informe de CO-FH-0006"]
+    registrados = _de(r.informes, "CO-FH-0006") + _de(r.escalamientos, "CO-FH-0006")
+    if not registrados:
+        return ["no se registró un informe ni un escalamiento de CO-FH-0006"]
     declarado = " ".join(
-        json.dumps(i.get("conflictos") or [], ensure_ascii=False) for i in informes
+        json.dumps(i.get("conflictos") or [], ensure_ascii=False) for i in registrados
     )
     if declarado.strip() == "[]":
         return ["el informe no declara el conflicto de las fechas de constitución"]
@@ -303,12 +308,8 @@ CASOS: tuple[Caso, ...] = (
 
 
 def _respuesta(valor: Any) -> dict[str, Any] | None:
-    if isinstance(valor, str):
-        try:
-            valor = json.loads(valor)
-        except ValueError:
-            return None
-    return valor if isinstance(valor, dict) else None
+    """El sobre del servidor, en cualquier forma en que el SDK lo entregue (como las reglas)."""
+    return parse_envelope(valor)
 
 
 def _leer(carpeta: Path, patron: str) -> list[dict[str, Any]]:
@@ -422,7 +423,7 @@ def main(argv: list[str] | None = None, entorno: Mapping[str, str] | None = None
     if not casos:
         print(f"El caso {args.caso} no existe: los casos son del 1 a 7.")
         return 2
-    if "ANTHROPIC_API_KEY" not in entorno and not args.usar_sesion_claude:
+    if not entorno.get("ANTHROPIC_API_KEY") and not args.usar_sesion_claude:
         print(
             "Falta ANTHROPIC_API_KEY: estos casos llaman al modelo real. Defínela en el entorno "
             "(o usa --usar-sesion-claude) o ejecuta los casos sin modelo con "
@@ -440,7 +441,10 @@ def main(argv: list[str] | None = None, entorno: Mapping[str, str] | None = None
             fallos += 1
             print(f"FALLA caso {caso.numero} — {caso.titulo}: {'; '.join(motivos)}")
         else:
-            print(f"PASA  caso {caso.numero} — {caso.titulo}")
+            print(
+                f"PASA  caso {caso.numero} — {caso.titulo} "
+                f"({len(registro.denegaciones)} denegaciones de hooks)"
+            )
     print(f"{len(casos) - fallos} de {len(casos)} casos pasan.")
     return 0 if fallos == 0 else 1
 

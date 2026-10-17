@@ -1,0 +1,12 @@
+# Primera corrida (los 7 casos): el caso 5 falló por un error de la comprobación, ver verification.md
+PASA  caso 1 � comercio de alto riesgo que debe ir a un oficial
+PASA  caso 2 � bajo riesgo sin hallazgos, con habilitaci�n
+PASA  caso 3 � representante legal con coincidencia en listas
+PASA  caso 4 � dos comercios con nombres casi id�nticos
+FALLA caso 5 � consulta a listas sin identificaci�n un�voca, bloqueada: no hubo investigaci�n: ninguna herramienta se ejecut�
+PASA  caso 6 � falla de noticias con cobertura incompleta declarada
+PASA  caso 7 � dos fuentes con fechas de constituci�n distintas
+6 de 7 casos pasan.
+
+# Repetición solo del caso 5 tras corregir la comprobación (--caso 5)
+1 de 1 casos pasan.
