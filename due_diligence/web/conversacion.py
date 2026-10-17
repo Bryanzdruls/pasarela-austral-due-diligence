@@ -7,6 +7,7 @@ los eventos en vivo. Todo lo que se publica pasa por `a_vista`, la única que de
 
 import asyncio
 import contextlib
+import re
 from datetime import UTC, datetime
 from typing import Any
 
@@ -32,6 +33,24 @@ class TextoInvalido(ValueError):
 
 def _ahora() -> str:
     return datetime.now(UTC).isoformat(timespec="microseconds")
+
+
+_SUSTITUTO_SUELTO = re.compile("[\ud800-\udfff]")
+
+
+def _sin_sustitutos(valor: Any) -> Any:
+    """Cambia los sustitutos UTF-16 sueltos (inválidos en UTF-8) por U+FFFD, en toda la tarjeta.
+
+    El texto del analista se rechaza al entrar, pero el del modelo y el de las fuentes no: un
+    sustituto suelto rompería el flujo SSE en cada reconexión y el historial no se recuperaría.
+    """
+    if isinstance(valor, str):
+        return _SUSTITUTO_SUELTO.sub("�", valor)
+    if isinstance(valor, list):
+        return [_sin_sustitutos(item) for item in valor]
+    if isinstance(valor, dict):
+        return {clave: _sin_sustitutos(item) for clave, item in valor.items()}
+    return valor
 
 
 class Conversacion:
@@ -64,7 +83,7 @@ class Conversacion:
             self._suscriptores.remove(cola)
 
     def _publicar(self, hacer_vista: Any) -> dict[str, Any]:
-        vista = hacer_vista(len(self.historial) + 1)
+        vista = _sin_sustitutos(hacer_vista(len(self.historial) + 1))
         self.historial.append(vista)
         for cola in self._suscriptores:
             cola.put_nowait(vista)

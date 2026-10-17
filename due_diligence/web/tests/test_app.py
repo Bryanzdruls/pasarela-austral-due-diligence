@@ -174,3 +174,20 @@ def test_a_lone_surrogate_is_rejected_and_the_stream_still_works(cliente):
     assert respuesta.status_code == 422
     cliente.post(f"/api/conversaciones/{cid}/mensajes", json={"texto": "hola"})
     assert eventos(cliente, cid)[-1]["tipo"] == "fin"
+
+
+def test_a_lone_surrogate_in_what_the_model_writes_does_not_kill_the_stream_or_the_replay():
+    """Lo que escribe el modelo (respuesta, encargo) no se valida como el mensaje del analista."""
+    turno = [
+        assistant(agent_call("tu_1", "registro_mercantil", "Busca \ud800 CO-XX-0001")),
+        tool_result("tu_1", REGISTRO),
+        assistant(text("antes \ud800 después")),
+        result(),
+    ]
+    with TestClient(crear_app(FakeClientFactory([turno]))) as c:
+        cid = crear(c)
+        c.post(f"/api/conversaciones/{cid}/mensajes", json={"texto": "hola"})
+        vistos = eventos(c, cid)
+        assert [e["tipo"] for e in vistos][-1] == "fin" and len(vistos) == 5
+        assert vistos[3]["detalle"].startswith("antes") and vistos[3]["detalle"].endswith("después")
+        assert eventos(c, cid) == vistos  # recargar reproduce todo el historial, sin bucle

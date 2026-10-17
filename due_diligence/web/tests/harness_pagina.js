@@ -12,10 +12,13 @@ const script = /<script>([\s\S]*?)<\/script>/.exec(html)[1];
 const ID_VIEJO = "a".repeat(32);
 const ID_NUEVO = "b".repeat(32);
 
+const creados = [];  // todo nodo que crea la página, para inspeccionar qué etiquetas usó
+
 class Nodo {
   constructor(etiqueta) {
     this.etiqueta = etiqueta; this.hijos = []; this.className = ""; this.textContent = "";
     this.value = ""; this.disabled = false; this.escuchas = {}; this.id = "";
+    creados.push(this);
   }
   appendChild(hijo) { this.hijos.push(hijo); registro.alta(hijo); return hijo; }
   remove() {}
@@ -92,6 +95,29 @@ async function main() {
     flujo.readyState = 2;
     if (flujo.onerror) flujo.onerror({});
     await vacio();
+  } else if (escenario === "bloques" || escenario === "bloques_rotos") {
+    // Llega una tarjeta del coordinador con bloques hostiles: debe dibujarse como texto.
+    const hostil = (v) => [{ t: "texto", v }];
+    const bloques = escenario === "bloques_rotos" ? [null] : [
+      { t: "titulo", nivel: 2, inline: hostil("<img src=x onerror=alert(1)>") },
+      { t: "parrafo", inline: [{ t: "negrita", v: "<script>alert(2)</script>" },
+                              { t: "codigo", v: "<iframe src=//x>" },
+                              { t: "texto", v: "[clic](javascript:alert(3))" }] },
+      { t: "lista", ordenada: false, items: [hostil("<b onclick=alert(4)>uno</b>")] },
+      { t: "tabla", cabecera: [hostil("<th>")], filas: [[hostil("<td onclick=alert(5)>")]] },
+      { t: "separador" },
+    ];
+    const evento = { n: 1, tipo: "coordinador", titulo: "Coordinador", hora: "2026-10-17T12:00:00+00:00",
+                     detalle: "texto plano de respaldo", extra: { bloques } };
+    mundo.flujos[0].onmessage({ data: JSON.stringify(evento) });
+    await vacio();
+    const detalle = creados.filter((n) => String(n.className).startsWith("detalle")).pop();
+    salida.claseDetalle = detalle ? detalle.className : null;
+    salida.etiquetas = [...new Set(creados.map((n) => n.etiqueta))];
+    const textos = [];
+    const recorrer = (n) => { if (n.textContent) textos.push(n.textContent); (n.hijos || []).forEach(recorrer); };
+    if (detalle) recorrer(detalle);
+    salida.textos = textos;
   } else if (escenario === "restaurada") {
     // Se descarga y el navegador la restaura desde su caché de navegación (atrás/adelante).
     for (const tipo of ["pagehide", "beforeunload"]) {

@@ -100,3 +100,32 @@ Cada informe y escalamiento mostrado corresponde a un sobre `ok: true` del servi
 **Verificación.** La prueba de la descarga falló antes del arreglo por esa razón ("la recarga borró la conversación guardada") y las otras pasaban. 4 mutaciones (volver a borrar al descargar, quitar `pagehide`/`beforeunload`, no reconectar al restaurar, que el 404 no empiece otra) detectadas. En el navegador integrado con el modelo real: se envió "recuerda la palabra clave ZORRO", se recargó, el `cid` y las 3 tarjetas se conservaron y a la pregunta "¿cuál era la palabra clave?" el coordinador respondió "La palabra clave era ZORRO".
 
 **No verificado:** Chrome, Firefox y Safari reales (solo el navegador integrado y el navegador simulado); la restauración por caché de navegación (`pageshow`) solo con el navegador simulado; reiniciar el servidor sigue perdiendo las conversaciones (límite declarado).
+
+## 8. Segunda ronda de `/abrir-pr 7` (T029)
+
+Ambos revisores son independientes de la sesión que escribió el código y solo leen. El de código recibió el modelo de amenaza (demostración local sin autenticación; se protege el tratamiento como texto, que la interfaz no cambie las reglas, que lo mostrado sea lo que decidió el sistema y que el historial se conserve) y la lista de lo que queda fuera.
+
+**code-reviewer: corregir antes del PR.** 0 bloqueantes, 2 importantes, 7 menores. No pudo ejecutar nada: los hallazgos salen de leer el código.
+
+| # | Hallazgo | Estado |
+|---|---|---|
+| 1 IMPORTANTE | Un sustituto UTF-16 suelto en lo que escribe el modelo (respuesta, encargo) hacía fallar la codificación del flujo SSE; al reconectar se repetía el historial y moría en la misma tarjeta, sin que la recarga lo arreglara. | **Defecto real, corregido.** La prueba (`test_a_lone_surrogate_in_what_the_model_writes_...`) falló con `UnicodeEncodeError` antes del arreglo. Cada tarjeta se sanea al publicarse (`_sin_sustitutos`, recursivo, cambia el sustituto por U+FFFD). 4 mutaciones detectadas. |
+| 2 IMPORTANTE | Las pruebas sobre el tratamiento como texto eran `grep` sobre el HTML: una mutación que cambiara `createTextNode` por un fragmento HTML seguía en verde. | **Tenía razón: pruebas vacías, código correcto.** El arnés de Node ahora entrega una tarjeta con bloques hostiles (`<img onerror>`, `<script>`, `<iframe>`, enlaces `javascript:`, atributos de evento en listas y celdas) y comprueba que solo se crean elementos de formato y que cada literal aparece íntegro como texto; otra prueba cubre el respaldo a texto plano. 5 mutaciones detectadas. |
+| 3 MENOR | Expresiones regulares cuadráticas en el analizador (`"**a " * 16000`, o un título con 100.000 espacios) bloquean el bucle de eventos durante segundos. | **Pendiente.** No medido. Un tope de longitud por línea lo resolvería. |
+| 4 MENOR | Los topes (100 filas, 100 viñetas, 200 bloques) recortan sin avisar. | **Pendiente.** Conviene un aviso "se omitieron N filas". |
+| 5 MENOR | Las listas numeradas se renumeran desde 1 si las separa una línea en blanco o una sublista; se pierde la sangría. | **Pendiente.** |
+| 6 MENOR | La tarjeta "Respondió …" toma fuente y fecha del JSON del subagente, no del servidor. | **Pendiente**, y coincide con la observación 2 del revisor de cumplimiento (abajo). |
+| 7 MENOR | `obtenido` de un error estructurado se muestra como `repr` de un dict de Python y sin tope. | **Pendiente.** |
+| 8 MENOR | Un POST justo después del evento `fin` puede dar un 409 espurio (la tarea termina un instante después). | **Pendiente.** No se pierde el texto. |
+| 9 MENOR | El `repr(evento)` del final de `a_vista` es inalcanzable y fugaría datos internos si se añadiera un evento. | **Pendiente.** Una frase fija lo evitaría. |
+
+Lo que el revisor comprobó y no halló problemas: los observadores capturan toda excepción y nunca alteran la decisión, no hay hueco entre el historial y la cola de un suscriptor, y dos POST concurrentes no abren dos turnos.
+
+**compliance-reviewer: cumple parcialmente, sin faltas graves.** Reglas 1 a 3 cumplidas: la interfaz no las altera (los observadores solo leen; hay pruebas de que un observador que lanza no cambia la denegación y de que la salida es idéntica con y sin observador). Reglas 4 y 5 parciales, solo en lo que la interfaz muestra (las imponen los tickets #5 y #4):
+1. El hallazgo del registro dice que hay fechas de constitución distintas pero no muestra las dos fechas ni su origen (entrada: el caso 7, `CO-FH-0006`).
+2. La fuente y la fecha de la tarjeta "Respondió …" vienen del JSON del subagente, no del servidor (igual que el menor 6 de arriba).
+3. El "Sin cubrir" del informe y la tarjeta "Falló" salen de lo que declara el modelo.
+Un hueco menor: no hay prueba de que un `on_decision` que falla deje intacta la denegación del guard de aislamiento (`options.py`); el código lo hace bien.
+
+**Recuento tras la ronda.** 168 pruebas en `due_diligence/web/tests`; la suite completa se cerró en 1.520 pruebas en verde, con `ruff` limpio y el ecosistema completo.
+

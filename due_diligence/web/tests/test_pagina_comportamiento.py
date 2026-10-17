@@ -58,6 +58,33 @@ def test_a_page_restored_from_the_back_forward_cache_reconnects_to_its_conversat
     assert salida["flujosAlFinal"] == [f"/api/conversaciones/{VIEJO}/eventos"] * 2
 
 
+PERMITIDAS = {"div", "span", "p", "strong", "code", "h2", "ul", "li", "table", "thead", "tbody"}
+PERMITIDAS |= {"tr", "th", "td", "hr", "x", "#texto"}  # x: nodos fijos; #texto: texto plano
+
+
+def test_hostile_blocks_are_drawn_as_text_with_only_formatting_elements():
+    """FR-010: el texto del modelo nunca crea un elemento activo, aunque lo parezca."""
+    salida = correr("bloques")
+    assert salida["claseDetalle"] == "detalle formato", "el dibujo falló y cayó al respaldo"
+    assert set(salida["etiquetas"]) <= PERMITIDAS, set(salida["etiquetas"]) - PERMITIDAS
+    assert {"strong", "code", "ul", "table", "hr", "h2"} <= set(salida["etiquetas"])
+    for literal in (
+        "<img src=x onerror=alert(1)>",
+        "<script>alert(2)</script>",
+        "<iframe src=//x>",
+        "[clic](javascript:alert(3))",
+        "<b onclick=alert(4)>uno</b>",
+        "<td onclick=alert(5)>",
+    ):
+        assert literal in salida["textos"], literal  # íntegro, como texto
+
+
+def test_a_block_that_cannot_be_drawn_falls_back_to_the_plain_text_of_the_card():
+    salida = correr("bloques_rotos")
+    assert salida["claseDetalle"] == "detalle"
+    assert salida["textos"] == ["texto plano de respaldo"]
+
+
 def test_a_conversation_the_server_no_longer_knows_gets_a_new_one():
     """El camino legítimo se conserva: tras un 404 (el servidor se reinició) se empieza otra."""
     salida = correr("desconocida")
