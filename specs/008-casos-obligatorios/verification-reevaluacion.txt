@@ -1,0 +1,9 @@
+# Reevaluación sin modelo: las comprobaciones FINALES (tras la revisión) aplicadas a las llamadas y
+# registros grabados de la corrida con el modelo real (caso 5: la repetición con --caso 5).
+PASA  caso 1
+PASA  caso 2
+PASA  caso 3
+PASA  caso 4
+PASA  caso 5
+PASA  caso 6
+PASA  caso 7

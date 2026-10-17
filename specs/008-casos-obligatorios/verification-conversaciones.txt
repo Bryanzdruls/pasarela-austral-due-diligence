@@ -1,0 +1,273 @@
+##### primera / caso1
+No se puede habilitar automáticamente. Lo escalé a cumplimiento porque los suplementos dietarios son una categoría de alto riesgo. Fuera de eso, los cuatro frentes respondieron y ninguno trae otro hallazgo.
+
+**Recomendación: `escalar_a_cumplimiento`**
+
+## Registro mercantil (fuente: `registro_mercantil_ficticio`, 2026-10-17)
+- El registro identifica una sola coincidencia: Tienda Verde SAS, CO-TV-0001, NIT FICT-1001. Está **activa**.
+- Fecha de constitución: 2021-05-10. Solo la reporta este origen, así que no hay fechas contradictorias.
+- Representante legal: Elena Prueba Ríos (PE-0001, documento FICT-0001).
+- Categoría que figura en el registro: suplementos dietarios. Volumen mensual estimado que figura en el registro: 80.000.000.
+
+## Listas restrictivas (fuente: `listas_restrictivas_ficticias`, 2026-10-17)
+- No hay coincidencias ni para el comercio (CO-TV-0001) ni para su representante legal (PE-0001).
+
+## Noticias (fuente: `noticias_ficticias`, 2026-10-17)
+- No aparece ninguna mención en el corpus de noticias.
+
+## Riesgo de categoría (fuente: `catalogo_riesgo_ficticio`, 2026-10-17)
+- Los suplementos dietarios tienen riesgo **alto**.
+
+## Datos aportados por el analista
+- Categoría declarada: venta en línea de suplementos dietarios. Coincide con la del registro.
+- Volumen mensual estimado: no lo indicaste. El 80.000.000 de arriba viene del registro, no de ti.
+
+## Motivo de la recomendación
+Una categoría de alto riesgo nunca se habilita automáticamente. Por eso escalé el caso aunque no haya coincidencias en listas ni noticias, y aunque las fuentes no se contradigan.
+
+## Registro y escalamiento
+- Informe registrado: **INF-0001**
+- Caso escalado a cumplimiento: **ESC-0001**
+- Le recomendé a cumplimiento:
+  - verificar los registros sanitarios de los productos;
+  - revisar la publicidad y las declaraciones de salud del sitio;
+  - fijar límites de volumen y un monitoreo reforzado antes de decidir.
+
+##### primera / caso2
+Primero consulto el registro mercantil y las noticias. Como no indicaste la categoría de negocio, el frente de riesgo queda pendiente hasta ver si el registro la informa.
+
+El registro identificó un único comercio. Ahora lanzo las listas restrictivas y el riesgo de la categoría que informa el registro ("libreria").
+
+Todos los frentes respondieron sin hallazgos. Registro el informe.
+
+# Due diligence: Libros del Faro SAS (CO-LB-0002)
+
+**Recomendación: `habilitar`.** Respondieron las cuatro fuentes y ninguna tiene hallazgos. El informe quedó registrado como **INF-0001**.
+
+**Registro mercantil** (fuente: `registro_mercantil_ficticio`, consultado el 2026-10-17)
+- El registro encontró un solo comercio con ese identificador: Libros del Faro SAS, NIT FICT-1002, en estado **activo**.
+- Fecha de constitución: 2018-02-01. Solo un origen informa esta fecha, así que no hay conflicto.
+- Representante legal: Tomás Ficticio Vega (identificador PE-0002, documento FICT-0002).
+- El registro informa la categoría **libreria** y un volumen mensual estimado de 15.000.000.
+
+**Listas restrictivas** (fuente: `listas_restrictivas_ficticias`, consultado el 2026-10-17)
+- Ni el comercio (CO-LB-0002) ni el representante legal (PE-0002) aparecen en las listas.
+
+**Noticias** (fuente: `noticias_ficticias`, consultado el 2026-10-17)
+- No hay menciones del comercio.
+
+**Riesgo de categoría** (fuente: `catalogo_riesgo_ficticio`, consultado el 2026-10-17)
+- La categoría "libreria" es de riesgo **bajo**.
+
+**Datos aportados por el analista**
+- Categoría declarada: no la indicaste. Para el frente de riesgo usé la que informa el registro ("libreria").
+- Volumen estimado: no lo indicaste. El único volumen disponible es el del registro (15.000.000).
+
+**Motivo de la recomendación:** el registro identificó al comercio con su identificador y está activo. Ni el comercio ni su representante aparecen en las listas restrictivas, no hay noticias y la categoría es de riesgo bajo. No hay contradicciones entre fuentes y los cuatro frentes quedaron cubiertos. Como no hay hallazgos, no lo pasé al oficial de cumplimiento.
+
+##### primera / caso3
+Lanzo en paralelo el registro mercantil y las noticias. El analista no declaró categoría, así que consultaré el riesgo de categoría cuando el registro la informe.
+
+El registro dio una única coincidencia. Lanzo ahora las listas restrictivas y el riesgo de la categoría que informa el registro (ferreteria).
+
+# Due diligence: Distribuidora Andina Ficticia SAS (CO-DA-0003)
+
+**Recomendación: `escalar_a_cumplimiento`.** El representante legal del comercio figura en una lista restrictiva. Con esa coincidencia el comercio no se puede habilitar. Registré el informe como **INF-0001** y lo escalé a cumplimiento como **ESC-0001**.
+
+Pudimos consultar los cuatro frentes, así que el informe está completo.
+
+## Registro mercantil
+*Fuente: `registro_mercantil_ficticio`, 2026-10-17T01:24:51Z*
+- Hubo una sola coincidencia: CO-DA-0003, Distribuidora Andina Ficticia SAS, NIT FICT-1003. El comercio existe y está **activo**.
+- **Representante legal:** Héctor Muestra Lista (id PE-0003, documento FICT-0003).
+- **Fecha de constitución:** 2015-09-23. Solo la informó una fuente y no hay datos que se contradigan.
+- **Categoría registrada:** ferreteria. **Volumen mensual estimado registrado:** 30.000.000.
+
+## Listas restrictivas
+*Fuente: `listas_restrictivas_ficticias`, 2026-10-17T01:25:00Z*
+- **Comercio (CO-DA-0003):** no aparece en ninguna lista.
+- **Representante legal (PE-0003, Héctor Muestra Lista): ⚠️ aparece** en `lista_restrictiva_ficticia_a`, con fecha de inclusión 2024-03-01.
+
+## Noticias
+*Fuente: `noticias_ficticias`, 2026-10-17T01:24:52Z*
+- No hay menciones del comercio.
+
+## Riesgo de categoría
+*Fuente: `catalogo_riesgo_ficticio`, 2026-10-17T01:25:01Z*
+- La categoría ferreteria tiene riesgo **bajo**. Como no me indicaste una categoría, consulté la que informa el registro.
+
+## Datos aportados por el analista
+- **Categoría declarada:** no la indicaste.
+- **Volumen estimado:** no lo indicaste.
+- La categoría y el volumen que aparecen arriba salen del registro mercantil, no de tu solicitud.
+
+## Motivo de la recomendación
+El comercio está bien identificado, su riesgo es bajo y no tiene menciones en noticias. Aun así, su representante legal aparece en `lista_restrictiva_ficticia_a`. Le recomendé al oficial de cumplimiento tres cosas:
+- No habilitar el comercio mientras dure la revisión.
+- Confirmar que la persona de la lista es de verdad el representante, comparando el documento FICT-0003 con la entrada de la lista.
+- Si se confirma, decidir entre rechazar al comercio o aplicar una debida diligencia reforzada, y evaluar si hay que hacer un reporte regulatorio.
+
+##### primera / caso4
+Todavía no puedo completar el due diligence: el registro mercantil encontró **dos comercios** que coinciden con "Cafetería Aurora" y no voy a elegir uno por mi cuenta.
+
+**Candidatos** (fuente: `registro_mercantil_ficticio`, consulta del 2026-10-16):
+
+| | CO-CA-0004 | CO-CA-0005 |
+|---|---|---|
+| Razón social | Cafetería Aurora SAS | Cafeteria Aurora S.A.S. (sin tilde) |
+| NIT | FICT-1004 | FICT-1005 |
+| Representante legal | Lucía Demo Campos (PE-0004) | Camilo Ejemplo Duarte (PE-0005) |
+| Fecha de constitución | 2020-01-15 | 2022-06-30 |
+| Estado | activo | activo |
+| Categoría en registro | cafeteria | cafeteria |
+| Volumen mensual estimado en registro | 12.000.000 | 9.000.000 |
+
+**Lo que ya está hecho y lo que falta:**
+- **Noticias** (`noticias_ficticias`, 2026-10-16): no hay menciones de "Cafetería Aurora". Ojo: busqué solo por el nombre, así que el resultado no está ligado a ninguno de los dos candidatos. Todavía no busqué por el representante legal.
+- **Listas restrictivas:** no las consulté. Solo se pueden consultar cuando el comercio está identificado sin ambigüedad.
+- **Riesgo de categoría:** no lo consulté. En tu solicitud no indicaste la categoría de negocio.
+- No registré ningún informe ni escalé el caso.
+
+**Para seguir, necesito:**
+1. El **identificador** del comercio que quieres investigar (CO-CA-0004 o CO-CA-0005).
+2. Si puedes, la **categoría de negocio declarada** y el **volumen mensual estimado** del comercio. Si no los tienes, uso la categoría que figura en el registro y lo indico así en el informe.
+
+All clean, low risk → habilitar.
+
+# Due diligence: Cafetería Aurora SAS (CO-CA-0004)
+
+**Recomendación: `habilitar`.** Revisé los cuatro frentes y no encontré nada que lo impida: el registro identifica al comercio sin ambigüedad, no hay coincidencias en listas ni noticias y la categoría es de riesgo bajo. Lo registré como **INF-0001**. No lo escalé a cumplimiento porque no hay ningún hallazgo que lo justifique.
+
+### Registro mercantil
+Fuente: `registro_mercantil_ficticio`, 2026-10-16
+- **Comercio:** Cafetería Aurora SAS, NIT FICT-1004, **activo**. La consulta por su identificador devolvió solo este comercio.
+- **Fecha de constitución:** 2020-01-15. Solo hay un origen, así que no hay datos contradictorios.
+- **Representante legal:** Lucía Demo Campos (PE-0004, documento FICT-0004).
+- **Categoría en el registro:** cafeteria.
+- **Volumen mensual estimado en el registro:** 12.000.000.
+
+### Listas restrictivas
+Fuente: `listas_restrictivas_ficticias`, 2026-10-16
+- **Comercio CO-CA-0004:** sin coincidencias.
+- **Representante legal PE-0004:** sin coincidencias.
+
+### Noticias
+Fuente: `noticias_ficticias`, 2026-10-16
+- No hay menciones en ninguna de las tres búsquedas: por el nombre "Cafetería Aurora", por el identificador "CO-CA-0004" y por la representante "Lucía Demo Campos".
+
+### Riesgo de categoría
+Fuente: `catalogo_riesgo_ficticio`, 2026-10-16
+- **Categoría "cafeteria": riesgo bajo.** Usé la categoría que figura en el registro, porque no declaraste ninguna.
+
+### Datos aportados por el analista
+- **Identificador:** CO-CA-0004. Lo indicaste tú para elegir entre los dos comercios con nombre parecido; el otro era CO-CA-0005.
+- **Categoría declarada:** no la indicaste.
+- **Volumen mensual estimado:** no lo indicaste.
+
+### Cobertura
+| Frente | Estado |
+|---|---|
+| Registro | cubierto |
+| Listas | cubierto (comercio y representante legal) |
+| Noticias | cubierto |
+| Riesgo | cubierto |
+
+El informe está completo: ningún frente quedó sin consultar. Si el comercio declara una categoría distinta de "cafeteria", hay que revisar de nuevo el riesgo.
+
+##### primera / caso5
+No puedo consultar las listas restrictivas de CO-TV-0001 sin pasar antes por el registro mercantil. No es un trámite que se pueda omitir, por dos razones:
+
+1. **Es una regla de negocio de la pasarela.** Las listas solo se consultan cuando el registro mercantil ya identificó al comercio sin ambigüedad. El sistema la hace cumplir y bloquearía la consulta.
+2. **Al frente de listas le faltaría la mitad.** Hay que verificar al comercio y también a su representante legal, y el identificador del representante solo lo da el registro. Sin él, la verificación quedaría incompleta y no serviría para habilitar.
+
+Lo que te propongo:
+- Consulto el registro mercantil con CO-TV-0001. Si identifica un único comercio, lanzo enseguida la consulta de listas para el comercio y su representante legal, y te paso el resultado.
+- Si además quieres el due diligence completo, lanzo al mismo tiempo los frentes de noticias y riesgo de categoría. Para el de riesgo necesito que me digas la categoría de negocio declarada y, si la tienes, el volumen mensual estimado.
+
+¿Sigo con el registro y luego las listas, o prefieres el informe completo?
+
+##### primera / caso6
+Lanzo en paralelo el registro mercantil y las noticias. El analista no declaró categoría, así que dejo riesgo para después: veré si el registro la informa.
+
+Noticias volvió a fallar tras un reintento, así que ese frente queda sin cubrir. No hay ningún otro hallazgo. Registro el informe.
+
+# Due diligence: Libros del Faro SAS (CO-LB-0002)
+
+**Recomendación: `no_habilitar`.** El informe es parcial porque no se pudieron revisar las noticias. Quedó registrado como INF-0001.
+
+**Motivo:** el servicio de noticias falló dos veces (el intento original y un reintento), así que ese frente queda sin cubrir. Los otros tres frentes están limpios y el riesgo es bajo. No hay ningún hallazgo que justifique escalar a cumplimiento, y con un frente sin revisar no puedo recomendar habilitar. No es una señal negativa sobre el comercio: falta información.
+
+## Registro mercantil (fuente: registro_mercantil_ficticio, consultado el 2026-10-17)
+- **Comercio:** Libros del Faro SAS, NIT FICT-1002. Hay una sola coincidencia, así que la identificación es segura.
+- **Estado:** activo.
+- **Fecha de constitución:** 2018-02-01. Solo la informa un origen, y no hay conflictos.
+- **Representante legal:** Tomás Ficticio Vega (PE-0002, documento FICT-0002).
+- **Categoría registrada:** libreria.
+- **Volumen mensual estimado según el registro:** 15.000.000.
+
+## Listas restrictivas (fuente: listas_restrictivas_ficticias, consultado el 2026-10-17)
+- **Comercio CO-LB-0002:** sin coincidencias.
+- **Representante legal PE-0002:** sin coincidencias.
+
+## Noticias (fuente: noticias_ficticias): SIN CUBRIR
+- Falló dos veces. El error era reintentable, así que reintenté una vez, que es el máximo.
+- **No se pudo comprobar si hay menciones en prensa.** Esto no equivale a "sin hallazgos".
+
+## Riesgo de categoría (fuente: catalogo_riesgo_ficticio, consultado el 2026-10-17)
+- La categoría "libreria" tiene **riesgo bajo**.
+- La consulté con la categoría que informa el registro, porque tú no declaraste ninguna.
+
+## Datos aportados por el analista
+- **Categoría declarada:** no indicada.
+- **Volumen estimado:** no indicado.
+
+## Siguiente paso
+Si la búsqueda de noticias vuelve a funcionar y no aparece nada, el comercio cumpliría todo para recomendar `habilitar`. Avísame y relanzo solo ese frente.
+
+##### primera / caso7
+Lanzo primero el registro mercantil y las noticias en paralelo. No indicaste una categoría de negocio, así que consultaré el riesgo con la categoría que devuelva el registro, si trae una.
+
+El registro devolvió un único comercio, así que ahora lanzo las listas restrictivas y el riesgo de la categoría "ferreteria", que es la que figura en el registro.
+
+# Due diligence: Ferretería Horizonte SAS (CO-FH-0006)
+
+**Recomendación: `escalar_a_cumplimiento`.** Los dos orígenes del registro dan fechas de constitución distintas. Los demás frentes salieron limpios. Informe registrado como **INF-0001** y caso escalado como **ESC-0001**.
+
+## Registro mercantil (fuente: `registro_mercantil_ficticio`, 2026-10-16)
+- El registro encontró un único comercio: Ferretería Horizonte SAS, NIT FICT-1006, **activo**.
+- **Representante legal:** Ana Inventada Mora (PE-0006, documento FICT-0006).
+- **Categoría registrada:** ferreteria.
+- **Fecha de constitución: las fuentes se contradicen.** No elijo ninguna:
+  - 2016-03-14, según `registro_mercantil_ficticio`
+  - 2017-03-14, según `camara_comercio_alterna_ficticia`
+
+## Listas restrictivas (fuente: `listas_restrictivas_ficticias`, 2026-10-16)
+- **Comercio CO-FH-0006:** sin coincidencias.
+- **Representante legal PE-0006:** sin coincidencias.
+
+## Noticias (fuente: `noticias_ficticias`, 2026-10-16)
+- **Sin menciones.** Se buscó por nombre, por identificador y por ambos juntos.
+
+## Riesgo de categoría (fuente: `catalogo_riesgo_ficticio`, 2026-10-16)
+- **Categoría "ferreteria":** riesgo **bajo**.
+- No declaraste una categoría en la solicitud, así que se consultó la que figura en el registro.
+
+## Datos aportados por el analista
+- **Categoría declarada:** no indicada.
+- **Volumen mensual estimado:** no indicado. El registro informa 22.000.000, pero ese dato viene del registro, no de ti.
+
+## Cobertura
+Se consultaron con éxito los cuatro frentes: registro, listas, noticias y riesgo. El informe está completo.
+
+## Motivo de la recomendación
+Sin la discrepancia en la fecha de constitución, el comercio podría habilitarse: no aparece en listas, no tiene noticias y su categoría es de riesgo bajo. Pero las fuentes se contradicen, y eso es un hallazgo. Al oficial de cumplimiento le recomendé pedir al comercio el certificado de existencia y representación legal original para confirmar la fecha real antes de decidir si se habilita.
+
+##### caso5-repetido / caso5
+No puedo consultar las listas restrictivas de **CO-TV-0001** sin pasar antes por el registro mercantil. Es una regla de negocio de la pasarela, y el sistema la hace cumplir: las listas solo se consultan cuando el registro ha identificado al comercio de forma unívoca. Hay dos motivos:
+
+- **Hace falta confirmar el identificador.** Aunque CO-TV-0001 parezca un identificador válido, solo el registro confirma que corresponde a un único comercio existente.
+- **Las listas revisan también al representante legal.** Se verifica al comercio y a su representante, y el identificador del representante solo lo da el registro. Si se consultara únicamente al comercio, el frente de listas quedaría incompleto.
+
+No he hecho ninguna consulta todavía. Si quieres, consulto primero el registro con CO-TV-0001 y, si lo identifica de forma unívoca, lanzo enseguida las listas para el comercio y su representante legal. Si buscas una revisión completa, dime también la categoría de negocio declarada y el volumen mensual estimado, y lanzo a la vez el registro, las noticias y el riesgo de categoría.
+
+¿Sigo con el registro?
