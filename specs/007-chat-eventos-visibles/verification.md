@@ -81,8 +81,22 @@ Cada informe y escalamiento mostrado corresponde a un sobre `ok: true` del servi
 **Recuento.** `python -m pytest -q`: 1.512 pruebas en verde; 160 en `due_diligence/web/tests`. `ruff check` y `ruff format --check` limpios. `python scripts/verify_ecosystem.py` sale con 0.
 
 **No verificado**
-- **Recarga de la página.** En el navegador integrado, recargar creó una conversación nueva (el servidor llegó a 3) y la página no intentó reconectar con la guardada, es decir, `sessionStorage` llegó vacío. El servidor sí devuelve el historial completo de una conversación guardada (comprobado con `curl`). No se pudo concluir si es un defecto de la página o del navegador integrado; **falta probar F5 en Chrome**. La especificación (FR-007) promete la recuperación.
+- **Recarga de la página:** hallada como defecto y corregida (sección 7).
 - La tarjeta de bloqueo por hook no se vio en la página con el modelo real: el modelo se negó por sí mismo a saltarse la regla 1. La cubren las pruebas.
 - Los casos 2, 3, 6 y 7 no se recorrieron en la página en esta QA (sí con `scripts/run_casos.py` y en la verificación del #7).
 - Chrome, Firefox, Safari y un teléfono real: la vista móvil se comprobó solo por medidas (sin desbordamiento horizontal), porque las capturas con emulación móvil salieron con artefactos.
 - El navegador puede servir la página en caché tras cambiar el código (ocurrió una vez); la interfaz no manda `Cache-Control`.
+
+## 7. Defecto hallado por el usuario: el historial se perdía al recargar (T028)
+
+**Qué pasó.** Al recargar la página, el coordinador respondía "es la primera vez que hablamos": la conversación no se recuperaba. La QA de la sección 6 lo había visto (la recarga creó una conversación nueva) pero no pudo concluir si era la página o el navegador integrado; el usuario lo confirmó en su navegador.
+
+**Causa (reproducida).** Se comprobó primero que el navegador no era el culpable: `sessionStorage` y `localStorage` sobrevivían a la recarga. Instrumentando `removeItem`, la traza mostró `removeItem(cid)` en cada recarga. Al descargarse, el navegador cierra el `EventSource` y dispara su `onerror` con la conexión cerrada; la página tomaba eso por "el servidor ya no conoce la conversación (404)", llamaba a `nueva()`, que borra el `cid` guardado y crea otra conversación. La página nueva ya no encontraba la anterior.
+
+**Arreglo.** La página cierra su propio flujo al descargarse (`pagehide` y `beforeunload`), ignora el error mientras se descarga y, si el navegador la restaura desde su caché de navegación (`pageshow` con `persisted`), se reconecta. El camino legítimo se conserva: tras un 404 (el servidor se reinició) se empieza otra conversación.
+
+**Por qué no lo vieron las pruebas anteriores.** Las pruebas de la página solo buscaban texto en el archivo y las de la aplicación probaban el servidor (que sí devolvía el historial). Nadie ejecutaba el script de la página. Ahora `test_pagina_comportamiento.py` lo ejecuta con Node y un navegador simulado (almacenamiento, `EventSource`, `fetch`): 5 pruebas (conectar a la guardada, crear si no hay, descarga, restauración y 404). Se saltan si no hay Node.
+
+**Verificación.** La prueba de la descarga falló antes del arreglo por esa razón ("la recarga borró la conversación guardada") y las otras pasaban. 4 mutaciones (volver a borrar al descargar, quitar `pagehide`/`beforeunload`, no reconectar al restaurar, que el 404 no empiece otra) detectadas. En el navegador integrado con el modelo real: se envió "recuerda la palabra clave ZORRO", se recargó, el `cid` y las 3 tarjetas se conservaron y a la pregunta "¿cuál era la palabra clave?" el coordinador respondió "La palabra clave era ZORRO".
+
+**No verificado:** Chrome, Firefox y Safari reales (solo el navegador integrado y el navegador simulado); la restauración por caché de navegación (`pageshow`) solo con el navegador simulado; reiniciar el servidor sigue perdiendo las conversaciones (límite declarado).

@@ -45,7 +45,7 @@ Los mensajes de cada caso están en `docs/CASOS.md`. En la interfaz se reconocen
 
 ## Límites declarados
 
-- Una conversación vive en memoria mientras el proceso corre; recargar la página recupera el historial, reiniciar el proceso lo pierde.
+- Una conversación vive en memoria mientras el proceso corre; recargar la página recupera el historial (verificado en el navegador integrado con el modelo real, que recuerda el contexto), reiniciar el proceso lo pierde.
 - Un turno a la vez por conversación.
 - Starlette en lugar de FastAPI (decisión D1 de `research.md`).
 - El aspecto visual se comprobó en el navegador integrado de Claude Code con el modelo real (casos 1 y 4, ver `verification.md`); no se ha probado en Chrome, Firefox ni Safari, ni en un teléfono real.

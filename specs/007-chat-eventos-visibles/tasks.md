@@ -76,6 +76,7 @@ description: "Tareas de la interfaz de chat con eventos visibles"
 - [x] T025 Implementar los cambios de `index.html`; comprobar que T024 pasa y que las pruebas de T015 siguen pasando
 - [x] T026 Verificar en un navegador con el modelo real (casos 1 y 4), repetir la verificación por mutación sobre lo nuevo y registrar el resultado y lo no verificado en `verification.md`
 - [x] T027 Ejecutar `python -m pytest -q`, `ruff check .`, `ruff format --check .` y `python scripts/verify_ecosystem.py`; actualizar `docs/INTERFAZ.md`
+- [x] T028 Corregir la pérdida del historial al recargar (FR-007), hallada por el usuario: al descargarse la página, el navegador cierra el flujo de eventos y avisa con un error; la página lo tomaba por una conversación desaparecida, borraba la guardada y creaba otra. Prueba primero (`test_pagina_comportamiento.py`, que ejecuta el script real de la página con Node y un navegador simulado) y verla fallar por esa razón; la página cierra su propio flujo al descargarse (`pagehide`/`beforeunload`), ignora el error mientras se descarga y se reconecta si el navegador la restaura (`pageshow`); el 404 sigue empezando otra conversación
 
 ## Dependencies & Execution Order
 

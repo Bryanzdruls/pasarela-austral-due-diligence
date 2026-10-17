@@ -99,7 +99,7 @@
   var aviso = document.getElementById("aviso");
   var campo = document.getElementById("mensaje");
   var boton = document.getElementById("enviar");
-  var cid = null, flujo = null, ultimo = 0, ocupado = false;
+  var cid = null, flujo = null, ultimo = 0, ocupado = false, cerrando = false;
 
   function guardado(valor) {
     try {
@@ -218,9 +218,23 @@
       try { mostrar(JSON.parse(m.data)); } catch (e) { /* evento ilegible: se ignora */ }
     };
     flujo.onerror = function () {
-      if (flujo.readyState === EventSource.CLOSED) nueva(); // el servidor ya no la conoce
+      // Al descargar la página (recarga, cierre) el navegador cierra el flujo y avisa con un
+      // error: no significa que la conversación haya desaparecido y no hay que empezar otra.
+      if (cerrando) return;
+      if (flujo.readyState === EventSource.CLOSED) nueva(); // el servidor ya no la conoce (404)
     };
   }
+
+  function descargando() {
+    cerrando = true;
+    if (flujo) flujo.close();
+  }
+  window.addEventListener("pagehide", descargando);
+  window.addEventListener("beforeunload", descargando);
+  // Si el navegador restaura la página desde su caché de navegación, se vuelve a conectar.
+  window.addEventListener("pageshow", function (ev) {
+    if (ev && ev.persisted && cid) { cerrando = false; conectar(); }
+  });
 
   function nueva() {
     guardado(null); ultimo = 0; lista.textContent = ""; vacio(); ocupar(false);
