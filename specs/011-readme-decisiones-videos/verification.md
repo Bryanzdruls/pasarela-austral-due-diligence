@@ -104,3 +104,15 @@ Los dos revisores son independientes de la sesión que escribió el código y so
 **Verificación de lo corregido.** 7 mutaciones nuevas (`.git` sin escanear, ceros ignorados, sufijos de secretos, miembros repetidos, miembros fuera de la raíz, cualquier URL, nombres dentro de `.git`): todas detectadas. El zip real sigue cumpliendo con los controles nuevos (91 commits, 3,59 MB).
 
 **Límites nuevos declarados.** El historial en UTF-16 no se detecta con `git log -G` (se escanean los archivos actuales, no los blobs históricos con ceros). El enlace del video se valida por su forma, no por su existencia.
+
+
+## Revisión independiente, ronda 2 (T032)
+Se repitieron las dos revisiones una sola vez sobre el estado corregido, con el mismo modelo de amenaza.
+
+**code-reviewer: aprobar.** Sin bloqueantes ni importantes. Comprobó que las cinco correcciones de la ronda 1 son correctas y no abren falsos positivos: un grep del patrón de credenciales sobre `.git` (sin `objects/`) de este repositorio no da coincidencias, así que un zip legítimo no falla por el escaneo nuevo. Dos menores:
+1. Un archivo versionado que se llame `notas.idx` o `x.pack` se saltaba por su extensión (pensada para los paquetes de `.git`): si traía una credencial, sobre todo en UTF-16, salía OK. **Corregido** con prueba primero (10 fallaron por la razón esperada): solo se saltan por nombre los objetos y paquetes de `.git`.
+2. Una plantilla de entorno guardada con marca de orden de bytes de UTF-8 o en UTF-16 daba un falso "trae un valor" (falla cerrado, pero impedía entregar una plantilla vacía). **Corregido**; un valor real en una plantilla UTF-16 se sigue detectando.
+
+**compliance-reviewer: cumple parcialmente, sin faltas graves.** Confirmó que el guion corregido del caso 7 y la lista de nombres de secretos son veraces frente al código y que ningún documento nuevo da por cumplida una regla 1 a 3 apoyándose solo en un prompt. Señaló tres incoherencias en `docs/TRAZABILIDAD.md` (el documento que este ticket actualiza, FR-015), **corregidas**: la lista de ramas y la frase de faltas graves hablaban de ramas ya fusionadas (`005`, `006`, `009`); B12 seguía «En rama» aunque el #7 está en `main` (PR #23), así que pasa a Hecho y el resumen se recalcula (Hecho 71, En rama 0); y R4 y R5, marcadas Hecho por lo que imponen los hooks, ahora dicen que la interfaz las muestra de forma parcial, como declara el README.
+
+**Qué queda abierto y se declara en el PR:** las reglas 4 y 5 siguen parciales en lo que muestra la interfaz (tickets #5 y #4, no este); el zip no comprueba datos con forma de documento real (lo hace el hook de datos reales del #9 al escribir; FR-009 solo pide credenciales); y los límites de la sección anterior.

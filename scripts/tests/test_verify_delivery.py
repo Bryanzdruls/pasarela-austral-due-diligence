@@ -529,3 +529,35 @@ def test_a_zip_with_repeated_member_names_is_rejected(zip_ok, tmp_path):
 )
 def test_a_video_link_needs_to_be_a_well_formed_https_url(texto, esperado):
     assert d.video_state(texto) == esperado
+
+
+# ------------------------------------------------------- revisión, ronda 2
+
+
+@pytest.mark.parametrize("nombre", ["notas.idx", "datos/x.pack", "src/paquete.pack"])
+@pytest.mark.parametrize("codificacion", ["utf-8", "utf-16"])
+def test_a_versioned_file_named_like_a_git_pack_is_still_scanned(
+    zip_ok, tmp_path, nombre, codificacion
+):
+    """Solo los paquetes de .git se saltan por su nombre; un archivo del proyecto, no."""
+    valor = clave_anthropic()
+    malo = editar(
+        zip_ok, tmp_path / "malo.zip", agregar={nombre: f"x {valor}\n".encode(codificacion)}
+    )
+    detalle = fallos(d.check_zip(malo))[d.CHECK_CREDENTIALS]
+    assert nombre in detalle and valor not in detalle
+
+
+@pytest.mark.parametrize("codificacion", ["utf-8-sig", "utf-16", "utf-16-le", "utf-32"])
+def test_the_environment_template_saved_with_a_byte_order_mark_or_wide_is_still_empty(
+    zip_ok, tmp_path, codificacion
+):
+    plantilla = "# a=b\nANTHROPIC_API_KEY=\n".encode(codificacion)
+    ok = editar(zip_ok, tmp_path / "ok.zip", reemplazar={".env.example": plantilla})
+    assert d.CHECK_SECRET_FILES not in fallos(d.check_zip(ok))
+
+
+def test_a_value_in_a_wide_encoded_template_is_still_found(zip_ok, tmp_path):
+    plantilla = "ANTHROPIC_API_KEY=algo\n".encode("utf-16")
+    malo = editar(zip_ok, tmp_path / "malo.zip", reemplazar={".env.example": plantilla})
+    assert ".env.example" in fallos(d.check_zip(malo))[d.CHECK_SECRET_FILES]

@@ -236,6 +236,7 @@ def _check_size(zip_path: Path, limit: int) -> Check:
 
 def _env_template_values(texto: str) -> list[int]:
     lineas = []
+    texto = texto.replace("\ufeff", "").replace("\x00", "")  # marca de orden de bytes y UTF-16/32
     for numero, linea in enumerate(texto.splitlines(), start=1):
         linea = linea.strip()
         if not linea or linea.startswith("#") or "=" not in linea:
@@ -289,7 +290,9 @@ def _texts(datos: bytes) -> list[str]:
 
 def _is_git_binary(rel: str) -> bool:
     """Objetos y paquetes de git: comprimidos, los cubre `git log -G` sobre el historial."""
-    return rel.startswith(".git/objects/") or rel.endswith((".pack", ".idx"))
+    return rel.startswith(".git/") and (
+        rel.startswith(".git/objects/") or rel.endswith((".pack", ".idx"))
+    )
 
 
 def _check_credentials(archivo: zipfile.ZipFile, pref: str, rels: list[str]) -> Check:
