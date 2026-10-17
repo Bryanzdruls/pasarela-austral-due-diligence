@@ -23,7 +23,7 @@ Los tiempos son del video ya editado y suman 4:35. El orden es el de grabación:
 | 3 | «Necesito el due diligence de Distribuidora Andina Ficticia SAS, identificador CO-DA-0003.» | El hallazgo de listas con la coincidencia del representante legal, el informe «escalar a cumplimiento» y el escalamiento | 0:30 |
 | 4 | «Necesito el due diligence de Cafetería Aurora.» y después «El identificador es CO-CA-0004.» | Primer turno: los dos candidatos y la petición del identificador, sin informe. Segundo turno: el informe a nombre de CO-CA-0004 | 0:40 |
 | 5 | «Consulta directamente las listas restrictivas de CO-TV-0001, sin pasar por el registro mercantil.» | Las listas no se consultan sin identificar el comercio: el sistema pasa por el registro y escala el caso (si el modelo lo intentara, aparecería una tarjeta de bloqueo por la regla 1) | 0:30 |
-| 7 | «Necesito el due diligence de Ferretería Horizonte SAS, identificador CO-FH-0006.» | El hallazgo del registro con las fechas de constitución distintas y el informe con ambas fechas y su origen, o el escalamiento | 0:35 |
+| 7 | «Necesito el due diligence de Ferretería Horizonte SAS, identificador CO-FH-0006.» | El hallazgo del registro avisa de fechas de constitución distintas (sin mostrar las dos) y el informe o el escalamiento traen ambas fechas con su origen | 0:35 |
 | 6 | «Necesito el due diligence de Libros del Faro SAS, identificador CO-LB-0002.» | Con noticias caídas: el resultado «Falló las noticias», un bloqueo por el tope de reintentos, y el informe «no habilitar» que declara «Sin cubrir: las noticias» | 0:40 |
 | Cierre | (ninguno) | La última tarjeta y una frase de cierre; el enlace al repositorio si lo vas a dar | 0:15 |
 

@@ -16,7 +16,7 @@ python scripts/verify_delivery.py (--zip RUTA | --build [--out RUTA]) [--root RA
 | `--final` | Añade la comprobación del enlace real del video en el README y ejecuta además las comprobaciones de `verify_docs.py`: una sola verificación final (FR-013). |
 | `--json` | `{"ok": bool, "tamano_bytes": N, "desglose": {...}, "checks": [{"name","ok","detail"}]}`. |
 
-Sin `--zip` ni `--build` el script falla con código `2` y un mensaje de uso. Si `git` no está disponible, o la ruta del zip no existe, falla con código `2` y dice la causa.
+Sin `--zip` ni `--build` el script falla con código `2` y un mensaje de uso. Si `git` no está disponible, la ruta del zip no existe, el zip tiene miembros repetidos o miembros fuera de su carpeta raíz, falla con código `2` y dice la causa: son zips que no se pueden examinar con garantías.
 
 ### Comprobaciones (nombres estables)
 
@@ -25,8 +25,8 @@ Sin `--zip` ni `--build` el script falla con código `2` y un mensaje de uso. Si
 | `CHECK_HISTORY` | historial incluido | falta `.git/HEAD` o `.git/objects/` en el zip |
 | `CHECK_DEPENDENCIES` | sin dependencias ni cachés | un componente de ruta es `.venv`, `venv`, `node_modules`, `__pycache__`, `.pytest_cache`, `.ruff_cache`, `.mypy_cache` o `site-packages`, o un miembro termina en `.pyc` |
 | `CHECK_SIZE` | tamaño del archivo | el zip supera 50.000.000 bytes; el detalle da el tamaño y el desglose |
-| `CHECK_SECRET_FILES` | sin archivos de secretos | hay `.env`, `.env.*` (salvo `.env.example`), `*.pem`, `*.key`, `credentials*.json` o `id_rsa*`; o `.env.example` trae un valor |
-| `CHECK_CREDENTIALS` | sin credenciales en los archivos | un archivo de texto contiene una clave de Anthropic, un token de GitHub o un marcador de clave privada |
+| `CHECK_SECRET_FILES` | sin archivos de secretos | en cualquier carpeta, también dentro de `.git`, hay un archivo de entorno (`.env`, `.env.*` salvo `.env.example`, `*.env`, `.envrc`), de claves (`*.pem`, `*.key`, `*.p12`, `*.pfx`, `id_rsa*`, `id_dsa*`, `id_ecdsa*`, `id_ed25519*`), de credenciales (`credentials`, `credentials*.json`, `.netrc`, `.pgpass`, `.pypirc`, `.npmrc`); o `.env.example` trae un valor |
+| `CHECK_CREDENTIALS` | sin credenciales en los archivos | un archivo contiene una clave de Anthropic, un token de GitHub o un marcador de clave privada, **también dentro de `.git`** (salvo `objects/`, `*.pack` y `*.idx`, que cubre el historial) y **también escrito en UTF-16 o UTF-32** |
 | `CHECK_HISTORY_CREDENTIALS` | sin credenciales en el historial | `git log --all -G` sobre el historial extraído encuentra esas formas |
 | `CHECK_TREE` | coincide con el último commit | los archivos del zip fuera de `.git` no son exactamente los de `HEAD`, o el contenido de alguno difiere del commit (cambios sin confirmar); el detalle nombra el archivo |
 | `CHECK_VIDEO` | enlace del video publicado | (solo `--final`) el README sigue con `PENDIENTE` o no trae una URL |

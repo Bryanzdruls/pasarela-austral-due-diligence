@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+from collections import Counter
 from pathlib import Path, PurePosixPath
 
 from verify_ecosystem import Check
@@ -76,7 +77,7 @@ SECRET_PATTERN = "|".join(_CLASSES.values())
 _SECRET = re.compile(SECRET_PATTERN)
 _CLASS_RES = {name: re.compile(pattern) for name, pattern in _CLASSES.items()}
 
-_URL = re.compile(r"https?://\S+")
+_URL = re.compile(r"https://[^\s/]+\.[^\s/]+\S*")
 
 
 class UsageError(Exception):
@@ -245,17 +246,22 @@ def _env_template_values(texto: str) -> list[int]:
     return lineas
 
 
+_SECRET_NAMES = frozenset({".envrc", ".netrc", ".pgpass", ".pypirc", ".npmrc", "credentials"})
+_SECRET_SUFFIXES = (".env", ".pem", ".key", ".p12", ".pfx")
+_SECRET_PREFIXES = ("id_rsa", "id_dsa", "id_ecdsa", "id_ed25519")
+
+
 def _is_secret_file(nombre: str) -> bool:
     n = nombre.lower()
-    if n == ".env" or (n.startswith(".env.") and n != ".env.example"):
+    if n.startswith(".env.") and n != ".env.example":
         return True
-    if n.endswith((".pem", ".key")) or n.startswith("id_rsa"):
+    if n in _SECRET_NAMES or n.endswith(_SECRET_SUFFIXES) or n.startswith(_SECRET_PREFIXES):
         return True
     return bool(re.fullmatch(r"credentials.*\.json", n))
 
 
 def _check_secret_files(archivo: zipfile.ZipFile, pref: str, rels: list[str]) -> Check:
-    malos = [r for r in rels if not r.startswith(".git/") and _is_secret_file(r.split("/")[-1])]
+    malos = [r for r in rels if _is_secret_file(r.split("/")[-1])]
     problemas = list(malos)
     for rel in rels:
         if rel.split("/")[-1].lower() == ".env.example" and not rel.startswith(".git/"):
@@ -273,15 +279,28 @@ def _check_secret_files(archivo: zipfile.ZipFile, pref: str, rels: list[str]) ->
     )
 
 
+def _texts(datos: bytes) -> list[str]:
+    """El archivo leído como texto; con ceros además sin ellos (UTF-16 y UTF-32 de texto ASCII)."""
+    textos = [datos.decode("utf-8", "ignore")]
+    if b"\x00" in datos:
+        textos.append(datos.replace(b"\x00", b"").decode("utf-8", "ignore"))
+    return textos
+
+
+def _is_git_binary(rel: str) -> bool:
+    """Objetos y paquetes de git: comprimidos, los cubre `git log -G` sobre el historial."""
+    return rel.startswith(".git/objects/") or rel.endswith((".pack", ".idx"))
+
+
 def _check_credentials(archivo: zipfile.ZipFile, pref: str, rels: list[str]) -> Check:
     hallazgos: list[str] = []
     for rel in rels:
         info = archivo.getinfo(pref + rel)
-        if rel.startswith(".git/") or info.file_size > MAX_SCANNED_BYTES:
+        if _is_git_binary(rel) or info.file_size > MAX_SCANNED_BYTES:
             continue
-        texto = archivo.read(pref + rel).decode("utf-8", "ignore")
-        if _SECRET.search(texto):
-            clase = next(n for n, rx in _CLASS_RES.items() if rx.search(texto))
+        textos = _texts(archivo.read(pref + rel))
+        if any(_SECRET.search(t) for t in textos):
+            clase = next(n for n, rx in _CLASS_RES.items() if any(rx.search(t) for t in textos))
             hallazgos.append(f"{rel} ({clase})")
     if hallazgos:
         return Check(
@@ -383,7 +402,13 @@ def check_zip(zip_path: Path | str, final: bool = False, limit: int = SIZE_LIMIT
         miembros = [i.filename for i in archivo.infolist() if not i.is_dir()]
         if not all(_is_safe(n) for n in miembros):
             raise UsageError("el zip tiene miembros con una ruta insegura; no se extrae")
+        if repetidos := sorted({n for n, veces in Counter(miembros).items() if veces > 1}):
+            raise UsageError("el zip tiene miembros repetidos: " + _listed(repetidos))
         pref = _prefix(miembros)
+        if fuera := [n for n in miembros if not n.startswith(pref)]:
+            raise UsageError(
+                f"el zip tiene miembros fuera de la carpeta raíz «{pref}»: " + _listed(fuera)
+            )
         rels = [n[len(pref) :] for n in miembros]
         with tempfile.TemporaryDirectory() as temporal:
             archivo.extractall(temporal)

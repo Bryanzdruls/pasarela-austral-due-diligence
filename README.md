@@ -17,7 +17,7 @@ Todos los datos son ficticios (`CO-XX-000N`, `FICT-000N`) y no hay ninguna crede
 
 ```bash
 git clone <URL del repositorio>      # o descomprimir el zip de entrega
-cd pasarela-austral-due-diligence
+cd pasarela-austral-due-diligence    # o la carpeta que crea el zip al descomprimirlo
 python -m uv sync                    # instala las dependencias
 ```
 

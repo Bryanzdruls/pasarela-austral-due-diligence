@@ -17,7 +17,8 @@ Mismo tipo que `scripts/verify_ecosystem.py`.
   - R2 dependencias: ningún componente de ruta es `.venv`, `venv`, `node_modules`, `__pycache__`, `.pytest_cache`, `.ruff_cache`, `.mypy_cache` o `site-packages`, y ningún miembro termina en `.pyc`.
   - R3 tamaño: `tamaño ≤ 50.000.000`.
   - R4 archivos de secretos: ningún miembro cuyo nombre sea `.env`, `.env.*` (salvo `.env.example`), `*.pem`, `*.key`, `credentials*.json` o `id_rsa*`; `.env.example` no puede traer valores (solo `NOMBRE=` o comentarios).
-  - R5 contenido: ningún archivo de texto contiene una clave de Anthropic, un token de GitHub ni un marcador de clave privada.
+  - R5 contenido: ningún archivo contiene una clave de Anthropic, un token de GitHub ni un marcador de clave privada, tampoco dentro de `.git` (salvo `objects/`, `*.pack` y `*.idx`) ni escrito en UTF-16 o UTF-32.
+  - R5b estructura: sin miembros repetidos ni fuera de la carpeta raíz (se rechaza con código 2).
   - R6 historial: el historial extraído (`git log --all`) no contiene esas formas.
   - R7 coincidencia: los archivos del zip fuera de `.git` son exactamente los del último commit (`git ls-tree -r HEAD`) **y el contenido de cada uno es el del commit** (comparado con `git show HEAD:<ruta>`, normalizando los saltos de línea). Un archivo versionado con cambios sin confirmar falla nombrándolo.
   - R8 (solo `--final`): el README tiene un enlace real al video.

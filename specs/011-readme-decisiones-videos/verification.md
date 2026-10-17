@@ -82,3 +82,25 @@ Una sobrevivió la primera vez (**D1**, no detectar la falta de `.git/HEAD` y `.
 - **El comprobador del zip detecta formas conocidas de credencial** (claves de Anthropic, tokens de GitHub y claves privadas). No detecta otras clases (por ejemplo, la clave de otro proveedor) y escanea hasta 2 MB por archivo; los archivos binarios solo se miden por nombre.
 - **`git log --all -G` mira los cambios de líneas**: una credencial en un objeto inalcanzable o dentro de un archivo binario del historial no aparecería.
 - `DECISIONES.md` condensa 11 decisiones; el razonamiento largo sigue en `docs/ECOSISTEMA.md` y en los `research.md`.
+
+
+## Revisión independiente, ronda 1 (T032)
+Los dos revisores son independientes de la sesión que escribió el código y solo leen. El de código recibió el modelo de amenaza (el zip se sube a una plataforma y una credencial o un archivo de entorno dentro es una falta grave irreversible; el comprobador debe fallar cerrado y no imprimir nunca un valor) y la lista de límites ya declarados.
+
+**code-reviewer: corregir antes del PR.** 0 bloqueantes, 2 importantes y 5 menores; no ejecutó nada, los escenarios salen de leer el código.
+
+| # | Hallazgo | Estado |
+|---|---|---|
+| 1 IMPORTANTE | La carpeta `.git` del zip no se examinaba: un token en `.git/config` (por ejemplo, en la URL de `origin`), en un hook o en `COMMIT_EDITMSG` pasaba todas las comprobaciones. `git log -G` solo mira los cambios de los commits. | **Defecto real, corregido.** Se escanean todos los archivos de `.git` salvo `objects/`, `*.pack` y `*.idx`, y los nombres de archivos de secretos también se miran dentro de `.git`. 4 pruebas con el token en distintos archivos, otra con un archivo nuevo en `hooks/` y otra con un nombre de secretos dentro de `.git`. |
+| 2 IMPORTANTE | Un archivo en UTF-16 (lo que crea PowerShell 5.1 con `>`) no se detectaba: los ceros entre caracteres rompían la expresión regular y `git log -G` lo trata como binario. | **Defecto real, corregido.** Si el archivo tiene ceros se escanea también sin ellos (cubre UTF-16 LE y BE con o sin marca y UTF-32). 4 pruebas. |
+| 3 MENOR | La lista de nombres de secretos era incompleta (archivos que terminan en `.env`, el de `direnv`, `.netrc`, `.aws/credentials`, `credentials`, `id_ed25519`, `*.p12`, `*.pfx`). El de cumplimiento señaló el mismo hueco con `prod.env`. | **Corregido** (13 nombres con prueba). |
+| 4 MENOR | Un zip con miembros fuera de la carpeta raíz acababa en un `KeyError` con traceback. | **Corregido:** se rechaza con código 2 y un mensaje (prueba: sin traceback). |
+| 5 MENOR | Miembros repetidos: la primera copia (con una credencial) no se examinaba y todo daba OK. | **Corregido:** se rechaza con código 2 y los nombra. |
+| 6 MENOR | Cualquier URL contaba como video publicado (`http://TODO`). | **Corregido en parte:** se exige `https` con dominio. Que el enlace exista de verdad no se puede comprobar sin red: límite declarado. |
+| 7 MENOR | `cd pasarela-austral-due-diligence` no coincide con la carpeta que crea el zip. | **Corregido** en el README. |
+
+**compliance-reviewer: cumple parcialmente, sin faltas graves.** Las cinco reglas de negocio quedan fuera del alcance de este ticket (las cubren #3 a #6) y el README las declara como están: 1 a 3 con hooks, 4 y 5 parciales en lo que muestra la interfaz; contrastó esas afirmaciones con el código y las pruebas y coinciden. Una imprecisión menor corregida: el guion del caso 7 anunciaba "el hallazgo del registro con las fechas distintas", pero la tarjeta solo avisa de que son distintas; el guion lo dice ahora. Anotó, sin que sea un fallo del ticket, que el zip no comprueba datos con forma de documento real (lo hace el hook de datos reales del #9 al escribir, y FR-009 solo pide credenciales).
+
+**Verificación de lo corregido.** 7 mutaciones nuevas (`.git` sin escanear, ceros ignorados, sufijos de secretos, miembros repetidos, miembros fuera de la raíz, cualquier URL, nombres dentro de `.git`): todas detectadas. El zip real sigue cumpliendo con los controles nuevos (91 commits, 3,59 MB).
+
+**Límites nuevos declarados.** El historial en UTF-16 no se detecta con `git log -G` (se escanean los archivos actuales, no los blobs históricos con ceros). El enlace del video se valida por su forma, no por su existencia.

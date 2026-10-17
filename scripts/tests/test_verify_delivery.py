@@ -423,3 +423,109 @@ def test_the_final_cli_exits_0_when_everything_is_in_order_and_1_when_it_is_not(
     commit(repo_docs, "borra las decisiones")
     mal = run_cli("--build", "--final", "--root", str(repo_docs), "--out", str(tmp_path / "b.zip"))
     assert mal.returncode == 1 and d.CHECK_DOCS in mal.stdout and "FALLA" in mal.stdout
+
+
+# ------------------------------------------------------- revisión: .git, UTF-16 y miembros del zip
+
+
+@pytest.mark.parametrize(
+    "miembro, contenido",
+    [
+        (".git/config", '[remote "origin"]\n\turl = https://u:{valor}@github.com/x/y.git\n'),
+        (".git/hooks/pre-push", "#!/bin/sh\nexport CLAVE={valor}\n"),
+        (".git/COMMIT_EDITMSG", "mensaje con {valor}\n"),
+        (".git/packed-refs", "# {valor}\n"),
+    ],
+)
+def test_a_credential_in_the_text_files_of_the_git_folder_fails_and_is_not_repeated(
+    zip_ok, tmp_path, miembro, contenido
+):
+    valor = token_github()
+    datos = contenido.format(valor=valor).encode()
+    malo = editar(zip_ok, tmp_path / "malo.zip", quitar=(miembro,), agregar={miembro: datos})
+    detalle = fallos(d.check_zip(malo))[d.CHECK_CREDENTIALS]
+    assert miembro in detalle and valor not in detalle
+
+
+def test_a_credential_added_as_a_new_file_inside_the_git_folder_fails(zip_ok, tmp_path):
+    malo = editar(
+        zip_ok, tmp_path / "malo.zip", agregar={".git/hooks/pre-commit": token_github().encode()}
+    )
+    assert ".git/hooks/pre-commit" in fallos(d.check_zip(malo))[d.CHECK_CREDENTIALS]
+
+
+def test_a_secret_file_name_inside_the_git_folder_also_fails(zip_ok, tmp_path):
+    malo = editar(zip_ok, tmp_path / "malo.zip", agregar={".git/" + ".env": b"A=1\n"})
+    assert ".git/.env" in fallos(d.check_zip(malo))[d.CHECK_SECRET_FILES]
+
+
+@pytest.mark.parametrize("codificacion", ["utf-16", "utf-16-le", "utf-16-be", "utf-32"])
+def test_a_credential_written_in_a_wide_encoding_is_found(zip_ok, tmp_path, codificacion):
+    valor = clave_anthropic()
+    datos = f"notas: {valor}\n".encode(codificacion)
+    malo = editar(zip_ok, tmp_path / "malo.zip", agregar={"src/notas.txt": datos})
+    detalle = fallos(d.check_zip(malo))[d.CHECK_CREDENTIALS]
+    assert "src/notas.txt" in detalle and valor not in detalle
+
+
+@pytest.mark.parametrize(
+    "nombre",
+    [
+        "." + "envrc",
+        "prod" + ".env",
+        "config/prod" + ".env",
+        ".netrc",
+        ".pgpass",
+        ".pypirc",
+        ".npmrc",
+        ".aws/credentials",
+        "credentials",
+        "id_ed25519",
+        "id_ecdsa",
+        "claves/llave.p12",
+        "claves/llave.pfx",
+    ],
+)
+def test_more_secret_file_names_fail_and_are_named(zip_ok, tmp_path, nombre):
+    malo = editar(zip_ok, tmp_path / "malo.zip", agregar={nombre: b"x"})
+    problemas = fallos(d.check_zip(malo))
+    assert d.CHECK_SECRET_FILES in problemas and nombre in problemas[d.CHECK_SECRET_FILES]
+
+
+def test_a_zip_with_members_outside_the_root_folder_is_rejected_with_a_message(zip_ok, tmp_path):
+    fuera = tmp_path / "fuera.zip"
+    with zipfile.ZipFile(zip_ok) as zin, zipfile.ZipFile(fuera, "w") as zout:
+        for nombre in zin.namelist():
+            zout.writestr(nombre, zin.read(nombre))
+        zout.writestr("otro/clave.txt", b"suelto")
+    with pytest.raises(d.UsageError, match="fuera de la carpeta raíz"):
+        d.check_zip(fuera)
+    proc = run_cli("--zip", str(fuera))
+    assert proc.returncode == 2 and "fuera de la carpeta raíz" in proc.stderr
+    assert "Traceback" not in proc.stderr
+
+
+def test_a_zip_with_repeated_member_names_is_rejected(zip_ok, tmp_path):
+    repetido = tmp_path / "repetido.zip"
+    with zipfile.ZipFile(zip_ok) as zin, zipfile.ZipFile(repetido, "w") as zout:
+        for nombre in zin.namelist():
+            zout.writestr(nombre, zin.read(nombre))
+        with pytest.warns(UserWarning):  # zipfile avisa del nombre duplicado
+            zout.writestr("proyecto/src/app.py", b"otra copia")
+    with pytest.raises(d.UsageError, match="repetidos"):
+        d.check_zip(repetido)
+    proc = run_cli("--zip", str(repetido))
+    assert proc.returncode == 2 and "src/app.py" in proc.stderr
+
+
+@pytest.mark.parametrize(
+    "texto, esperado",
+    [
+        ("- Video de funcionamiento: http://TODO\n", "inconsistente"),
+        ("- Video de funcionamiento: https://todo\n", "inconsistente"),
+        ("- Video de funcionamiento: https://\n", "inconsistente"),
+        ("- Video de funcionamiento: https://youtu.be/abc\n", "publicado"),
+    ],
+)
+def test_a_video_link_needs_to_be_a_well_formed_https_url(texto, esperado):
+    assert d.video_state(texto) == esperado
