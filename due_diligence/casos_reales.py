@@ -25,7 +25,13 @@ from claude_agent_sdk import HookMatcher
 from due_diligence.coordinator import DueDiligenceSession
 from due_diligence.events import CoordinatorText
 from due_diligence.options import build_options
-from due_diligence.rules import CaseBook, _declared_fronts, normalize, parse_envelope
+from due_diligence.rules import (
+    CaseBook,
+    _declared_fronts,
+    front_of_alias,
+    normalize,
+    parse_envelope,
+)
 
 HERRAMIENTAS = frozenset(
     {
@@ -160,6 +166,8 @@ def _caso_4(r: Registro) -> list[str]:
     for registrado in (*r.informes, *r.escalamientos):
         if registrado.get("comercio_id") == "CO-CA-0005":
             motivos.append("se registró algo a nombre de CO-CA-0005, que el analista no eligió")
+    if not any(c.turno > ambiguas[0].turno for c in r.llamadas):
+        motivos.append("no se continuó la investigación tras el identificador del analista")
     return motivos
 
 
@@ -205,6 +213,13 @@ def _caso_5(r: Registro) -> list[str]:
     return motivos
 
 
+def _otros_frentes(informe: dict[str, Any]) -> bool:
+    """¿El informe conserva hallazgos de algún frente distinto de noticias?"""
+    hallazgos = informe.get("hallazgos")
+    claves = hallazgos if isinstance(hallazgos, dict) else {}
+    return any(front_of_alias(k) not in (None, "noticias") for k in claves)
+
+
 def _caso_6(r: Registro) -> list[str]:
     if (parada := _gate(r)) is not None:
         return parada
@@ -214,8 +229,13 @@ def _caso_6(r: Registro) -> list[str]:
         return ["no se registró un informe de CO-LB-0002"]
     if not any("noticias" in _declared_fronts(i.get("cobertura")) for i in informes):
         motivos.append("el informe no declara el frente de noticias sin cubrir")
+    fallos = [c for c in r.ejecutadas(NOTICIAS) if (c.respuesta or {}).get("ok") is False]
+    if not fallos:
+        motivos.append("noticias no falló: la falla inyectada no llegó a las llamadas")
     if len(r.ejecutadas(NOTICIAS)) > 2:
         motivos.append("noticias se llamó más de dos veces: más de un reintento")
+    if not any(_otros_frentes(i) for i in informes):
+        motivos.append("el informe no conserva el hallazgo de ninguno de los otros frentes")
     if r.escalamientos:
         motivos.append("se escaló un comercio cuya única falta es una cobertura incompleta")
     return motivos

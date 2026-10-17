@@ -21,7 +21,7 @@ La primera demuestra que el código hace lo correcto ante cada conducta; la segu
 | 6 | Falla de noticias con cobertura incompleta declarada | "Necesito el due diligence de Libros del Faro SAS." con `PASARELA_FAULTS=noticias` | `CO-LB-0002` | un reintento y no más; el informe que no declara `noticias` sin cubrir se rechaza y el que lo declara se acepta; no se escala | `test_case_6_a_news_failure_produces_a_report_that_declares_the_incomplete_coverage`, `test_case_6_a_non_retryable_news_failure_is_not_retried` |
 | 7 | Dos fuentes con fechas de constitución distintas | "Necesito el due diligence de Ferretería Horizonte SAS." | `CO-FH-0006` (`2016-03-14` y `2017-03-14`) | el informe con una sola fecha se rechaza (`conflicto`); el que declara ambas con su origen se acepta | `test_case_7_two_sources_with_different_incorporation_dates_are_shown_together` |
 
-Los datos son los de `mcp_server/data/`: si se cambian, los casos fallan.
+Los datos son los de `mcp_server/data/`: si se cambian, los casos fallan. Con el modelo real (`scripts/run_casos.py`) los mensajes de los casos 1, 2, 3, 6 y 7 llevan además el identificador del comercio (p. ej. "identificador CO-LB-0002") y el del caso 4 pasa a "El identificador es CO-CA-0004."; la búsqueda solo por nombre se ejerce en las pruebas sin modelo.
 
 ## Repetir un caso con el modelo real
 

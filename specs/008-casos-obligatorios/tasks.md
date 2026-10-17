@@ -8,7 +8,7 @@ description: "Tareas de los casos de prueba obligatorios automatizados"
 
 **Prerequisites**: plan.md y spec.md; constitución v1.1.1; tickets #1 a #6, #9 y #10 fusionados.
 
-**Tests**: son el producto del ticket. **Regla de proceso**: el arnés (T002 a T004) se escribe con pruebas primero y se ven fallar. Los siete casos pasan al escribirlos (el comportamiento ya existe, #1 a #6): su valor se comprueba con mutaciones de sistema (T018), que deben hacerlos fallar. Las pruebas comprueban la regla y el motivo, no solo el resultado. Datos ficticios de `mcp_server/data/`; sin literales con forma de tarjeta, NIT o documento.
+**Tests**: son el producto del ticket. **Regla de proceso**: el arnés (T002 a T004) se escribe con pruebas primero y se ven fallar. Los siete casos pasan al escribirlos (el comportamiento ya existe, #1 a #6): su valor se comprueba con mutaciones de sistema (T016), que deben hacerlos fallar. Las pruebas comprueban la regla y el motivo, no solo el resultado. Datos ficticios de `mcp_server/data/`; sin literales con forma de tarjeta, NIT o documento.
 
 **Modelo de amenaza**: es el de #3 a #6; este ticket no añade garantías, las demuestra. Una sola revisión de código al final.
 
@@ -56,9 +56,9 @@ description: "Tareas de los casos de prueba obligatorios automatizados"
 
 ## Phase 6: Verificación y cierre
 
-- [x] T01&Ejecutar con el modelo real `scripts/run_casos.py` (los siete casos, una corrida) y registrar en `specs/008-casos-obligatorios/verification.md` el resultado de cada caso, el motivo de los que fallen y cómo se repitieron; guardar la salida y los registros como evidencia
-- [x] T01&[P] Actualizar `docs/TRAZABILIDAD.md` (C1 a C7 con la evidencia: la prueba sin modelo y la ejecución real; recontar el resumen) y `due_diligence/CLAUDE.md` (cómo ejecutar los casos), con `python scripts/verify_ecosystem.py` en verde
-- [x] T01&Ejecutar `python -m pytest -q`, `ruff check .`, `ruff format --check .` y `python scripts/verify_ecosystem.py`; marcar las tareas; escribir el modelo de amenaza, la nota de revisión, los límites declarados y el recuento final en `verification.md`
+- [x] T017 Ejecutar con el modelo real `scripts/run_casos.py` (los siete casos, una corrida) y registrar en `specs/008-casos-obligatorios/verification.md` el resultado de cada caso, el motivo de los que fallen y cómo se repitieron; guardar la salida y los registros como evidencia
+- [x] T018 [P] Actualizar `docs/TRAZABILIDAD.md` (C1 a C7 con la evidencia: la prueba sin modelo y la ejecución real; recontar el resumen) y `due_diligence/CLAUDE.md` (cómo ejecutar los casos), con `python scripts/verify_ecosystem.py` en verde
+- [x] T019 Ejecutar `python -m pytest -q`, `ruff check .`, `ruff format --check .` y `python scripts/verify_ecosystem.py`; marcar las tareas; escribir el modelo de amenaza, la nota de revisión, los límites declarados y el recuento final en `verification.md`
 - [x] T020 Una revisión de código independiente (`/abrir-pr 8`, `code-reviewer` y `compliance-reviewer`) con el modelo de amenaza escrito y pidiendo una entrada reproducible por hallazgo; corregir solo lo bloqueante o importante con entrada reproducible y registrar lo demás; abrir el PR con `Closes #8` tras confirmación de la persona
 
 ## Dependencies & Execution Order

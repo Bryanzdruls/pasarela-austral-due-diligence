@@ -191,6 +191,7 @@ async def test_case_3_a_legal_representative_with_a_list_match_blocks_enabling_a
     assert (rechazado.permitida, rechazado.regla) == (False, "2")
     assert "representante" in rechazado.motivo
     assert (await e.parada())["decision"] == "block"
+    assert await e.parada(activo=True) == {}  # se exige una sola vez: no entra en un bucle
 
     # un resumen sin el hallazgo de listas no le sirve al oficial; con él se acepta
     base = {
@@ -255,6 +256,9 @@ async def test_case_4_two_commerces_with_almost_identical_names_ask_for_the_iden
     permitida = await e.llamar(LISTAS, {"tipo": "comercio", "referencia": "CO-CA-0004"}, agente=LIS)
     assert permitida.permitida
     assert (await e.llamar(INFORME, informe)).permitida
+    # el otro candidato sigue sin identificar: ni sus listas ni su informe se permiten
+    del_otro = await e.llamar(LISTAS, {"tipo": "comercio", "referencia": "CO-CA-0005"}, agente=LIS)
+    assert (del_otro.permitida, del_otro.regla) == (False, "1")
     otro = await e.llamar(INFORME, {**informe, "comercio_id": "CO-CA-0005"})
     assert (otro.permitida, otro.regla) == (False, "ambiguedad")
     assert [i["comercio_id"] for i in e.registros("INF")] == ["CO-CA-0004"]
@@ -412,4 +416,27 @@ async def test_case_7_two_sources_with_different_incorporation_dates_are_shown_t
     assert aceptado.permitida
     guardado = e.registros("INF")[0]
     assert guardado["conflictos"] == [ambas]
+
+    # la contradicción también es un motivo para escalar: el resumen al oficial debe declararla
+    resumen = {
+        "comercio_id": "CO-FH-0006",
+        "hallazgos": hallazgos(r, "registro"),
+        "cobertura": COBERTURA_COMPLETA,
+        "causa": "Contradicción entre fuentes: dos fechas de constitución distintas.",
+        "accion_recomendada": "Verificar la fecha de constitución antes de habilitar.",
+    }
+    sin_conflicto = await e.llamar(ESCALAR, resumen)
+    assert (sin_conflicto.permitida, sin_conflicto.regla) == (False, "conflicto")
+    escalado = await e.llamar(ESCALAR, {**resumen, "conflictos": [ambas]})
+    assert escalado.permitida and e.registros("ESC")[0]["conflictos"] == [ambas]
+
+    # un comercio sin contradicciones no exige conflictos
+    await e.llamar(REGISTRO, {"consulta": "CO-LB-0002"}, agente=REG)
+    limpio = {
+        "comercio_id": "CO-LB-0002",
+        "recomendacion": "no_habilitar",
+        "hallazgos": {"datos_del_analista": {"contenido": "x", "fuente": "analista"}},
+        "cobertura": {"x": 1},
+    }
+    assert (await e.llamar(INFORME, limpio)).permitida
     assert await e.parada() == {}

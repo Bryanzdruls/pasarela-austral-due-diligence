@@ -97,7 +97,7 @@ Cada caso explica en su prueba, en lenguaje llano, qué exige el enunciado y qu�
 - **SC-001**: Los siete casos pasan con `pytest` sin clave ni red, en menos de un minuto en total.
 - **SC-002**: Con una clave válida, el comando de la ejecución real termina con un resultado por caso; los casos que pasan se deciden por llamadas y registros, y los que fallan dicen el motivo.
 - **SC-003**: Desconectar el hook de reglas o el de parada, o ignorar la inyección de fallas, hace fallar al menos un caso cada vez (3 de 3 mutaciones de sistema detectadas).
-- **SC-004**: Las 1263 pruebas anteriores siguen pasando sin modificarse.
+- **SC-004**: Las 1267 pruebas anteriores siguen pasando sin modificarse.
 - **SC-005**: Una persona que no conoce el código entiende, leyendo `docs/CASOS.md`, qué prueba cada caso y cómo repetirlo.
 
 ## Assumptions

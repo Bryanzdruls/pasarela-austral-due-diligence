@@ -213,6 +213,11 @@ def test_case_5_fails_if_listas_ran_for_a_commerce_the_registry_did_not_identify
 # --------------------------------------------------------------------------- caso 6
 
 
+OTROS = {
+    "registro": {"contenido": "x", "fuente": "registro_mercantil_ficticio", "fecha": "2026-10-17"}
+}
+
+
 def noticias(n, turno=0):
     return [
         llamada("buscar_noticias", {"consulta": "x"}, {"ok": False, "retryable": True}, turno)
@@ -223,7 +228,7 @@ def test_case_6_passes_with_the_news_front_declared_uncovered_and_at_most_one_re
     cobertura = {"noticias": {"estado": "sin_cubrir", "motivo": "falló"}}
     r = reg(
         [registro_unico("CO-LB-0002"), *noticias(2)],
-        [informe("CO-LB-0002", "habilitar", cobertura=cobertura)],
+        [informe("CO-LB-0002", "habilitar", cobertura=cobertura, hallazgos=OTROS)],
     )
     assert motivos(6, r) == []
 
@@ -379,3 +384,30 @@ def test_case_5_text_still_never_decides_the_outcome():
     r = reg([listas()])
     r.textos = ["Consulté las listas y está todo bien"]
     assert any("sin registro previo" in m for m in motivos(5, r))
+
+
+# ---------------------------------------------------------------- revisión de cumplimiento
+
+
+def test_case_4_fails_if_the_investigation_does_not_continue_after_the_identifier():
+    solo_ambiguo = reg([ambiguo()])
+    assert any("no se continuó" in m for m in motivos(4, solo_ambiguo))
+
+
+def test_case_6_fails_if_the_injected_failure_never_reached_the_news_calls():
+    sin_falla = [llamada("buscar_noticias", {"consulta": "x"}, ok({"menciones": []}))]
+    cobertura = {"noticias": {"estado": "sin_cubrir"}}
+    r = reg(
+        [registro_unico("CO-LB-0002"), *sin_falla],
+        [informe("CO-LB-0002", "habilitar", cobertura=cobertura, hallazgos=OTROS)],
+    )
+    assert any("no falló" in m for m in motivos(6, r))
+
+
+def test_case_6_fails_if_the_report_keeps_no_finding_of_the_other_fronts():
+    cobertura = {"noticias": {"estado": "sin_cubrir"}}
+    vacio = reg(
+        [registro_unico("CO-LB-0002"), *noticias(2)],
+        [informe("CO-LB-0002", "habilitar", cobertura=cobertura, hallazgos={})],
+    )
+    assert any("otros frentes" in m for m in motivos(6, vacio))

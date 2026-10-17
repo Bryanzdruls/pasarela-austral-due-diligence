@@ -4,11 +4,11 @@ Fecha: 2026-10-17 (UTC). Rama `008-casos-obligatorios`. Datos ficticios.
 
 ## 1. Pruebas automáticas (sin modelo ni clave)
 
-- `python -m pytest -q`: **1341 pruebas en verde** (1267 en `main` antes del ticket). `ruff check` y `ruff format --check` limpios; `scripts/verify_ecosystem.py` en verde.
+- `python -m pytest -q`: **1344 pruebas en verde** (1267 en `main` antes del ticket). `ruff check` y `ruff format --check` limpios; `scripts/verify_ecosystem.py` en verde.
 - **Los siete casos** (`due_diligence/tests/test_casos_obligatorios.py`): 10 pruebas (el caso 5 en tres formas, el caso 6 con falla reintentable y no reintentable), en menos de dos segundos y sin clave. Cada una recorre los datos reales de `mcp_server/data/`, las herramientas reales del servidor y los hooks de producción (`build_options`); solo el guion de llamadas reproduce lo que haría el modelo.
 - **Arnés** (`tests/escenario.py`, `test_escenario.py`, 11 pruebas): comprueba que se comporta como el SDK (hooks en orden, `tool_response` como texto JSON, aislamiento por rol, registros guardados, fallas inyectadas y escenarios independientes).
-- **Comprobaciones de la ejecución real** (`test_casos_reales.py`, 53 pruebas) y **documento** (`scripts/tests/test_casos_doc.py`, 4 pruebas).
-- **Pruebas primero:** el arnés y las comprobaciones reales se escribieron antes de implementarlos (el arnés falló por ImportError; las comprobaciones, que se escribieron antes del módulo, no se ejecutaron antes de crearlo; las pruebas añadidas por la revisión y por el caso 5 sí se vieron fallar). Los siete casos **pasaron al escribirlos** porque el comportamiento ya existe (#1 a #6): su valor se demuestra con las mutaciones de sistema (sección 2). Ninguna prueba anterior se modificó (SC-004).
+- **Comprobaciones de la ejecución real** (`test_casos_reales.py`, 52 pruebas) y **documento** (`scripts/tests/test_casos_doc.py`, 4 pruebas).
+- **Pruebas primero:** el arnés y las comprobaciones reales se escribieron antes de implementarlos (el arnés falló por ImportError; las comprobaciones, que se escribieron antes del módulo, no se ejecutaron antes de crearlo; las pruebas añadidas por la revisión y por el caso 5 sí se vieron fallar). Los siete casos **pasaron al escribirlos** porque el comportamiento ya existe (#1 a #6): su valor se demuestra con las mutaciones de sistema (sección 2). Ninguna prueba anterior se modificó (SC-004). Tras la revisión de cumplimiento los casos ejercen además la parada una sola vez (caso 3), las listas del otro candidato (caso 4) y el escalamiento con la contradicción sin declarar (caso 7), y el caso 7 comprueba que un comercio sin contradicciones no exige conflictos; las comprobaciones reales de los casos 4 y 6 son más estrictas (que la investigación continúe tras el identificador; que la falla llegue a las llamadas y que el informe conserve los hallazgos de los otros frentes).
 
 ## 2. Verificación por mutación
 
@@ -34,6 +34,10 @@ Con `ANTHROPIC_API_KEY` del entorno, una corrida de los siete casos. Evidencia: 
 
 Una corrida por caso (más la repetición del 5). El modelo varía entre corridas; el comando permite repetir un caso.
 
+**Evidencia no literal, y qué se hizo para cubrirlo:** `verification-casos-reales.txt` es la salida del comando de esa corrida con dos cambios a mano (un encabezado y la línea de la repetición del caso 5; la codificación de la consola dañó los acentos); se generó antes de que el comando añadiera `(N denegaciones de hooks)` a las líneas `PASA`. `verification-llamadas.jsonl` añade los campos `corrida` y `caso` a cada fila. Los casos 1 a 4, 6 y 7 **no se repitieron con el modelo** tras endurecer las comprobaciones; en su lugar `verification-reevaluacion.txt` aplica las comprobaciones **finales** a las llamadas y registros grabados de esa corrida: los siete pasan (el caso 5 con la repetición).
+
+En el texto que el modelo generó apareció el nombre de un organismo real; se sustituyó por `registro sanitario` en los archivos de evidencia (también en los del #6).
+
 ## 4. Revisión independiente
 
 **Modelo de amenaza:** son pruebas y un comando; deben detectar si se rompe el sistema y no dar falsos aprobados. No protegen contra un adversario que controle el servidor, el proceso o el SDK.
@@ -49,3 +53,7 @@ Una corrida por caso (más la repetición del 5). El modelo varía entre corrida
 - Los casos usan los datos de `mcp_server/data/`: si se cambian, fallan (es intencional).
 - El caso 7 con el modelo real pasó por la vía del escalamiento (la contradicción es motivo de escalar, #6); la vía del informe `no_habilitar` está en la prueba sin modelo.
 - La interfaz de chat (ticket #7) no se ejerce: los casos corren contra el coordinador y los hooks.
+- Con el modelo real los mensajes de los casos 1, 2, 3, 6 y 7 llevan el identificador del comercio (`casos_reales.py`): la búsqueda por nombre solo se ejerce en `pytest`.
+- **FR-008 solo se demuestra por sistema:** las cuatro mutaciones de sistema las detectan solos los casos; las 85 mutaciones por regla se ejecutan contra todo `due_diligence` y no se registra qué prueba concreta mata cada una (no hay una matriz caso × regla). Garantías cableadas que ningún caso ejerce: `PostToolUseFailure` (el arnés no lo ejecuta), `UserPromptSubmit` y el aislamiento por rol (`tool_guard`), cubiertos por las pruebas unitarias y no por los casos.
+- Las aserciones sobre lo guardado (fuente, fecha, causa) comparan con lo que el propio guion envió: detectan que el almacenamiento descarte campos, no que el modelo los escriba bien (eso lo valora el modelo real).
+- La vía de `no_habilitar` del caso 7 y la del escalamiento (la que tomó el modelo real) están ahora las dos en la prueba sin modelo.
