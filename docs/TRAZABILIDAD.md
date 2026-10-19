@@ -13,7 +13,7 @@ Documento de control: cada requisito del enunciado ("Prueba técnica Claude Code
 | **Parcial** | Una parte existe; se dice qué falta |
 | **Falta** | No existe todavía; se indica el ticket que lo cubre |
 
-Ramas: `main` (incluye el ticket #1 fusionado en el PR #12) · `009-ecosistema-claude-code` (esta; ecosistema de Claude Code) · `002-coordinador-subagentes` (ticket #2, **solo en el equipo local**, aún no subida a GitHub).
+Ramas: `main` (incluye los tickets #1 a #10 fusionados) · `011-readme-decisiones-videos` (esta; README, DECISIONES.md, guion del video y zip de entrega).
 
 La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el modelo real.
 
@@ -39,8 +39,8 @@ La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el mo
 | R1 | Ninguna consulta a listas sin comercio identificado de forma unívoca en el registro | Hecho | Hook `PreToolUse` sobre `consultar_listas_restrictivas`: solo para un comercio identificado de forma unívoca por el registro (o su representante), con lo que devolvió la fuente; `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #17). verificado con modelo real (`specs/003-*/verification.md`): denegada con el modelo aunque se le ordenó saltarla |
 | R2 | Coincidencia en listas (comercio o representante) impide recomendar habilitación y escala | Hecho | Hook sobre `registrar_informe` (rechaza `habilitar` tras una coincidencia del comercio o de su representante) y hook `Stop` que exige escalar antes de cerrar, una sola vez; `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #17). verificado con modelo real (`specs/003-*/verification.md`). El contenido y el criterio del escalamiento: ticket #6 |
 | R3 | Alto riesgo nunca recibe habilitación automática | Hecho | Hook sobre `registrar_informe` con la lista de la pasarela (apuestas, criptoactivos, suplementos dietarios, medicamentos) desde el registro, el catálogo y la solicitud del analista, también si el catálogo dice `sin_clasificar`; `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #17). verificado con modelo real (`specs/003-*/verification.md`) |
-| R4 | Cada afirmación con su fuente; si dos fuentes se contradicen, se muestran ambas | Hecho | El `CaseBook` guarda las fuentes que respondieron y las contradicciones que el registro señala; `PreToolUse` rechaza un hallazgo cuya fuente no respondió o no trae fecha (`procedencia`) y un informe que no declare todos los valores en conflicto con su origen (`conflicto`); `due_diligence/rules.py` (en `main`, PR #19), 61 mutaciones detectadas. Con el modelo real: el informe de `CO-FH-0006` declaró ambas fechas con su origen (`specs/005-*/verification.md`); la denegación `conflicto` **no se ejerció con el modelo real** (se negó a violarla), solo con pruebas. Contradicciones entre frentes distintos: solo por prompt |
-| R5 | Si una fuente no responde, el informe indica qué frente quedó sin cubrir | Hecho | La cobertura sale de lo que el servidor devolvió (`PostToolUse`/`PostToolUseFailure`): `registrar_informe` y `escalar_a_cumplimiento` se rechazan si un frente caído no consta como `sin_cubrir` en `cobertura`, y `habilitar` exige registro y listas cubiertos; `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #18), mutaciones detectadas (la forma real de `PostToolUseFailure` no se midió) (`specs/004-*/verification.md`) |
+| R4 | Cada afirmación con su fuente; si dos fuentes se contradicen, se muestran ambas | Hecho | El `CaseBook` guarda las fuentes que respondieron y las contradicciones que el registro señala; `PreToolUse` rechaza un hallazgo cuya fuente no respondió o no trae fecha (`procedencia`) y un informe que no declare todos los valores en conflicto con su origen (`conflicto`); `due_diligence/rules.py` (en `main`, PR #19), 61 mutaciones detectadas. Con el modelo real: el informe de `CO-FH-0006` declaró ambas fechas con su origen (`specs/005-*/verification.md`); la denegación `conflicto` **no se ejerció con el modelo real** (se negó a violarla), solo con pruebas. Contradicciones entre frentes distintos: solo por prompt. La interfaz lo muestra de forma parcial: el hallazgo del registro avisa de fechas distintas sin mostrar las dos (el informe sí las trae, por el hook) |
+| R5 | Si una fuente no responde, el informe indica qué frente quedó sin cubrir | Hecho | La cobertura sale de lo que el servidor devolvió (`PostToolUse`/`PostToolUseFailure`): `registrar_informe` y `escalar_a_cumplimiento` se rechazan si un frente caído no consta como `sin_cubrir` en `cobertura`, y `habilitar` exige registro y listas cubiertos; `due_diligence/rules.py` y `rule_hooks.py` (en `main`, PR #18), mutaciones detectadas (la forma real de `PostToolUseFailure` no se midió) (`specs/004-*/verification.md`). La interfaz lo muestra de forma parcial: el «Sin cubrir» del informe y la tarjeta «Falló» salen de lo que declara el modelo (el hook rechaza antes de registrar) |
 
 ## 3. Ciclo de vida: Spec Driven Development con Spec Kit
 
@@ -130,7 +130,7 @@ Comportamientos obligatorios:
 | B9 | Varios comercios parecidos: el coordinador pide el identificador | Hecho | Con el modelo real el coordinador mostró los candidatos y pidió el identificador, y siguió solo con el elegido; un hook rechaza el informe o el escalamiento a nombre de un candidato sin identificar (`ambiguedad`, probado sin el modelo, no ejercido con él) (en `main`, PR #19) |
 | B10 | Escalar con criterio (listas y alto riesgo; no escalar bajo riesgo sin hallazgos) | Hecho | `CaseBook.escalation_grounds` (coincidencia en listas, alto riesgo, contradicción, menciones en noticias) y `PreToolUse` rechaza escalar, o recomendar escalar, un comercio sin motivo (`escalamiento`); una cobertura incompleta sola no es motivo (lectura literal del enunciado, decisión D2); `due_diligence/rules.py` (en `main`, PR #20), 85 mutaciones detectadas. Con el modelo real: C1 y C3 se escalaron, C2 se habilitó y, con una fuente caída, `CO-LB-0002` recibió `no_habilitar` y no se escaló; una orden de escalar `CO-LB-0002` fue rechazada una vez (`specs/006-*/verification.md`) |
 | B11 | Handoff útil al oficial de cumplimiento | Hecho | `escalar_a_cumplimiento` acepta `conflictos`; el hook exige el hallazgo, con fuente y fecha, del frente que motiva (`handoff_hallazgos`), una causa que nombra cada motivo (`handoff_causa`, por palabras clave) y las contradicciones declaradas (en `main`, PR #20). Con el modelo real los resúmenes de C1 y C3 salieron completos; el rechazo de una causa vaga no se ejerció con el modelo (rechazó escribirla) |
-| B12 | Interfaz de chat que muestre mensajes, delegaciones, informe y escalamiento | En rama | `due_diligence/web/` (rama `007`): aplicación Starlette con SSE, página `static/index.html` y eventos visibles en lenguaje llano (delegación, resultado, bloqueo con su regla, informe, escalamiento, fin y error); los bloqueos salen de la decisión de los hooks y el informe y el escalamiento del sobre que confirma el servidor, no del texto del modelo. Pruebas sin modelo en `due_diligence/web/tests/`; arranque con `python -m due_diligence.web` (solo `127.0.0.1`); ver `docs/INTERFAZ.md` y `specs/007-chat-eventos-visibles/verification.md`. Desviación declarada: Starlette en lugar de FastAPI (D1) |
+| B12 | Interfaz de chat que muestre mensajes, delegaciones, informe y escalamiento | Hecho | `due_diligence/web/` (en `main`, PR #23): aplicación Starlette con SSE, página `static/index.html` y eventos visibles en lenguaje llano (delegación, resultado, bloqueo con su regla, informe, escalamiento, fin y error); los bloqueos salen de la decisión de los hooks y el informe y el escalamiento del sobre que confirma el servidor, no del texto del modelo. Pruebas sin modelo en `due_diligence/web/tests/`; arranque con `python -m due_diligence.web` (solo `127.0.0.1`); ver `docs/INTERFAZ.md` y `specs/007-chat-eventos-visibles/verification.md`. Desviación declarada: Starlette en lugar de FastAPI (D1) |
 
 Casos de prueba que el repositorio debe incluir y pasar:
 
@@ -149,11 +149,11 @@ Casos de prueba que el repositorio debe incluir y pasar:
 | ID | Requisito | Estado | Evidencia / pendiente |
 |---|---|---|---|
 | D1 | Repositorio y Project con el historial real, sin reescribirlo | En curso | Historial intacto hasta hoy |
-| D2 | README: correr sistema y tests en menos de 5 minutos, enlace al Project y al video de funcionamiento | **Falta** | Ticket #11 |
-| D3 | `DECISIONES.md` de máximo dos páginas con mecanismo y motivo por necesidad | **Falta** | Ticket #11 |
+| D2 | README: correr sistema y tests en menos de 5 minutos, enlace al Project y al video de funcionamiento | Hecho | `README.md`, comprobado por `scripts/verify_docs.py` y vigilado por `pytest`; los pasos se midieron en una copia limpia: ≈ 3 min 12 s (`specs/011-readme-decisiones-videos/verification.md`). El enlace al video consta como `PENDIENTE` hasta que la persona lo publique |
+| D3 | `DECISIONES.md` de máximo dos páginas con mecanismo y motivo por necesidad | Hecho | `DECISIONES.md`: las once necesidades con mecanismo, porqué y alternativa descartada, 571 palabras de 1.000 (la medida de «dos páginas», declarada como sustituto); sus rutas se comprueban por máquina |
 | D4 | Artefactos de Spec Kit versionados | Hecho / En rama | Ver S8 |
-| D5 | Zip con `.git`, sin dependencias instaladas, máximo 50 MB, **sin `.env` ni credenciales** | **Falta** | Se arma al final (#11); el escaneo de secretos se hace a mano antes de cada commit; `scripts/tests/test_no_credentials.py` lo repite sobre la configuración |
-| D6 | Video de funcionamiento de máximo 5 minutos, con los casos obligatorios en la interfaz de chat, público y enlazado en el README | **Falta** | Interfaz y casos listos (#7 en rama, #8 en `main`); falta grabar el video (#11); requiere `ANTHROPIC_API_KEY` |
+| D5 | Zip con `.git`, sin dependencias instaladas, máximo 50 MB, **sin `.env` ni credenciales** | Parcial | `python scripts/verify_delivery.py --build --final` arma el zip desde lo versionado más `.git` y lo verifica (historial, dependencias, 50.000.000 bytes, archivos de entorno, credenciales en archivos y en el historial, coincidencia con el último commit y documentos). Sobre el repositorio real: ≈ 3,4 MB. **Falta que la persona genere el zip final, lo verifique con `--final` y lo suba** |
+| D6 | Video de funcionamiento de máximo 5 minutos, con los casos obligatorios en la interfaz de chat, público y enlazado en el README | Parcial | Interfaz (#7) y casos (#8) listos; `docs/VIDEO.md` es el guion (4:35 de 5:00), ensayado con el modelo real y comprobado por máquina. **Falta que la persona lo grabe, lo publique y pegue el enlace en el README** |
 | D7 | Video de defensa de máximo 15 minutos: ecosistema, especificaciones y sistema | **Falta** | A cargo del autor; requiere que todo lo anterior exista |
 | D8 | Revisión de autoría: la explicación coincide con el código | Pendiente | Depende del autor (explicar *este* código) |
 
@@ -161,7 +161,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 
 | Falta grave | Estado hoy | Cómo se controla |
 |---|---|---|
-| Una regla de negocio que dependa solo del prompt | **Cerrada en `main` (PR #17)** | Las reglas 1 a 3 las imponen hooks del SDK, con pruebas, 15 mutaciones detectadas y verificación con el modelo real. La regla 5 (informe parcial nunca como completo) también la impone un hook (en `main`, PR #18) y la regla 4 (procedencia y conflictos) desde la rama `005`; el escalamiento con criterio y el resumen al oficial también los impone un hook desde la rama `006` |
+| Una regla de negocio que dependa solo del prompt | **Cerrada en `main` (PR #17)** | Las reglas 1 a 3 las imponen hooks del SDK, con pruebas, 15 mutaciones detectadas y verificación con el modelo real. La regla 5 (informe parcial nunca como completo) también la impone un hook (en `main`, PR #18) y la regla 4 (procedencia y conflictos) (en `main`, PR #19); el escalamiento con criterio y el resumen al oficial también los impone un hook (en `main`, PR #20) |
 | Una credencial en el repositorio | Sin hallazgos | Escaneo de valores con forma de clave de Anthropic, de token de GitHub o de clave privada a mano antes de cada commit (sin hook de git que lo automatice) y, sobre la configuración, `scripts/tests/test_no_credentials.py`; `.env` ignorado; `.mcp.json` solo referencia variables |
 | Un dato que parezca real | Sin hallazgos | `test_datos_ficticios.py`; hook de datos reales en `main` (`real_data_guard.py`) |
 
@@ -179,18 +179,20 @@ Cosas hechas de forma distinta a lo que pide el enunciado o a lo que se acordó,
 8. **Ticket #10 (nota):** el flujo de tickets y el plugin quedan en la rama `010`. El #9 y el #10 se ejecutaron en ese orden, como fija la constitución (v1.1.1); ningún ticket de funcionalidad se fusiona antes de que el #10 esté fusionado. Queda **sin verificar** el comportamiento de las skills con el servidor o el toolset no disponibles; el hook del plugin y la skill se comprobaron en una sesión real (con el inicio de sesión de claude.ai: la variable `ANTHROPIC_API_KEY` actual devuelve `Invalid API key`). Las evidencias están en `specs/010-automatizacion-project-plugin/verification.md`.
 9. **Ticket #3 (nota):** los hooks de las reglas 1 a 3 quedan en la rama `003`. La verificación con modelo real mostró que el modelo respeta su prompt en el flujo normal, así que las denegaciones se ejercieron con un prompt de sistema de prueba que le ordena violar cada regla (los hooks son los de producción). Queda **sin verificar** con una `ANTHROPIC_API_KEY` válida (se usó el inicio de sesión de claude.ai) y la regla 3 por la categoría declarada se detecta con raíces de la lista, no con sinónimos.
 
+10. **Ticket #11 (nota):** el README, `DECISIONES.md`, el guion del video y los dos comprobadores (`scripts/verify_docs.py` y `scripts/verify_delivery.py`) están listos. Lo que el ticket no puede hacer y queda **en manos de la persona**: grabar y publicar el video de funcionamiento y pegar su enlace en el README, generar y subir el zip final (verificándolo con `python scripts/verify_delivery.py --build --final`), invitar a los evaluadores al repositorio y al Project, y grabar el video de defensa. Ensayo con el modelo real: los casos tardan entre 38 y 60 segundos cada uno, así que el video necesita acelerar las esperas al editar.
+
 ## 10. Resumen
 
 Requisitos trazados: **84** (reglas generales, reglas de negocio, Spec Kit, GitHub, ecosistema, sistema, casos de prueba y entregables).
 
 | Estado | Cantidad |
 |---|---|
-| Hecho | 68 |
+| Hecho | 71 |
 | Hecho (en main o en rama) | 3 |
-| En rama | 1 |
-| Parcial | 3 |
-| Falta | 6 |
+| En rama | 0 |
+| Parcial | 5 |
+| Falta | 2 |
 | Otro: En curso | 2 |
 | Otro: Pendiente | 1 |
 
-Última actualización: 2026-10-17, al preparar el PR del ticket #7 (pendiente de fusión); los casos C1 a C7 pasan a Hecho porque el #8 ya está fusionado (PR #21). Se actualiza al cerrar cada ticket.
+Última actualización: 2026-10-17, al preparar el PR del ticket #11 (pendiente de fusión); D2 y D3 pasan a Hecho y D5 y D6 a Parcial. Se actualiza al cerrar cada ticket.
