@@ -23,7 +23,7 @@ La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el mo
 
 | ID | Requisito del enunciado | Estado | Evidencia / pendiente |
 |---|---|---|---|
-| G1 | Los tres entregables cargados a más tardar el domingo 18-oct-2026 | Falta | En curso; ver sección 7 |
+| G1 | Los tres entregables cargados a más tardar el domingo 18-oct-2026 | Falta | El plazo venció (hoy es 2026-10-19). Pendientes: el zip final (D5), el video de funcionamiento (D6, sin grabar por el límite de gasto del workspace) y el video de defensa (D7) |
 | G2 | MVP sólido; si falta tiempo, priorizar los comportamientos obligatorios | Parcial | Criterio recogido en la constitución (Restricciones adicionales) |
 | G3 | Usar Claude Code durante toda la construcción | Hecho | Todo el historial se construyó con Claude Code |
 | G4 | Todos los datos ficticios (ni en logs ni en configuración) | Hecho | `mcp_server/data/*.json` con `FICT-000N`; prueba `mcp_server/tests/test_datos_ficticios.py`; escaneo manual de secretos y patrones antes de cada commit (no hay un hook de git que lo automatice). El hook que lo impone en la edición está en la rama `009` (N5) |
@@ -52,10 +52,10 @@ La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el mo
 | S3 | `/speckit.specify` por ticket con el contenido del issue; `/speckit.clarify` si hay ambigüedad | Hecho | `specs/001-*` (main) y `specs/002-*` (rama `002`). `clarify` no se usó: no quedaron ambigüedades |
 | S4 | `/speckit.plan` con decisiones técnicas | Hecho | `specs/001-*/plan.md`; `specs/002-*/plan.md` (rama `002`) |
 | S5 | `/speckit.tasks` (opcional `taskstoissues`) | Hecho | `tasks.md` en `specs/001-*` y `specs/002-*`; `taskstoissues` no usado (opcional) |
-| S6 | `/speckit.analyze` antes de implementar | Hecho | Ejecutado en #1 y #2; correcciones aplicadas |
+| S6 | `/speckit.analyze` antes de implementar | Hecho | Ejecutado en #1 y #2 con correcciones aplicadas, y también en #9 y #11 (constan en `tasks.md` de #2, #9 y #11). Para los demás tickets no queda un registro versionado de su resultado |
 | S7 | `/speckit.implement` para construir y `/speckit.converge` si quedan brechas | **Parcial** | Se implementó siguiendo `tasks.md` **a mano**; los comandos `/speckit-implement` y `/speckit-converge` **no se invocaron**. Pendiente decidir cómo se hace en los tickets que quedan |
-| S8 | Artefactos versionados (`.specify/memory/`, `specs/`) | Hecho / En rama | #1 en `main`; #2 en rama `002` |
-| S9 | Cada ticket implementado tiene spec, plan y tareas en el repositorio | Hecho / En rama | #1 completo; #2 completo en rama `002` |
+| S8 | Artefactos versionados (`.specify/memory/`, `specs/`) | Hecho | `.specify/memory/` y `specs/001-*` a `specs/011-*` en `main` |
+| S9 | Cada ticket implementado tiene spec, plan y tareas en el repositorio | Hecho | Los once tickets (#1 a #11) tienen `spec.md`, `plan.md` y `tasks.md` en `specs/` |
 
 ## 4. Gestión del proyecto en GitHub
 
@@ -67,7 +67,7 @@ La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el mo
 | P4 | Claude Code toma el siguiente ticket del Project y lo usa como insumo de `/speckit.specify` | Hecho | Skill `/siguiente-ticket` (rama `010`): elige el ticket por el orden del proyecto, lo pasa a `In Progress` por el MCP y entrega su contenido como insumo de `/speckit-specify`. Probada contra el Project real: con #2 y #10 en progreso se detiene y pide confirmación (en `main`, PR #15) |
 | P5 | Al iniciar un ticket lo mueve a In progress; al abrir el PR, a In review; al fusionar, a Done | Hecho | `/siguiente-ticket` (a `In Progress`), `/abrir-pr` ampliado (a `In review` y comentario Especificado/Decidido/Pendiente por el MCP) y `/sincronizar-tickets` (a `Done` al fusionar, idempotente; ejecutada sobre el estado real sin cambios). Done se registra al sincronizar, no en el instante de la fusión; el ciclo completo del #10 se cierra tras su fusión (T033) (en `main`, PR #15) |
 | P6 | Cada PR referencia y cierra su issue | Hecho | PR #12 cierra #1 |
-| P7 | El issue recibe comentarios de avance (qué se especificó, decidió y quedó pendiente) | Hecho | Comentarios en #1 y #2; el cierre del #2 está pendiente |
+| P7 | El issue recibe comentarios de avance (qué se especificó, decidió y quedó pendiente) | Hecho | Cada uno de los once issues tiene uno o dos comentarios de avance, hechos por el MCP de GitHub |
 | P8 | Automatización por comando, skill, subagente, hook o combinación | Hecho | Combinación de skills (`siguiente-ticket`, `sincronizar-tickets`) y comando (`/abrir-pr`) con `allowed-tools` limitadas al MCP de GitHub; verificadas por `scripts/tests/test_flow_skills.py` y el verificador del ecosistema (en `main`, PR #15) |
 | P9 | Un evaluador puede reconstruir el avance solo mirando GitHub | En curso | Se valida al final |
 
@@ -151,7 +151,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 | D1 | Repositorio y Project con el historial real, sin reescribirlo | En curso | Historial intacto hasta hoy |
 | D2 | README: correr sistema y tests en menos de 5 minutos, enlace al Project y al video de funcionamiento | Hecho | `README.md`, comprobado por `scripts/verify_docs.py` y vigilado por `pytest`; los pasos se midieron en una copia limpia: ≈ 3 min 12 s (`specs/011-readme-decisiones-videos/verification.md`). El enlace al video consta como `PENDIENTE` hasta que la persona lo publique |
 | D3 | `DECISIONES.md` de máximo dos páginas con mecanismo y motivo por necesidad | Hecho | `DECISIONES.md`: las once necesidades con mecanismo, porqué y alternativa descartada, 571 palabras de 1.000 (la medida de «dos páginas», declarada como sustituto); sus rutas se comprueban por máquina |
-| D4 | Artefactos de Spec Kit versionados | Hecho / En rama | Ver S8 |
+| D4 | Artefactos de Spec Kit versionados | Hecho | Ver S8 |
 | D5 | Zip con `.git`, sin dependencias instaladas, máximo 50 MB, **sin `.env` ni credenciales** | Parcial | `python scripts/verify_delivery.py --build --final` arma el zip desde lo versionado más `.git` y lo verifica (historial, dependencias, 50.000.000 bytes, archivos de entorno, credenciales en archivos y en el historial, coincidencia con el último commit y documentos). Sobre el repositorio real: ≈ 3,4 MB. **Falta que la persona genere el zip final, lo verifique con `--final` y lo suba** |
 | D6 | Video de funcionamiento de máximo 5 minutos, con los casos obligatorios en la interfaz de chat, público y enlazado en el README | Parcial | Interfaz (#7) y casos (#8) listos; `docs/VIDEO.md` es el guion (4:35 de 5:00), ensayado con el modelo real y comprobado por máquina. **Falta que la persona lo grabe, lo publique y pegue el enlace en el README** |
 | D7 | Video de defensa de máximo 15 minutos: ecosistema, especificaciones y sistema | **Falta** | A cargo del autor; requiere que todo lo anterior exista |
@@ -187,12 +187,12 @@ Requisitos trazados: **84** (reglas generales, reglas de negocio, Spec Kit, GitH
 
 | Estado | Cantidad |
 |---|---|
-| Hecho | 71 |
-| Hecho (en main o en rama) | 3 |
+| Hecho | 74 |
+| Hecho (en main o en rama) | 0 |
 | En rama | 0 |
 | Parcial | 5 |
 | Falta | 2 |
 | Otro: En curso | 2 |
 | Otro: Pendiente | 1 |
 
-Última actualización: 2026-10-17, al preparar el PR del ticket #11 (pendiente de fusión); D2 y D3 pasan a Hecho y D5 y D6 a Parcial. Se actualiza al cerrar cada ticket.
+Última actualización: 2026-10-19, tras fusionar los once tickets: S8, S9 y D4 pasan a Hecho (ya no hay ramas sin fusionar), P7 y S6 se ajustan a la evidencia que hay en GitHub y el repositorio, y G1 declara que el plazo venció. Se actualiza al cerrar cada entregable.
