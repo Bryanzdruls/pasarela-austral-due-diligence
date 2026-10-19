@@ -142,3 +142,69 @@ Cómo usarlo:
 [La última tarjeta a la vista]
 
 «Esos son los siete casos. En todos, lo grave lo decide el sistema y no el texto del modelo. El código y la documentación están en el repositorio. Gracias.»
+
+## Versión corta: tres casos con presentación del aplicativo
+
+Para cuando muestres solo tres casos. Elegí los que cuentan una historia completa: un comercio limpio se habilita (caso 2), uno de alto riesgo se escala (caso 1) y uno con una fuente caída se declara incompleto (caso 6). Se graban en ese orden; el caso 6 va último porque exige reiniciar con la falla. Las reglas de uso son las mismas de la sección anterior: lo de los corchetes no se lee y, si un caso sale distinto, no leas la frase que ya no es cierta.
+
+### Presentación del aplicativo (1:15)
+
+[Página vacía del chat, con el título a la vista]
+
+«Esto es Pasarela Austral, un sistema de due diligence de comercios. Una pasarela de pagos no puede habilitar a cualquier comercio: antes tiene que investigarlo. ¿Existe? ¿Quién es su representante legal? ¿Aparece en listas restrictivas? ¿Hay noticias negativas? ¿Su categoría de negocio es de alto riesgo? Hacer eso a mano es lento y es fácil olvidar una fuente. Este sistema lo hace por el analista.»
+
+«El analista, que es la persona de la pasarela que decide, escribe aquí su solicitud. Detrás hay un coordinador, un asistente de inteligencia artificial que reparte el trabajo entre cuatro frentes: el registro mercantil, las listas restrictivas, las noticias y el riesgo de la categoría. Cada frente consulta su propia fuente, y todos los datos de esta demostración son ficticios.»
+
+«Lo importante es que aquí se ve todo lo que pasa. Cada tarjeta es un hecho: a quién delegó el coordinador, qué encontró cada fuente, si el sistema bloqueó una llamada, qué informe se registró y si el caso se escaló a una persona de cumplimiento. Y las reglas graves no dependen de lo que diga el modelo: las impone el propio sistema. Por ejemplo, un comercio de alto riesgo nunca se habilita solo, y un informe incompleto nunca se presenta como completo. Veamos tres casos.»
+
+### Caso 2: todo en orden (1:00)
+
+[Pestaña nueva. Pegar y enviar: «Necesito el due diligence de Libros del Faro SAS, identificador CO-LB-0002. Si todo está bien, recomienda habilitarlo.»]
+
+«Primer caso: un comercio limpio. Libros del Faro, una librería. Le pido el due diligence y, si todo está bien, que recomiende habilitarlo.»
+
+[Esperar. Cuando aparezcan las tarjetas]
+
+«El coordinador empieza por el registro mercantil para identificar al comercio con certeza, y trabaja en paralelo con las noticias. Solo cuando sabe exactamente quién es el comercio y quién es su representante legal consulta las listas restrictivas y el riesgo. Cada fuente deja su hallazgo: no hay coincidencias en listas, ni para el comercio ni para su representante, no hay noticias y la categoría es de riesgo bajo.»
+
+[Cuando aparezca el informe]
+
+«Con eso el sistema registra el informe con la recomendación de habilitar. Fíjense que no hay ningún escalamiento: cuando todo está limpio, no se molesta a nadie.»
+
+### Caso 1: alto riesgo (1:00)
+
+[Pestaña nueva. Pegar y enviar: «Necesito el due diligence de Tienda Verde SAS, identificador CO-TV-0001. Quieren procesar ventas en línea de suplementos dietarios. ¿Lo habilitamos?»]
+
+«Segundo caso: un comercio de alto riesgo. Tienda Verde quiere procesar ventas en línea de suplementos dietarios, y le pregunto directamente si lo habilitamos.»
+
+[Esperar. Cuando aparezca el hallazgo de riesgo]
+
+«Se hace la misma investigación, pero ahora el riesgo de la categoría sale alto. Por política de la pasarela, una categoría de alto riesgo no se habilita de forma automática, por mucho que el resto de las fuentes esté limpio.»
+
+[Cuando aparezcan el informe y el escalamiento]
+
+«Por eso el informe no recomienda habilitar: recomienda escalar a cumplimiento, y aquí está la tarjeta de escalamiento, con la causa. La decisión final la toma una persona, y el sistema le deja el caso preparado con lo que encontró cada fuente.»
+
+### Caso 6: una fuente falla (1:10) — grabar al final
+
+[Antes: detener la interfaz, definir `$env:PASARELA_FAULTS = "noticias"` y arrancarla de nuevo. Pestaña nueva. Pegar y enviar: «Necesito el due diligence de Libros del Faro SAS, identificador CO-LB-0002.»]
+
+«Tercer caso: qué pasa cuando una fuente falla. Reinicié el sistema con el servicio de noticias caído a propósito, y pido otra vez el due diligence de Libros del Faro.»
+
+[Esperar. Cuando aparezca «Falló las noticias»]
+
+«El frente de noticias falla, y la tarjeta lo dice con claridad e indica que se puede reintentar. Una fuente caída es algo que pasa todos los días, y el sistema no lo esconde.»
+
+[Solo si aparece la tarjeta de bloqueo]
+
+«Aquí hay un bloqueo: el sistema no deja consultar la misma fuente más de una vez. Es un límite para no quedarse reintentando sin fin.»
+
+[Cuando aparezca el informe]
+
+«El informe recomienda no habilitar y declara las noticias como sin cubrir. Esa es la regla: si falta una fuente, el informe lo dice, y un informe parcial nunca se presenta como si estuviera completo.»
+
+### Cierre (0:35)
+
+[La última tarjeta a la vista]
+
+«Resumiendo: el analista escribe en lenguaje natural, el coordinador reparte el trabajo entre cuatro fuentes y cada paso queda visible. Lo grave, como no habilitar un comercio de alto riesgo o declarar lo que quedó sin cubrir, lo garantiza el sistema y no el texto del modelo. El código, las especificaciones y la documentación están en el repositorio. Gracias.»
