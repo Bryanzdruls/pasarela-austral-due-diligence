@@ -23,7 +23,7 @@ La columna "Sin verificar" marca lo que no se puede demostrar sin ejecutar el mo
 
 | ID | Requisito del enunciado | Estado | Evidencia / pendiente |
 |---|---|---|---|
-| G1 | Los tres entregables cargados a más tardar el domingo 18-oct-2026 | Falta | El plazo venció (hoy es 2026-10-19). Pendientes: el zip final (D5), el video de funcionamiento (D6, sin grabar por el límite de gasto del workspace) y el video de defensa (D7) |
+| G1 | Los tres entregables cargados a más tardar el domingo 18-oct-2026 | Falta | El plazo venció (hoy es 2026-10-19). Pendientes: el zip final (D5) y el video de defensa (D7); el video de funcionamiento (D6) está enlazado, pero con tres de los siete casos |
 | G2 | MVP sólido; si falta tiempo, priorizar los comportamientos obligatorios | Parcial | Criterio recogido en la constitución (Restricciones adicionales) |
 | G3 | Usar Claude Code durante toda la construcción | Hecho | Todo el historial se construyó con Claude Code |
 | G4 | Todos los datos ficticios (ni en logs ni en configuración) | Hecho | `mcp_server/data/*.json` con `FICT-000N`; prueba `mcp_server/tests/test_datos_ficticios.py`; escaneo manual de secretos y patrones antes de cada commit (no hay un hook de git que lo automatice). El hook que lo impone en la edición está en la rama `009` (N5) |
@@ -153,7 +153,7 @@ Casos de prueba que el repositorio debe incluir y pasar:
 | D3 | `DECISIONES.md` de máximo dos páginas con mecanismo y motivo por necesidad | Hecho | `DECISIONES.md`: las once necesidades con mecanismo, porqué y alternativa descartada, 571 palabras de 1.000 (la medida de «dos páginas», declarada como sustituto); sus rutas se comprueban por máquina |
 | D4 | Artefactos de Spec Kit versionados | Hecho | Ver S8 |
 | D5 | Zip con `.git`, sin dependencias instaladas, máximo 50 MB, **sin `.env` ni credenciales** | Parcial | `python scripts/verify_delivery.py --build --final` arma el zip desde lo versionado más `.git` y lo verifica (historial, dependencias, 50.000.000 bytes, archivos de entorno, credenciales en archivos y en el historial, coincidencia con el último commit y documentos). Sobre el repositorio real: ≈ 3,4 MB. **Falta que la persona genere el zip final, lo verifique con `--final` y lo suba** |
-| D6 | Video de funcionamiento de máximo 5 minutos, con los casos obligatorios en la interfaz de chat, público y enlazado en el README | Parcial | Interfaz (#7) y casos (#8) listos; `docs/VIDEO.md` es el guion (4:35 de 5:00), ensayado con el modelo real y comprobado por máquina. **Falta que la persona lo grabe, lo publique y pegue el enlace en el README** |
+| D6 | Video de funcionamiento de máximo 5 minutos, con los casos obligatorios en la interfaz de chat, público y enlazado en el README | Parcial | Video grabado y enlazado en el README (Google Drive, enlace accesible sin iniciar sesión). Según su autor muestra **tres** de los siete casos (2, 1 y 6), no los siete: por eso sigue Parcial. Los siete están automatizados sin modelo (`test_casos_obligatorios.py`) y se recorrieron con el modelo real por la interfaz (`specs/007-*/evidencia/`). Sin verificar por mí: la duración (máx. 5 min) y su contenido |
 | D7 | Video de defensa de máximo 15 minutos: ecosistema, especificaciones y sistema | **Falta** | A cargo del autor; requiere que todo lo anterior exista |
 | D8 | Revisión de autoría: la explicación coincide con el código | Pendiente | Depende del autor (explicar *este* código) |
 

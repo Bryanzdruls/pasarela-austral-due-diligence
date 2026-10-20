@@ -65,7 +65,7 @@ Los siete casos obligatorios del enunciado están en `docs/CASOS.md`, con su men
 ## Enlaces
 
 - **GitHub Project** (el backlog, con su historial): https://github.com/users/Bryanzdruls/projects/4
-- **Video de funcionamiento**: PENDIENTE (su guion está en `docs/VIDEO.md`)
+- **Video de funcionamiento**: https://drive.google.com/file/d/1KsfXF4VbxVQIEQ5qGCku8eH1ucxHIavT/view?usp=sharing (muestra tres de los siete casos en la interfaz de chat; los siete están automatizados en las pruebas, ver arriba; su guion está en `docs/VIDEO.md`)
 
 ## Mapa de piezas
 
